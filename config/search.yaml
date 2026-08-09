@@ -1,0 +1,27 @@
+roles:
+- web developer
+- ai engineer
+- it executive
+- software engineer
+- devops or cloud engineer
+- qa analyst
+- data analyst
+- app developer
+custom_roles:
+- mto
+location: Bangladesh
+bdjobs_max_pages: 3
+max_age_days: 30
+min_relevance_score: 0.0
+facebook_groups: null
+facebook_pages: null
+facebook_terms:
+- vacancy
+- circular
+- hiring
+- we are hiring
+- recruitment
+- position
+- apply now
+- send your cv
+- urgent need

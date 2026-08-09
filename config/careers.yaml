@@ -1,0 +1,104 @@
+# Company career-page sources (software / telecommunication / IT — startup,
+# MNC, private, government). Each entry is fetched during every scan.
+
+# Supported types:
+#   html           -> static job-list HTML page (links parsed from anchors)
+#   smartrecruiters -> SmartRecruiters JSON API (identifier = company slug)
+#   greenhouse     -> Greenhouse board API (board = token from careers URL)
+#   lever          -> Lever postings API (slug from jobs.lever.co/<slug>)
+#   ashby          -> Ashby GraphQL API (slug from jobs.ashbyhq.com/<slug>)
+#
+# location is optional per company; when absent it defaults to "Bangladesh".
+# Only jobs that (a) match one of the 8 roles and (b) are Bangladesh-located
+# are kept (same rules as LinkedIn/BDJobs).
+
+companies:
+  # ---- HTML career pages (verified reachable & parseable) ----
+  - name: "Therap (BD) Ltd"
+    site: "therapservices.net"
+    careers_url: "https://www.therapservices.net/jobs/"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Reve Systems"
+    site: "revesoft.com"
+    careers_url: "https://www.revesoft.com/company/careers"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Optimizely"
+    site: "optimizely.com"
+    careers_url: "https://careers.optimizely.com"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Field Nation"
+    site: "fieldnation.com"
+    careers_url: "https://fieldnation.com/careers"
+    type: html
+    location: "Bangladesh"
+
+  - name: "IQVIA Bangladesh"
+    site: "iqvia.com"
+    careers_url: "https://jobs.iqvia.com/en"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Pridesys IT"
+    site: "pridesys.com"
+    careers_url: "https://pridesys.com/careers"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Riseup Labs"
+    site: "riseuplabs.com"
+    careers_url: "https://riseuplabs.com/careers/"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Ollyo"
+    site: "ollyo.com"
+    careers_url: "https://ollyo.com/careers/"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Bdtask Limited"
+    site: "bdtask.com"
+    careers_url: "https://www.bdtask.com/careers"
+    type: html
+    location: "Bangladesh"
+
+  - name: "BJIT Group"
+    site: "bjitgroup.com"
+    careers_url: "https://www.bjitgroup.com/careers"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Selise Digital Platforms"
+    site: "selisegroup.com"
+    careers_url: "https://www.selisegroup.com/careers"
+    type: html
+    location: "Bangladesh"
+
+  # ---- SmartRecruiters JSON API (verified) ----
+  - name: "Portonics"
+    site: "portonics.com"
+    type: smartrecruiters
+    identifier: "PortonicsLimited"
+    location: "Bangladesh"
+
+  # ---- Greenhouse JSON API ----
+  - name: "Canonical"
+    site: "canonical.com"
+    type: greenhouse
+    board: "canonical"
+    location: "Bangladesh"
+
+  # ---- Lever JSON API ----
+  - name: "Field Nation"
+    site: "fieldnation.com"
+    type: lever
+    slug: "fieldnation"
+    location: "Bangladesh"
+
+  # ---- Add more as they are found (uncomment + fill in) ----

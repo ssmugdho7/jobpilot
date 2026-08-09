@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JobPilot</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background: #f4f6f8; color: #222; }
+    header { background: #1f4e79; color: #fff; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; }
+    header h1 { font-size: 20px; margin: 0; }
+    header .subtitle { font-size: 12px; opacity: .85; margin-top: 2px; }
+    nav a { color: #fff; margin-left: 16px; text-decoration: none; opacity: .9; }
+    nav a:hover { opacity: 1; text-decoration: underline; }
+    main { max-width: 1000px; margin: 20px auto; padding: 0 16px; }
+    .toolbar { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; }
+    .banner { background: #fff8e1; border: 1px solid #f0c36d; padding: 10px 14px; border-radius: 6px; margin-bottom: 16px; font-size: 14px; }
+    .badge { display: inline-block; background: #eef2f7; border: 1px solid #cfd9e4; color: #1f4e79; font-size: 12px; padding: 2px 8px; border-radius: 12px; margin-left: 8px; }
+    .badge.gemini-on { background: #e6f4ea; border-color: #34a853; color: #137333; }
+    .job { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 14px; }
+    .job h2 { font-size: 17px; margin: 0 0 4px; }
+    .job .meta { color: #555; font-size: 13px; margin-bottom: 8px; }
+    .job .meta .src { color: #1f4e79; font-weight: 600; }
+    .job .snippet { font-size: 13px; color: #333; margin-bottom: 10px; }
+    .score { font-size: 12px; color: #667; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .actions a, .actions button { border: none; border-radius: 6px; padding: 8px 12px; font-size: 13px; cursor: pointer; text-decoration: none; color: #fff; background: #1f4e79; }
+    .actions .ghost { background: #eef2f7; color: #1f4e79; border: 1px solid #cfd9e4; }
+    .actions a:hover, .actions button:hover { opacity: .9; }
+    .cv-result { margin-top: 10px; font-size: 13px; }
+    .cv-result a { color: #1f4e79; font-weight: 600; }
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1f4e79; color: #fff; padding: 10px 18px; border-radius: 6px; display: none; }
+    .empty { text-align: center; color: #889; padding: 40px 0; }
+    button:disabled { opacity: .5; cursor: wait; }
+    .filters { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
+    .filter { background: #fff; border: 1px solid #cfd9e4; color: #1f4e79; border-radius: 16px; padding: 4px 12px; font-size: 13px; text-decoration: none; }
+    .filter.active { background: #1f4e79; color: #fff; }
+    .fgroup { display: flex; align-items: center; gap: 6px; }
+    .fgroup .label { font-size: 12px; color: #667; margin-right: 4px; }
+    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+    .card input, .card textarea { width: 100%; padding: 8px; border: 1px solid #cfd9e4; border-radius: 6px; font-size: 14px; font-family: inherit; }
+    .card textarea { resize: vertical; }
+    .status { display: inline-block; font-size: 11px; text-transform: uppercase; letter-spacing: .3px; border-radius: 10px; padding: 2px 8px; margin-right: 6px; }
+    .status-new { background: #e8f0fe; color: #1a73e8; }
+    .status-applied { background: #e6f4ea; color: #137333; }
+    .status-dismissed { background: #fce8e6; color: #c5221f; }
+    .actions select { padding: 7px; border-radius: 6px; border: 1px solid #cfd9e4; font-size: 13px; background: #fff; }
+    .pagination { display: flex; align-items: center; gap: 6px; margin-top: 16px; padding-top: 12px; border-top: 1px solid #e2e8f0; font-size: 13px; color: #555; flex-wrap: wrap; }
+    .pagination .page-link { display: inline-block; padding: 4px 10px; background: #fff; border: 1px solid #cfd9e4; color: #1f4e79; border-radius: 6px; text-decoration: none; font-size: 13px; }
+    .pagination .page-link:hover { background: #1f4e79; color: #fff; }
+    .pagination .page-link.current { background: #1f4e79; color: #fff; border-color: #1f4e79; }
+    .pagination .ellipsis { padding: 4px 8px; color: #889; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>JobPilot</h1>
+    <div class="subtitle">Bangladesh IT jobs · office in Bangladesh only · sources: LinkedIn, BDJobs, company career pages, Facebook</div>    <nav>
+      <a href="/">Jobs</a>
+      <a href="/profile">Profile / Upload CV</a>
+      {% if username %}<span style="color:#a8c7fa;margin-left:12px">👤 {{ username }}</span><a href="/logout">Logout</a>{% endif %}
+    </nav>
+  </header>
+  <main>
+    {% if not gemini_ok %}
+    <div class="banner">⚠ Gemini API key not set. CV parsing/ATS generation will fall back to plain templates. Add GEMINI_API_KEY to <code>.env</code>.</div>
+    {% endif %}
+    {% if not profile.skills and not profile.summary %}
+    <div class="banner">No base CV uploaded yet. <a href="/profile">Upload your default CV</a> so personalized ATS CVs can be generated.</div>
+    {% endif %}
+
+    <div class="toolbar">
+      <button id="scanBtn" onclick="runScan()">Scan LinkedIn / BDJobs / Facebook now</button>
+      <span class="badge gemini-on">Gemini {{ 'on' if gemini_ok else 'off' }}</span>
+      <span style="color:#667;font-size:13px" id="count">{{ counts.all }} jobs</span>
+    </div>
+
+    <div class="filters">
+      <span class="label" style="font-size:12px;color:#667">Status:</span>
+      <a class="filter {{ 'active' if active_status == '' }}" href="/?days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}">All ({{ counts.all }})</a>
+      <a class="filter {{ 'active' if active_status == 'new' }}" href="/?status=new&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}">New ({{ counts.new }})</a>
+      <a class="filter {{ 'active' if active_status == 'applied' }}" href="/?status=applied&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}">Applied ({{ counts.applied }})</a>
+      <a class="filter {{ 'active' if active_status == 'dismissed' }}" href="/?status=dismissed&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}">Dismissed ({{ counts.dismissed }})</a>
+      <span style="width:16px"></span>
+      <span class="label" style="font-size:12px;color:#667">Posted:</span>
+      {% for value, label in days_options %}
+      <a class="filter {{ 'active' if active_days == value }}" href="/?status={{ active_status }}&days={{ value }}{% if active_role %}&role={{ active_role }}{% endif %}">{{ label }}</a>
+      {% endfor %}
+    </div>
+
+    <div class="filters" style="margin-top:-6px">
+      <span class="label" style="font-size:12px;color:#667">Role:</span>
+      <a class="filter {{ 'active' if not active_role }}" href="/?status={{ active_status }}&days={{ active_days }}">All Roles</a>
+      {% for r in roles %}
+      <a class="filter {{ 'active' if active_role == r }}" href="/?status={{ active_status }}&days={{ active_days }}&role={{ r }}">{{ r }}</a>
+      {% endfor %}
+      {% for cr in custom_roles %}
+      <a class="filter {{ 'active' if active_role == cr }}" href="/?status={{ active_status }}&days={{ active_days }}&role={{ cr }}">{{ cr }}</a>
+      {% endfor %}
+      <span style="display:inline-flex;gap:4px;align-items:center;margin-left:8px">
+        <input id="customRoleInput" placeholder="Add role (e.g. mto)..." style="padding:4px 8px;border:1px solid #cfd9e4;border-radius:12px;font-size:12px;width:140px">
+        <button onclick="addCustomRole()" style="padding:4px 10px;background:#1f4e79;color:#fff;border:none;border-radius:12px;font-size:12px;cursor:pointer">Add & Fetch</button>
+      </span>
+    </div>
+
+    <div class="card manual">
+      <h3>Add a job manually</h3>
+      <p class="hint">Found a posting on <strong>Facebook</strong> (group/page post), LinkedIn, BDJobs, NextJobz or a company site? Paste the URL and/or the description text here — it gets a Gmail draft link and ATS CV like every other job.</p>
+      <input id="mUrl" placeholder="Posting URL (e.g. Facebook post / LinkedIn job / company career page)" style="margin-bottom:8px">
+      <textarea id="mText" placeholder="Paste the job title / company / description text..." rows="4"></textarea>
+      <button onclick="addManual()">Add job</button>
+      <span id="mStatus" style="font-size:13px;margin-left:10px"></span>
+    </div>
+
+    {% if jobs %}
+      <div id="jobs">
+      {% for job in jobs %}
+        <div class="job" id="job-{{ job.id }}">
+          <h2>{{ job.title }} <span class="status status-{{ job.status }}">{{ job.status }}</span></h2>
+          <div class="meta">
+            {% if job.company %}<span>{{ job.company }} · </span>{% endif %}
+            {% if job.role %}<span>{{ job.role }}</span>{% endif %}
+            {% if job.location %}<span> · {{ job.location }}</span>{% endif %}
+          </div>
+          <div class="meta">
+            Source: <a class="src" href="{{ job.posting_url }}" target="_blank" rel="noopener">{{ job.source_site }}</a>
+            {% if job.posting_url %}<span> · <a href="{{ job.posting_url }}" target="_blank" rel="noopener">open posting</a></span>{% endif %}
+            {% if job.posted_date %}
+              <span> · posted {{ job.posted_date.strftime('%b %d, %Y') }}{% set age = (now - job.posted_date).days %}{% if age == 0 %} (today){% elif age == 1 %} (1 day ago){% else %} ({{ age }} days ago){% endif %}</span>
+            {% endif %}
+          </div>
+          {% if job.snippet %}<div class="snippet">{{ job.snippet }}</div>{% endif %}
+          <div class="score">Relevance: {{ job.relevance_score|round(2) }}</div>
+          <div class="actions">
+            <a href="{{ job.gmail_link }}" target="_blank" rel="noopener">Open Gmail draft</a>
+            <a class="ghost" href="{{ job.posting_url }}" target="_blank" rel="noopener">View source website</a>
+            <button class="ghost" onclick="genCv({{ job.id }})">Generate ATS CV</button>
+            <select onchange="setStatus({{ job.id }}, this.value)">
+              <option value="new" {{ 'selected' if job.status == 'new' }}>Mark: new</option>
+              <option value="applied" {{ 'selected' if job.status == 'applied' }}>Mark: applied</option>
+              <option value="dismissed" {{ 'selected' if job.status == 'dismissed' }}>Mark: dismissed</option>
+            </select>
+          </div>
+          <div class="cv-result" id="cv-{{ job.id }}"></div>
+        </div>
+      {% endfor %}
+      </div>
+
+      {% if total_pages > 1 %}
+      <div class="pagination">
+        <span>Page {{ active_page }} of {{ total_pages }} ({{ counts.all }} jobs)</span>
+        {% if active_page > 1 %}
+          <a class="page-link" href="/?status={{ active_status }}&days={{ active_days }}&page={{ active_page - 1 }}">« Prev</a>
+        {% endif %}
+        {% for p in range(1, total_pages + 1) %}
+          {% if p == active_page %}
+            <span class="page-link current">{{ p }}</span>
+          {% elif p == 1 or p == total_pages or (p >= active_page - 1 and p <= active_page + 1) %}
+            <a class="page-link" href="/?status={{ active_status }}&days={{ active_days }}&page={{ p }}">{{ p }}</a>
+          {% elif p == active_page - 2 or p == active_page + 2 %}
+            <span class="ellipsis">…</span>
+          {% endif %}
+        {% endfor %}
+        {% if active_page < total_pages %}
+          <a class="page-link" href="/?status={{ active_status }}&days={{ active_days }}&page={{ active_page + 1 }}">Next »</a>
+        {% endif %}
+      </div>
+      {% endif %}
+    {% else %}
+      <div class="empty">
+        <p>No jobs in the last {{ 'day' if active_days == 1 else ('days' if active_days in (3,) else 'week' if active_days == 7 else 'month') }}.</p>
+        <p>Click <strong>Scan LinkedIn / BDJobs / Facebook now</strong> to fetch Bangladesh IT postings, or widen the <strong>Posted</strong> filter.</p>
+      </div>
+    {% endif %}
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    async function runScan() {
+      const btn = document.getElementById('scanBtn');
+      btn.disabled = true; btn.textContent = 'Scanning...';
+      showToast('Scan started — this can take a minute. New jobs appear as they are found.');
+      try {
+        const r = await fetch('/api/scan', { method: 'POST' });
+        const d = await r.json();
+        if (d.started) {
+          setTimeout(() => location.reload(), 3000);
+        } else if (d.error) {
+          showToast('Scan already running — ' + d.error);
+          btn.disabled = false; btn.textContent = 'Scan LinkedIn / BDJobs / Facebook now';
+        }
+      } catch (e) {
+        showToast('Scan failed: ' + e);
+        btn.disabled = false; btn.textContent = 'Scan LinkedIn / BDJobs / Facebook now';
+      }
+    }
+
+    async function genCv(id) {
+      const box = document.getElementById('cv-' + id);
+      box.innerHTML = 'Generating ATS CV with Gemini...';
+      try {
+        const r = await fetch('/api/jobs/' + id + '/cv');
+        const d = await r.json();
+        if (!d.ok) { box.innerHTML = '⚠ ' + (d.error || 'failed'); return; }
+        box.innerHTML =
+          '<div>ATS CV ready — ' +
+          '<a href="' + d.docx_url + '">download .docx</a> · ' +
+          '<a href="' + d.pdf_url + '">download .pdf</a></div>';
+      } catch (e) {
+        box.innerHTML = '⚠ error: ' + e;
+      }
+    }
+
+    async function addCustomRole() {
+      const roleInput = document.getElementById('customRoleInput');
+      const role = roleInput.value.trim();
+      if (!role) return;
+      showToast('Adding role "' + role + '" and scanning sources...');
+      try {
+        const r = await fetch('/api/roles/add', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role: role })
+        });
+        const d = await r.json();
+        if (d.ok) {
+          showToast('Role added! Refreshing in 3 seconds as scan completes...');
+          setTimeout(() => { window.location.href = '/?role=' + encodeURIComponent(role); }, 3000);
+        } else {
+          showToast('Failed to add role: ' + (d.error || 'unknown'));
+        }
+      } catch (e) {
+        showToast('Error: ' + e);
+      }
+    }
+      const url = document.getElementById('mUrl').value.trim();
+      const text = document.getElementById('mText').value.trim();
+      const status = document.getElementById('mStatus');
+      status.textContent = 'Adding...';
+      try {
+        const r = await fetch('/api/jobs/manual', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: url, text: text })
+        });
+        const d = await r.json();
+        if (d.ok) {
+          status.textContent = '✓ Added — refreshing...';
+          setTimeout(() => location.reload(), 600);
+        } else {
+          status.textContent = '⚠ ' + (d.error || 'failed');
+        }
+      } catch (e) { status.textContent = '⚠ error: ' + e; }
+    }
+
+    async function setStatus(id, value) {
+      try {
+        await fetch('/api/jobs/' + id + '/status', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: value })
+        });
+        location.reload();
+      } catch (e) { alert('failed: ' + e); }
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg; t.style.display = 'block';
+      clearTimeout(t._h);
+      t._h = setTimeout(() => { t.style.display = 'none'; }, 4000);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JobPilot — Profile</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background: #f4f6f8; color: #222; }
+    header { background: #1f4e79; color: #fff; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; }
+    header h1 { font-size: 20px; margin: 0; }
+    nav a { color: #fff; margin-left: 16px; text-decoration: none; opacity: .9; }
+    main { max-width: 760px; margin: 20px auto; padding: 0 16px; }
+    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 18px; }
+    .card h2 { margin-top: 0; font-size: 18px; }
+    label { display: block; font-size: 13px; margin: 10px 0 4px; color: #445; }
+    input, textarea { width: 100%; padding: 8px; border: 1px solid #cfd9e4; border-radius: 6px; font-size: 14px; font-family: inherit; }
+    textarea { resize: vertical; min-height: 70px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .hint { font-size: 12px; color: #889; margin-top: 4px; }
+    button { border: none; border-radius: 6px; padding: 10px 14px; font-size: 14px; cursor: pointer; background: #1f4e79; color: #fff; margin-top: 14px; }
+    button.secondary { background: #eef2f7; color: #1f4e79; border: 1px solid #cfd9e4; }
+    .drop { border: 2px dashed #cfd9e4; border-radius: 8px; padding: 24px; text-align: center; color: #556; cursor: pointer; }
+    .drop.hover { border-color: #1f4e79; background: #eef5ff; }
+    .file-info { font-size: 13px; color: #137333; margin-top: 8px; }
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1f4e79; color: #fff; padding: 10px 18px; border-radius: 6px; display: none; }
+    .badge { display: inline-block; background: #e6f4ea; border: 1px solid #34a853; color: #137333; font-size: 12px; padding: 2px 8px; border-radius: 12px; }
+    button:disabled { opacity: .5; cursor: wait; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>JobPilot — Profile</h1>
+    <nav><a href="/">Jobs</a><a href="/profile">Profile</a>{% if username %}<span style="color:#a8c7fa;margin-left:12px">👤 {{ username }}</span><a href="/logout">Logout</a>{% endif %}</nav>
+  </header>
+  <main>
+    <div class="card">
+      <h2>Upload your default CV <span class="badge">Gemini {{ 'on' if gemini_ok else 'off' }}</span></h2>
+      <p style="font-size:13px;color:#556">Upload your CV (PDF or DOCX). Its contents are extracted and used to personalize Gmail drafts and ATS-friendly CVs for every job.</p>
+      {% if profile.cv_file %}<div class="file-info">✓ Stored: {{ profile.cv_file }}</div>{% endif %}
+      <div class="drop" id="drop">Drop your CV here or click to browse (PDF / DOCX)</div>
+      <input type="file" id="cvFile" accept=".pdf,.docx,.doc" hidden>
+      <button onclick="uploadCv()" id="upBtn" disabled>Upload &amp; parse</button>
+      <div id="uploadStatus" style="font-size:13px;margin-top:8px"></div>
+    </div>
+
+    <div class="card">
+      <h2>Profile (personalized info)</h2>
+      <div class="row">
+        <div><label>Name</label><input id="name" value="{{ profile.name }}"></div>
+        <div><label>Email</label><input id="email" value="{{ profile.email }}"></div>
+      </div>
+      <div class="row">
+        <div><label>Phone</label><input id="phone" value="{{ profile.phone }}"></div>
+        <div><label>LinkedIn</label><input id="linkedin" value="{{ profile.linkedin }}"></div>
+      </div>
+      <div class="row">
+        <div><label>GitHub</label><input id="github" value="{{ profile.github }}"></div>
+        <div><label>Portfolio</label><input id="portfolio" value="{{ profile.portfolio }}"></div>
+      </div>
+      <div class="row">
+        <div><label>Education</label><textarea id="education">{{ profile.education }}</textarea></div>
+        <div><label>Experience</label><textarea id="experience">{{ profile.experience }}</textarea></div>
+      </div>
+      <label>Professional summary</label><textarea id="summary">{{ profile.summary }}</textarea>
+      <label>Skills (comma-separated)</label><textarea id="skills">{{ profile.skills|join(', ') }}</textarea>
+      <button onclick="saveProfile()">Save profile</button>
+    </div>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const drop = document.getElementById('drop');
+    const input = document.getElementById('cvFile');
+    const upBtn = document.getElementById('upBtn');
+
+    drop.onclick = () => input.click();
+    drop.ondragover = e => { e.preventDefault(); drop.classList.add('hover'); };
+    drop.ondragleave = () => drop.classList.remove('hover');
+    drop.ondrop = e => {
+      e.preventDefault(); drop.classList.remove('hover');
+      if (e.dataTransfer.files.length) input.files = e.dataTransfer.files;
+      inputChanged();
+    };
+    input.onchange = inputChanged;
+
+    function inputChanged() {
+      if (input.files.length) {
+        drop.textContent = 'Selected: ' + input.files[0].name;
+        upBtn.disabled = false;
+      } else {
+        drop.textContent = 'Drop your CV here or click to browse (PDF / DOCX)';
+        upBtn.disabled = true;
+      }
+    }
+
+    async function uploadCv() {
+      const f = input.files[0];
+      if (!f) return;
+      const fd = new FormData();
+      fd.append('cv', f);
+      upBtn.disabled = true; upBtn.textContent = 'Uploading & parsing...';
+      document.getElementById('uploadStatus').textContent = 'Parsing with Gemini...';
+      try {
+        const r = await fetch('/api/cv/upload', { method: 'POST', body: fd });
+        const d = await r.json();
+        if (!d.ok) { document.getElementById('uploadStatus').textContent = '⚠ ' + d.error; return; }
+        fillForm(d.profile);
+        document.getElementById('uploadStatus').textContent = '✓ Parsed successfully — review below and Save.';
+      } catch (e) {
+        document.getElementById('uploadStatus').textContent = '⚠ error: ' + e;
+      } finally {
+        upBtn.disabled = false; upBtn.textContent = 'Upload & parse';
+      }
+    }
+
+    function fillForm(p) {
+      set('name', p.name); set('email', p.email); set('phone', p.phone);
+      set('linkedin', p.linkedin); set('github', p.github); set('portfolio', p.portfolio);
+      set('education', p.education); set('experience', p.experience);
+      set('summary', p.summary);
+      document.getElementById('skills').value = (p.skills || []).join(', ');
+    }
+
+    function set(id, v) { document.getElementById(id).value = v || ''; }
+
+    async function saveProfile() {
+      const body = {
+        name: val('name'), email: val('email'), phone: val('phone'),
+        linkedin: val('linkedin'), github: val('github'), portfolio: val('portfolio'),
+        education: val('education'), experience: val('experience'), summary: val('summary'),
+        skills: val('skills').split(',').map(s => s.trim()).filter(Boolean)
+      };
+      try {
+        const r = await fetch('/api/profile', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+        });
+        const d = await r.json();
+        showToast(d.ok ? 'Profile saved ✓' : 'Save failed');
+      } catch (e) { showToast('error: ' + e); }
+    }
+
+    function val(id) { return document.getElementById(id).value.trim(); }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg; t.style.display = 'block';
+      clearTimeout(t._h);
+      t._h = setTimeout(() => { t.style.display = 'none'; }, 3000);
+    }
+  </script>
+</body>
+</html>

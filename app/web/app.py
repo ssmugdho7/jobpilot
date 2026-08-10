@@ -109,7 +109,7 @@ def logout():
 @login_required
 def index():
     status = request.args.get("status", "").strip()
-    days = request.args.get("days", "1")
+    days = request.args.get("days", "30")
     page = request.args.get("page", "1")
     role_filter = request.args.get("role", "").strip().lower()
     try:

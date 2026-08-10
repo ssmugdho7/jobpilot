@@ -3,38 +3,39 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>JobPilot — Login</title>
+  <title>JobPilot — Sign in</title>
   <style>
-    * { box-sizing: border-box; }
-    body { font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background: #f4f6f8; color: #222; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 28px; width: 100%; max-width: 380px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-    h1 { font-size: 22px; margin-top: 0; color: #1f4e79; text-align: center; }
-    label { display: block; font-size: 13px; margin: 12px 0 4px; color: #445; }
-    input { width: 100%; padding: 10px; border: 1px solid #cfd9e4; border-radius: 6px; font-size: 14px; }
-    button { width: 100%; background: #1f4e79; color: #fff; border: none; border-radius: 6px; padding: 10px; font-size: 15px; cursor: pointer; margin-top: 18px; }
-    button:hover { background: #153656; }
-    .error { background: #fce8e6; color: #c5221f; padding: 8px 12px; border-radius: 6px; font-size: 13px; margin-bottom: 14px; }
-    .footer { text-align: center; font-size: 13px; margin-top: 16px; color: #667; }
-    .footer a { color: #1f4e79; text-decoration: none; }
+    :root { --blue: #2563eb; --blue-dark: #1d4ed8; --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #1e293b; --muted: #64748b; }
+    * { box-sizing: border-box; margin: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 36px; width: 100%; max-width: 380px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+    .logo { font-size: 24px; font-weight: 700; color: var(--blue); text-align: center; margin-bottom: 4px; }
+    .logo span { color: var(--text); }
+    .tagline { text-align: center; font-size: 14px; color: var(--muted); margin-bottom: 28px; }
+    .error { background: #fef2f2; color: #dc2626; padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; }
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 13px; font-weight: 500; color: var(--muted); margin-bottom: 4px; }
+    .field input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; }
+    .field input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
+    .btn { width: 100%; padding: 10px; background: var(--blue); color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 500; cursor: pointer; margin-top: 6px; }
+    .btn:hover { background: var(--blue-dark); }
+    .footer { text-align: center; font-size: 13px; margin-top: 20px; color: var(--muted); }
+    .footer a { color: var(--blue); }
   </style>
 </head>
 <body>
   <div class="card">
-    <h1>JobPilot</h1>
-    <p style="text-align:center;font-size:13px;color:#667;margin-top:0">Sign in to your job dashboard</p>
+    <div class="logo">Job<span>Pilot</span></div>
+    <p class="tagline">Bangladesh IT job aggregator</p>
     {% if error %}
     <div class="error">{{ error }}</div>
     {% endif %}
     <form method="POST">
-      <label>Username</label>
-      <input type="text" name="username" required autofocus>
-      <label>Password</label>
-      <input type="password" name="password" required>
-      <button type="submit">Sign in</button>
+      <div class="field"><label>Username</label><input type="text" name="username" required autofocus></div>
+      <div class="field"><label>Password</label><input type="password" name="password" required></div>
+      <button class="btn" type="submit">Sign in</button>
     </form>
-    <div class="footer">
-      Don't have an account? <a href="/register">Register</a>
-    </div>
+    <div class="footer">Don't have an account? <a href="/register">Register</a></div>
   </div>
 </body>
 </html>

@@ -1,16 +1,13 @@
 import urllib.parse
 
 
-def build_gmail_link(to: str, subject: str, body: str, attach_cv: bool = True) -> str:
+def build_gmail_link(to: str, subject: str, body: str) -> str:
     params = {
         "view": "cm",
-        "fs": "1",
         "to": to or "",
         "su": subject,
         "body": body,
     }
-    if attach_cv:
-        params["attach"] = "1"
     return "https://mail.google.com/mail/?" + urllib.parse.urlencode(
         params, quote_via=urllib.parse.quote
     )
@@ -31,63 +28,51 @@ def build_body(job: dict, profile: dict) -> str:
     linkedin = profile.get("linkedin") or ""
     github = profile.get("github") or ""
     portfolio = profile.get("portfolio") or ""
-    summary = profile.get("summary") or ""
-    education = profile.get("education") or ""
-    experience = profile.get("experience") or ""
     skills = profile.get("skills") or []
-    skills_str = ", ".join(skills[:10])
+    skills_str = ", ".join(skills[:8])
 
     title = job.get("title") or "the position"
-    company = job.get("company") or "your company"
+    company = job.get("company") or "your team"
     location = job.get("location") or ""
-
-    links = []
-    if linkedin:
-        links.append(f"LinkedIn: {linkedin}")
-    if github:
-        links.append(f"GitHub: {github}")
-    if portfolio:
-        links.append(f"Portfolio: {portfolio}")
-    links_str = "\n".join(links)
 
     lines = [
         f"Dear Hiring Manager,",
         "",
-        f"I am writing to express my strong interest in the {title} position at {company}"
-        + (f", located in {location}." if location else "."),
+        f"I am writing to express my interest in the {title} role at {company}"
+        + (f" ({location})." if location else "."),
         "",
     ]
-    if summary:
-        lines.append(summary)
+
+    if skills_str:
+        lines.append(f"With experience in {skills_str}, I am confident I can contribute meaningfully to your team.")
+
+    if portfolio:
         lines.append("")
-    lines.append(f"My technical skills include: {skills_str}.")
-    if experience:
-        lines.append(f"")
-        lines.append(f"Experience: {experience}")
-    if education:
-        lines.append("")
-        lines.append(f"Education: {education}.")
+        lines.append(f"Portfolio: {portfolio}")
+
     lines += [
         "",
-        "I have attached my CV for your review. I would welcome the opportunity to discuss how my skills and enthusiasm can contribute to your team.",
+        "I would welcome the opportunity to discuss how my background aligns with your needs. Please find my resume attached.",
         "",
-        "Thank you for your time and consideration.",
+        "Thank you for your consideration.",
         "",
-        "Best regards,",
-        name,
+        f"Best regards,",
+        f"{name}",
     ]
     if phone:
-        lines.append(f"Phone: {phone}")
+        lines.append(f"{phone}")
     if email:
-        lines.append(f"Email: {email}")
-    if links_str:
-        lines.append(links_str)
+        lines.append(f"{email}")
+    if linkedin:
+        lines.append(f"LinkedIn: {linkedin}")
+    if github:
+        lines.append(f"GitHub: {github}")
 
     return "\n".join(lines)
 
 
-def build_job_gmail_link(job: dict, profile: dict, attach_cv: bool = True) -> str:
+def build_job_gmail_link(job: dict, profile: dict) -> str:
     subject = build_subject(job)
     body = build_body(job, profile)
-    to = job.get("hr_email") or job.get("email") or ""
-    return build_gmail_link(to, subject, body, attach_cv)
+    to = job.get("hr_email") or ""
+    return build_gmail_link(to, subject, body)

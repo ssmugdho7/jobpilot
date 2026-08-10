@@ -1,34 +1,46 @@
 import os
 import re
-import uuid
 import yaml
 from datetime import datetime, timedelta
 from urllib.parse import urlparse
 from functools import wraps
 
-from flask import Flask, render_template, jsonify, request, send_file, session, redirect, url_for
+from flask import Flask, render_template, jsonify, request, session, redirect, url_for
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import func, and_, or_
 
 from app.db import SessionLocal, Job, Profile, User, UserJob, get_user_job, profile_to_dict, get_or_create_profile
-from app.pipeline import run_scan, run_scan_async, _clean_job
-from app.cv.parse import save_upload, extract_text, extract_email
-from app.cv.profile import profile_from_text
-from app.cv.ats import generate_ats_cv
-from app.cv.render import render_cv_docx, render_cv_pdf
-from app.gemini import gemini_available
+from app.pipeline import run_scan_async, _clean_job
+from app.cv.parse import extract_email
 from app.gmail_link import build_job_gmail_link
-from app.paths import UPLOAD_DIR, CONFIG_DIR
+from app.paths import CONFIG_DIR
 from app.config import load_search_config
 
 DAYS_OPTIONS = [("1", "1 day"), ("3", "3 days"), ("7", "1 week"), ("30", "1 month")]
 
 app = Flask(__name__)
-app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
 app.secret_key = os.getenv("SECRET_KEY", "jobpilot-super-secret-key-change-in-prod")
 
-ALLOWED_CV_EXT = {".pdf", ".docx", ".doc"}
 EMAIL_RE_PATTERN = r"[\w.+-]+@[\w-]+\.[\w.-]+"
+
+# Emails that are NOT a real HR/person contact — skip for Gmail compose
+JUNK_EMAILS = {
+    "noreply", "no-reply", "donotreply", "do-not-reply",
+    "mailer-daemon", "postmaster", "bounce",
+    "info", "support", "help", "admin", "webmaster",
+    "notifications", "notification", "alerts", "marketing",
+    "subscribe", "unsubscribe", "feedback",
+}
+
+
+def _is_useful_email(email: str) -> bool:
+    if not email:
+        return False
+    local = email.split("@")[0].lower().replace(".", "").replace("-", "").replace("_", "")
+    for junk in JUNK_EMAILS:
+        if junk in local:
+            return False
+    return True
 
 
 def login_required(f):
@@ -139,24 +151,22 @@ def index():
         profile = get_or_create_profile(user_id, db_session)
         p_dict = profile_to_dict(profile)
 
-        # Attach per-user state to jobs
         for job in jobs:
             uj = get_user_job(user_id, job.id, db_session)
             job.status = uj.status
-            job.cv_path = uj.cv_path
-            job.gmail_link = build_job_gmail_link(
-                {"title": job.title, "company": job.company, "location": job.location, "hr_email": getattr(job, "hr_email", "")},
-                p_dict,
-                attach_cv=True
-            )
+            hr_email = getattr(job, "hr_email", "") or ""
+            if _is_useful_email(hr_email):
+                job.gmail_link = build_job_gmail_link(
+                    {"title": job.title, "company": job.company, "location": job.location, "hr_email": hr_email},
+                    p_dict,
+                )
+            else:
+                job.gmail_link = ""
 
         search_cfg = load_search_config()
         return render_template(
             "index.html",
             jobs=jobs,
-            profile=p_dict,
-            gemini_ok=gemini_available(),
-            scan_in_progress=False,
             active_status=status,
             active_days=days,
             active_role=role_filter,
@@ -196,37 +206,13 @@ def _status_counts(db_session, user_id, cutoff) -> dict:
     }
 
 
-@app.route("/api/roles/add", methods=["POST"])
-@login_required
-def api_roles_add():
-    data = request.get_json(silent=True) or {}
-    new_role = (data.get("role") or "").strip().lower()
-    if not new_role:
-        return jsonify({"error": "role required"}), 400
-
-    search_path = os.path.join(CONFIG_DIR, "search.yaml")
-    try:
-        with open(search_path, "r", encoding="utf-8") as f:
-            cfg = yaml.safe_load(f) or {}
-        custom = cfg.get("custom_roles") or []
-        if new_role not in [c.lower() for c in custom]:
-            custom.append(new_role)
-            cfg["custom_roles"] = custom
-            with open(search_path, "w", encoding="utf-8") as f:
-                yaml.safe_dump(cfg, f, sort_keys=False)
-        run_scan_async()
-        return jsonify({"ok": True, "custom_roles": custom})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
 @app.route("/profile")
 @login_required
 def profile_page():
     db_session = SessionLocal()
     try:
         profile = get_or_create_profile(session["user_id"], db_session)
-        return render_template("profile.html", profile=profile_to_dict(profile), gemini_ok=gemini_available(), username=session.get("username"))
+        return render_template("profile.html", profile=profile_to_dict(profile), username=session.get("username"))
     finally:
         db_session.close()
 
@@ -304,18 +290,12 @@ def api_add_manual_job():
 
     db_session = SessionLocal()
     try:
-        profile = get_or_create_profile(session["user_id"], db_session)
-        p_dict = profile_to_dict(profile)
-
         existing = db_session.query(Job).filter_by(
             source_site=job_dict["source_site"], posting_url=job_dict["posting_url"]
         ).first()
         if existing:
-            uj = get_user_job(session["user_id"], existing.id, db_session)
-            db_session.commit()
             return jsonify({"error": "job already exists", "id": existing.id}), 409
 
-        gmail_link = build_job_gmail_link(job_dict, p_dict, attach_cv=True)
         row = Job(
             title=job_dict["title"],
             company=job_dict["company"],
@@ -325,7 +305,6 @@ def api_add_manual_job():
             snippet=job_dict["snippet"],
             role=job_dict["role"],
             relevance_score=job_dict["relevance_score"],
-            gmail_link=gmail_link,
             status="new",
             posted_date=job_dict["posted_date"],
             created_at=datetime.utcnow(),
@@ -335,7 +314,7 @@ def api_add_manual_job():
         uj = get_user_job(session["user_id"], row.id, db_session)
         uj.status = "new"
         db_session.commit()
-        return jsonify({"ok": True, "id": row.id, "gmail_link": gmail_link})
+        return jsonify({"ok": True, "id": row.id})
     finally:
         db_session.close()
 
@@ -366,127 +345,6 @@ def api_save_profile():
             profile.skills = ", ".join(str(s).strip() for s in data["skills"] if str(s).strip())
         db_session.commit()
         return jsonify({"ok": True, "profile": profile_to_dict(profile)})
-    finally:
-        db_session.close()
-
-
-@app.route("/api/cv/upload", methods=["POST"])
-@login_required
-def api_cv_upload():
-    if "cv" not in request.files:
-        return jsonify({"error": "no file"}), 400
-    file = request.files["cv"]
-    if not file.filename:
-        return jsonify({"error": "no file"}), 400
-    ext = os.path.splitext(file.filename)[1].lower()
-    if ext not in ALLOWED_CV_EXT:
-        return jsonify({"error": "only .pdf/.docx allowed"}), 400
-
-    filename = f"cv_{uuid.uuid4().hex}{ext}"
-    path = save_upload(file, filename)
-    try:
-        text = extract_text(path)
-    except Exception as e:
-        return jsonify({"error": f"could not parse CV: {e}"}), 400
-    if not text.strip():
-        return jsonify({"error": "no text found in CV"}), 400
-
-    db_session = SessionLocal()
-    try:
-        profile = get_or_create_profile(session["user_id"], db_session)
-        existing = profile_to_dict(profile)
-        parsed = profile_from_text(text, existing)
-        profile.name = parsed["name"]
-        profile.email = parsed["email"]
-        profile.phone = parsed["phone"]
-        profile.linkedin = parsed["linkedin"]
-        profile.github = parsed["github"]
-        profile.portfolio = parsed["portfolio"]
-        profile.summary = parsed["summary"]
-        profile.education = parsed["education"]
-        profile.experience = parsed["experience"]
-        profile.skills = ", ".join(parsed["skills"])
-        profile.cv_file = filename
-        db_session.commit()
-        return jsonify({"ok": True, "parsed": True, "profile": profile_to_dict(profile)})
-    finally:
-        db_session.close()
-
-
-@app.route("/api/jobs/<int:job_id>/cv", methods=["GET"])
-@login_required
-def api_generate_cv(job_id):
-    db_session = SessionLocal()
-    try:
-        job = db_session.query(Job).get(job_id)
-        if not job:
-            return jsonify({"error": "job not found"}), 404
-        profile = get_or_create_profile(session["user_id"], db_session)
-        p_dict = profile_to_dict(profile)
-        if not p_dict.get("skills") and not p_dict.get("summary"):
-            return jsonify({"error": "upload your CV first (profile page)"}), 400
-
-        ats = generate_ats_cv(
-            {"title": job.title, "company": job.company, "snippet": job.snippet},
-            p_dict,
-        )
-        template_path = os.path.join(UPLOAD_DIR, p_dict.get("cv_file", "")) if p_dict.get("cv_file") else ""
-        if not template_path or not os.path.exists(template_path):
-            template_path = None
-        docx_path = render_cv_docx(job_id, p_dict, ats, template_path=template_path)
-        pdf_path = render_cv_pdf(job_id, p_dict, ats, template_path=template_path)
-
-        uj = get_user_job(session["user_id"], job_id, db_session)
-        uj.cv_path = docx_path
-        db_session.commit()
-        return jsonify({
-            "ok": True,
-            "docx_url": f"/api/jobs/{job_id}/cv.docx",
-            "pdf_url": f"/api/jobs/{job_id}/cv.pdf",
-            "summary": ats["summary"],
-            "skills": ats["skills"],
-            "experience": ats["experience"],
-            "education": ats["education"],
-        })
-    finally:
-        db_session.close()
-
-
-@app.route("/api/jobs/<int:job_id>/cv.docx", methods=["GET"])
-@login_required
-def api_download_cv_docx(job_id):
-    return _download_cv(job_id, "docx")
-
-
-@app.route("/api/jobs/<int:job_id>/cv.pdf", methods=["GET"])
-@login_required
-def api_download_cv_pdf(job_id):
-    return _download_cv(job_id, "pdf")
-
-
-def _download_cv(job_id: int, ext: str):
-    db_session = SessionLocal()
-    try:
-        job = db_session.query(Job).get(job_id)
-        if not job:
-            return jsonify({"error": "job not found"}), 404
-        profile = get_or_create_profile(session["user_id"], db_session)
-        p_dict = profile_to_dict(profile)
-        ats = generate_ats_cv(
-            {"title": job.title, "company": job.company, "snippet": job.snippet},
-            p_dict,
-        )
-        template_path = os.path.join(UPLOAD_DIR, p_dict.get("cv_file", "")) if p_dict.get("cv_file") else ""
-        if not template_path or not os.path.exists(template_path):
-            template_path = None
-        if ext == "docx":
-            path = render_cv_docx(job_id, p_dict, ats, template_path=template_path)
-            mimetype = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        else:
-            path = render_cv_pdf(job_id, p_dict, ats, template_path=template_path)
-            mimetype = "application/pdf"
-        return send_file(path, mimetype=mimetype, as_attachment=True,
-                         download_name=os.path.basename(path))
     finally:
         db_session.close()
 

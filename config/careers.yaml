@@ -102,3 +102,94 @@ companies:
     location: "Bangladesh"
 
   # ---- Add more as they are found (uncomment + fill in) ----
+
+  # ---- Additional Bangladesh IT companies ----
+  - name: "Grameenphone"
+    site: "grameenphone.com"
+    careers_url: "https://www.grameenphone.com/about/careers"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Robi Axiata"
+    site: "robi.com.bd"
+    careers_url: "https://www.robi.com.bd/careers"
+    type: html
+    location: "Bangladesh"
+
+  - name: "bKash"
+    site: "bkash.com"
+    careers_url: "https://www.bkash.com/careers"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Nagad"
+    site: "nagad.com.bd"
+    careers_url: "https://nagad.com.bd/careers/"
+    type: html
+    location: "Bangladesh"
+
+  - name: "ShopUp"
+    site: "shopup.com"
+    careers_url: "https://shopup.com/careers"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Pathao"
+    site: "pathao.com"
+    careers_url: "https://pathao.com/careers"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Brain Station 23"
+    site: "brainstation-23.com"
+    careers_url: "https://www.brainstation-23.com/career"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Samsung R&D Bangladesh"
+    site: "research.samsung.com"
+    careers_url: "https://research.samsung.com/bangladesh"
+    type: html
+    location: "Bangladesh"
+
+  - name: "DataSoft"
+    site: "datasoft.com.bd"
+    careers_url: "https://www.datasoft.com.bd/careers"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Southtech Group"
+    site: "southtechgroup.com"
+    careers_url: "https://www.southtechgroup.com/careers"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Kaz Software"
+    site: "kaz.com.bd"
+    careers_url: "https://www.kaz.com.bd/careers"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Cefalo Bangladesh"
+    site: "cefalo.com"
+    careers_url: "https://www.cefalo.com/careers"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Vivasoft"
+    site: "vivasoftltd.com"
+    careers_url: "https://vivasoftltd.com/careers"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Genex Infosys"
+    site: "genexinfosys.com"
+    careers_url: "https://www.genexinfosys.com/careers"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Dhaka Bank IT"
+    site: "dhakabank.com.bd"
+    careers_url: "https://www.dhakabank.com.bd/careers"
+    type: html
+    location: "Bangladesh"

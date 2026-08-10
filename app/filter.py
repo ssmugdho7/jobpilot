@@ -1,4 +1,5 @@
 import re
+import urllib.parse
 from app.config import load_search_config
 
 # Role -> keywords that strongly indicate the role (matched against title+snippet)
@@ -119,6 +120,59 @@ def score_job(job: dict) -> float:
     return round(min(score, 1.0), 2)
 
 
+def detect_fresher(job: dict) -> bool:
+    """Return True if job targets freshers / entry-level (0-1 years experience)."""
+    title = (job.get("title") or "").lower()
+    snippet = (job.get("snippet") or "").lower()
+    text = f"{title} {snippet}"
+
+    fresher_kw = [
+        "fresher", "fresh graduate", "no experience",
+        "0-1 year", "0-1 years", "0 to 1 year", "0 to 1 years",
+        "entry level", "entry-level", "junior",
+        "recent graduate", "new graduate", "just graduated",
+        "early career", "trainee", "intern",
+    ]
+    for kw in fresher_kw:
+        if kw in text:
+            return True
+
+    exp_pattern = re.search(r"(\d+)[\s-]*(?:to|–|-)?[\s]*(\d+)\s*years?\s*(?:of\s+)?experience", text)
+    if exp_pattern:
+        low = int(exp_pattern.group(1))
+        if low <= 1:
+            return True
+
+    return False
+
+
 def is_relevant(job: dict, min_score: float = 0.0) -> bool:
     role = job.get("role") or detect_role(job)
     return bool(role) and score_job(job) >= min_score
+
+
+def skill_gap_analysis(user_skills: list, job_title: str, job_snippet: str) -> dict:
+    """Compare user skills against job text. Returns matched/missing skills and score."""
+    if not user_skills:
+        return {"matched": [], "missing": [], "score": 0.0}
+    text = f"{(job_title or '').lower()} {(job_snippet or '').lower()}"
+    matched = []
+    missing = []
+    for skill in user_skills:
+        if skill.lower() in text:
+            matched.append(skill)
+        else:
+            missing.append(skill)
+    score = round(len(matched) / max(len(user_skills), 1), 2)
+    return {"matched": matched, "missing": missing, "score": score}
+
+
+def company_links(company: str) -> dict:
+    """Generate research links for a company (Glassdoor + Deshimula)."""
+    q = urllib.parse.quote(company or "")
+    encoded = urllib.parse.quote(company or "")
+    return {
+        "glassdoor": f"https://www.glassdoor.com/Reviews/{encoded}-reviews-SRCH_KE0,{encoded}.htm" if company else "",
+        "deshimula": f"https://deshimula.com/search?q={encoded}" if company else "",
+        "linkedin": f"https://www.linkedin.com/company/{encoded}/jobs/" if company else "",
+    }

@@ -25,6 +25,7 @@ class UserJob(Base):
     job_id = Column(Integer, ForeignKey("jobs.id"), primary_key=True)
     status = Column(String(20), default="new")
     cv_path = Column(String(300), default="")
+    follow_up_at = Column(DateTime)  # set when status=applied, reminder after 5 days
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
@@ -40,6 +41,8 @@ class Job(Base):
     snippet = Column(Text, default="")
     role = Column(String(100), default="")
     relevance_score = Column(Float, default=0.0)
+    is_fresher = Column(Integer, default=0)  # 1 = fresher/entry-level
+    hr_email = Column(String(300), default="")  # extracted HR contact email
     gmail_link = Column(Text, default="")
     cv_path = Column(String(300), default="")
     status = Column(String(20), default="new")
@@ -83,6 +86,14 @@ def init_db():
             conn.exec_driver_sql("ALTER TABLE jobs ADD COLUMN posted_date DATETIME")
         if "deadline" not in cols_jobs:
             conn.exec_driver_sql("ALTER TABLE jobs ADD COLUMN deadline DATETIME")
+        if "is_fresher" not in cols_jobs:
+            conn.exec_driver_sql("ALTER TABLE jobs ADD COLUMN is_fresher INTEGER DEFAULT 0")
+        if "hr_email" not in cols_jobs:
+            conn.exec_driver_sql("ALTER TABLE jobs ADD COLUMN hr_email VARCHAR(300) DEFAULT ''")
+
+        cols_uj = [row[1] for row in conn.exec_driver_sql("PRAGMA table_info(user_jobs)")]
+        if "follow_up_at" not in cols_uj:
+            conn.exec_driver_sql("ALTER TABLE user_jobs ADD COLUMN follow_up_at DATETIME")
 
         cols_profile = [row[1] for row in conn.exec_driver_sql("PRAGMA table_info(profile)")]
         if "user_id" not in cols_profile:

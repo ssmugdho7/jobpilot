@@ -1,8 +1,5 @@
 import os
-import re
-import yaml
 from datetime import datetime, timedelta
-from urllib.parse import urlparse
 from functools import wraps
 
 from flask import Flask, render_template, jsonify, request, session, redirect, url_for
@@ -10,18 +7,16 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import func, and_, or_
 
 from app.db import SessionLocal, Job, Profile, User, UserJob, get_user_job, profile_to_dict, get_or_create_profile
-from app.pipeline import run_scan_async, _clean_job
-from app.cv.parse import extract_email
+from app.pipeline import run_scan_async
 from app.gmail_link import build_job_gmail_link
 from app.paths import CONFIG_DIR
 from app.config import load_search_config
+from app.filter import skill_gap_analysis, company_links
 
 DAYS_OPTIONS = [("1", "1 day"), ("3", "3 days"), ("7", "1 week"), ("30", "1 month")]
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "jobpilot-super-secret-key-change-in-prod")
-
-EMAIL_RE_PATTERN = r"[\w.+-]+@[\w-]+\.[\w.-]+"
 
 # Emails that are NOT a real HR/person contact — skip for Gmail compose
 JUNK_EMAILS = {
@@ -41,6 +36,23 @@ def _is_useful_email(email: str) -> bool:
         if junk in local:
             return False
     return True
+
+
+def _user_relevance_score(profile_skills: list, job) -> float:
+    """Score job relevance based on user profile skills vs job title+snippet."""
+    if not profile_skills:
+        return job.relevance_score or 0.0
+    title = (job.title or "").lower()
+    snippet = (job.snippet or "").lower()
+    text = f"{title} {snippet}"
+    hits = 0
+    for skill in profile_skills:
+        if skill.lower() in text:
+            hits += 1
+    if hits == 0:
+        return 0.0
+    ratio = hits / max(len(profile_skills), 1)
+    return round(min(0.5 + ratio * 0.5, 1.0), 2)
 
 
 def login_required(f):
@@ -141,7 +153,7 @@ def index():
             q = q.filter(or_(UserJob.status == "new", UserJob.status.is_(None)))
 
         total = q.count()
-        PER_PAGE = 20
+        PER_PAGE = 5
         total_pages = max(1, (total + PER_PAGE - 1) // PER_PAGE)
         if page > total_pages:
             page = total_pages
@@ -154,14 +166,43 @@ def index():
         for job in jobs:
             uj = get_user_job(user_id, job.id, db_session)
             job.status = uj.status
-            hr_email = getattr(job, "hr_email", "") or ""
+
+            # HR email: use the stored one from DB
+            hr_email = job.hr_email or ""
+
+            # Build Gmail link — auto-generate for relevance=1, or if hr_email found
             if _is_useful_email(hr_email):
                 job.gmail_link = build_job_gmail_link(
-                    {"title": job.title, "company": job.company, "location": job.location, "hr_email": hr_email},
+                    {"title": job.title, "company": job.company,
+                     "location": job.location, "hr_email": hr_email},
                     p_dict,
                 )
             else:
                 job.gmail_link = ""
+
+            # Per-user relevance score
+            job.user_relevance = _user_relevance_score(p_dict.get("skills", []), job)
+            job.is_fresher = bool(job.is_fresher)
+
+            # Skill gap analysis
+            job.skill_gap = skill_gap_analysis(p_dict.get("skills", []), job.title, job.snippet or "")
+
+            # Deadline urgency
+            job.deadline_urgency = None
+            if job.deadline:
+                days_left = (job.deadline - datetime.utcnow()).days
+                if days_left <= 3:
+                    job.deadline_urgency = max(0, days_left)
+
+            # Follow-up reminder (applied > 5 days ago, no follow-up yet)
+            job.follow_up_needed = False
+            if job.status == "applied" and uj.follow_up_at is None:
+                # Check if the UserJob was updated more than 5 days ago
+                if uj.updated_at and (datetime.utcnow() - uj.updated_at).days >= 5:
+                    job.follow_up_needed = True
+
+            # Company research links
+            job.company_links = company_links(job.company)
 
         search_cfg = load_search_config()
         return render_template(
@@ -240,81 +281,12 @@ def api_update_status(job_id):
             return jsonify({"error": "not found"}), 404
         uj = get_user_job(session["user_id"], job_id, db_session)
         uj.status = new_status
+        if new_status == "applied":
+            uj.follow_up_at = datetime.utcnow() + timedelta(days=5)
+        elif new_status == "new":
+            uj.follow_up_at = None
         db_session.commit()
         return jsonify({"ok": True, "status": new_status})
-    finally:
-        db_session.close()
-
-
-@app.route("/api/jobs/manual", methods=["POST"])
-@login_required
-def api_add_manual_job():
-    data = request.get_json(silent=True) or {}
-    url = (data.get("url") or "").strip()
-    text = (data.get("text") or "").strip()
-    if not url and not text:
-        return jsonify({"error": "paste a posting URL and/or description text"}), 400
-
-    title = (data.get("title") or "").strip()
-    company = (data.get("company") or "").strip()
-    location = (data.get("location") or "").strip()
-    hr_email = extract_email(text) if text else ""
-
-    if not title and text:
-        first_line = next((l.strip() for l in text.splitlines() if l.strip()), "")
-        title = first_line[:120]
-    if not title:
-        title = "Manual Entry"
-    title = re.sub(EMAIL_RE_PATTERN, " ", title)
-    title = re.split(r"\s+(?:Email|Contact|Apply|For more|For details|Location|Salary)\b", title, maxsplit=1)[0]
-    title = title.strip(" .,;:-")
-    if not title:
-        title = "Manual Entry"
-
-    source_site = urlparse(url).netloc.lower() if url else "manual"
-    raw = {
-        "title": title,
-        "company": company,
-        "location": location,
-        "source_site": source_site,
-        "posting_url": url,
-        "snippet": text[:280],
-        "role": data.get("role") or "",
-        "hr_email": hr_email,
-        "posted_date": datetime.utcnow(),
-    }
-    job_dict = _clean_job(raw)
-    job_dict["hr_email"] = hr_email
-    if not job_dict["role"]:
-        job_dict["role"] = "manual"
-
-    db_session = SessionLocal()
-    try:
-        existing = db_session.query(Job).filter_by(
-            source_site=job_dict["source_site"], posting_url=job_dict["posting_url"]
-        ).first()
-        if existing:
-            return jsonify({"error": "job already exists", "id": existing.id}), 409
-
-        row = Job(
-            title=job_dict["title"],
-            company=job_dict["company"],
-            location=job_dict["location"],
-            source_site=job_dict["source_site"],
-            posting_url=job_dict["posting_url"],
-            snippet=job_dict["snippet"],
-            role=job_dict["role"],
-            relevance_score=job_dict["relevance_score"],
-            status="new",
-            posted_date=job_dict["posted_date"],
-            created_at=datetime.utcnow(),
-        )
-        db_session.add(row)
-        db_session.flush()
-        uj = get_user_job(session["user_id"], row.id, db_session)
-        uj.status = "new"
-        db_session.commit()
-        return jsonify({"ok": True, "id": row.id})
     finally:
         db_session.close()
 

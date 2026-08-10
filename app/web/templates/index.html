@@ -33,6 +33,8 @@
       --green-bg: #052e16;
       --red: #f87171;
       --red-bg: #450a0a;
+      --orange: #fb923c;
+      --orange-bg: #431407;
     }
     * { box-sizing: border-box; margin: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
@@ -79,18 +81,11 @@
     .pill.active { background: var(--blue); color: #fff; border-color: var(--blue); }
     .pill .count { opacity: .7; margin-left: 4px; }
 
-    .manual-section { margin-bottom: 20px; }
-    .manual-toggle { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 14px; color: var(--muted); font-weight: 500; padding: 10px 16px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); width: 100%; }
-    .manual-toggle:hover { color: var(--blue); border-color: var(--blue); }
-    .manual-toggle .arrow { transition: transform .2s; }
-    .manual-toggle.open .arrow { transform: rotate(90deg); }
-    .manual-form { display: none; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-top: 8px; }
-    .manual-form.show { display: block; }
-    .manual-form input, .manual-form textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-family: inherit; margin-bottom: 10px; background: var(--bg); color: var(--text); }
-    .manual-form textarea { resize: vertical; min-height: 80px; }
-
     .job { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin-bottom: 12px; transition: border-color .15s; }
     .job:hover { border-color: var(--muted); }
+    .job.fresher { border-left: 4px solid var(--blue); }
+    .job.perfect-match { border-left: 4px solid var(--green); }
+    .job.fresher.perfect-match { border-left: 4px solid var(--green); border-top: 2px solid var(--blue); }
     .job-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 8px; }
     .job-title { font-size: 16px; font-weight: 600; color: var(--text); line-height: 1.3; }
     .job-title a { color: inherit; }
@@ -105,9 +100,25 @@
     .status-applied { background: var(--green-bg); color: var(--green); }
     .status-dismissed { background: var(--red-bg); color: var(--red); }
     .source-badge { font-size: 11px; padding: 3px 8px; border-radius: 6px; background: var(--bg); color: var(--muted); border: 1px solid var(--border); font-weight: 500; }
+    .fresher-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 3px 10px; border-radius: 12px; background: #dbeafe; color: #1e40af; font-weight: 600; }
+    .match-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 3px 10px; border-radius: 12px; background: var(--green-bg); color: var(--green); font-weight: 600; }
+    .deadline-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 3px 10px; border-radius: 12px; background: var(--red-bg); color: var(--red); font-weight: 600; }
+    .followup-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 3px 10px; border-radius: 12px; background: var(--orange-bg, #fef3c7); color: var(--orange, #92400e); font-weight: 600; }
     .gmail-btn { display: inline-flex; align-items: center; gap: 5px; padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 500; background: #1a73e8; color: #fff; border: none; cursor: pointer; }
     .gmail-btn:hover { background: #1557b0; text-decoration: none; color: #fff; }
+    .apply-now { display: inline-flex; align-items: center; gap: 5px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 600; background: #16a34a; color: #fff; border: none; cursor: pointer; animation: pulse 2s infinite; }
+    .apply-now:hover { background: #15803d; text-decoration: none; color: #fff; }
+    @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(22,163,74,.4); } 50% { box-shadow: 0 0 0 8px rgba(22,163,74,0); } }
     .status-select { padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border); font-size: 13px; background: var(--card); color: var(--text); cursor: pointer; }
+    .skill-gap { margin-top: 8px; margin-bottom: 12px; font-size: 12px; }
+    .skill-gap .bar { height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; margin-bottom: 4px; }
+    .skill-gap .bar-fill { height: 100%; border-radius: 3px; background: var(--green); transition: width .3s; }
+    .skill-gap .labels { display: flex; gap: 8px; flex-wrap: wrap; }
+    .skill-gap .matched { color: var(--green); }
+    .skill-gap .missing { color: var(--red); }
+    .company-links { display: flex; gap: 6px; margin-top: 6px; }
+    .company-links a { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+    .company-links a:hover { color: var(--blue); border-color: var(--blue); text-decoration: none; }
 
     .empty { text-align: center; padding: 60px 20px; color: var(--muted); }
     .empty .icon { font-size: 48px; margin-bottom: 16px; }
@@ -192,24 +203,9 @@
       {% endfor %}
     </div>
 
-    <div class="manual-section">
-      <button class="manual-toggle" onclick="toggleManual(this)">
-        <span class="arrow">&#9654;</span> Add a job manually
-      </button>
-      <div class="manual-form" id="manualForm">
-        <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Found a job posting on Facebook, LinkedIn, or a company site? Paste the URL and/or description text.</p>
-        <input id="mUrl" placeholder="Posting URL (optional)">
-        <textarea id="mText" placeholder="Paste job title, company, description text..."></textarea>
-        <div style="display:flex;gap:8px;align-items:center">
-          <button class="btn btn-primary" onclick="addManual()">Add job</button>
-          <span id="mStatus" style="font-size:13px;color:var(--muted)"></span>
-        </div>
-      </div>
-    </div>
-
     {% if jobs %}
       {% for job in jobs %}
-        <div class="job" id="job-{{ job.id }}">
+        <div class="job {{ 'perfect-match' if job.user_relevance == 1 }} {{ 'fresher' if job.is_fresher }}" id="job-{{ job.id }}">
           <div class="job-header">
             <div>
               <div class="job-title">
@@ -219,6 +215,10 @@
                 {% if job.company %}<span class="company">{{ job.company }}</span>{% endif %}
                 {% if job.role %}<span class="sep">&middot;</span> <span>{{ job.role }}</span>{% endif %}
                 {% if job.location %}<span class="sep">&middot;</span> <span>{{ job.location }}</span>{% endif %}
+                {% if job.is_fresher %}<span class="fresher-badge">Fresher</span>{% endif %}
+                {% if job.user_relevance == 1 %}<span class="match-badge">Perfect Match</span>{% endif %}
+                {% if job.deadline_urgency is not none %}<span class="deadline-badge">Deadline in {{ job.deadline_urgency }}d</span>{% endif %}
+                {% if job.follow_up_needed %}<span class="followup-badge">Follow up needed</span>{% endif %}
               </div>
             </div>
             <span class="status-badge status-{{ job.status }}">{{ job.status }}</span>
@@ -226,8 +226,23 @@
 
           {% if job.snippet %}<div class="job-snippet">{{ job.snippet }}</div>{% endif %}
 
+          {% if job.skill_gap and job.skill_gap.matched %}
+          <div class="skill-gap">
+            <div class="bar"><div class="bar-fill" style="width:{{ (job.skill_gap.score * 100)|int }}%"></div></div>
+            <div class="labels">
+              <span class="matched">Matched: {{ job.skill_gap.matched|join(', ') }}</span>
+              {% if job.skill_gap.missing %}<span class="missing">Missing: {{ job.skill_gap.missing|join(', ') }}</span>{% endif %}
+            </div>
+          </div>
+          {% endif %}
+
           <div class="job-actions">
-            {% if job.gmail_link %}
+            {% if job.user_relevance == 1 and job.gmail_link %}
+              <a class="apply-now" href="{{ job.gmail_link }}" target="_blank" rel="noopener">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M2 4h20v16H2V4zm0 2v.01L12 13 22 6.01V6L12 13 2 6zm0 2.5L12 15l10-6.5V18H2V8.5z"/></svg>
+                Apply Now
+              </a>
+            {% elif job.gmail_link %}
               <a class="gmail-btn" href="{{ job.gmail_link }}" target="_blank" rel="noopener">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M2 4h20v16H2V4zm0 2v.01L12 13 22 6.01V6L12 13 2 6zm0 2.5L12 15l10-6.5V18H2V8.5z"/></svg>
                 Gmail draft
@@ -243,6 +258,14 @@
             </select>
             <span class="source-badge">{{ job.source_site }}</span>
           </div>
+
+          {% if job.company_links %}
+          <div class="company-links">
+            {% if job.company_links.glassdoor %}<a href="{{ job.company_links.glassdoor }}" target="_blank" rel="noopener">Glassdoor</a>{% endif %}
+            {% if job.company_links.deshimula %}<a href="{{ job.company_links.deshimula }}" target="_blank" rel="noopener">Deshimula</a>{% endif %}
+            {% if job.company_links.linkedin %}<a href="{{ job.company_links.linkedin }}" target="_blank" rel="noopener">LinkedIn</a>{% endif %}
+          </div>
+          {% endif %}
         </div>
       {% endfor %}
 
@@ -301,12 +324,6 @@
       btn.title = isDark ? 'Switch to light mode' : 'Switch to dark mode';
     }
 
-    function toggleManual(btn) {
-      const form = document.getElementById('manualForm');
-      const isOpen = form.classList.toggle('show');
-      btn.classList.toggle('open', isOpen);
-    }
-
     async function runScan() {
       const btn = document.getElementById('scanBtn');
       btn.disabled = true;
@@ -324,26 +341,6 @@
         showToast('Scan failed');
         btn.disabled = false;
       }
-    }
-
-    async function addManual() {
-      const url = document.getElementById('mUrl').value.trim();
-      const text = document.getElementById('mText').value.trim();
-      const status = document.getElementById('mStatus');
-      status.textContent = 'Adding...';
-      try {
-        const r = await fetch('/api/jobs/manual', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url: url, text: text })
-        });
-        const d = await r.json();
-        if (d.ok) {
-          status.textContent = 'Added';
-          setTimeout(() => location.reload(), 600);
-        } else {
-          status.textContent = d.error || 'Failed';
-        }
-      } catch (e) { status.textContent = 'Error'; }
     }
 
     async function setStatus(id, value) {

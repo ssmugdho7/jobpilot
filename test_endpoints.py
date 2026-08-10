@@ -63,18 +63,7 @@ r = c.post(f"/api/jobs/{job_id}/status", json={"status": "invalid"})
 check("POST status invalid", r.status_code == 400)
 c.post(f"/api/jobs/{job_id}/status", json={"status": "new"})
 
-# --- 5. Manual add + duplicate ---
-murl = "https://www.linkedin.com/jobs/view/endpoint-test-999"
-mtext = "DevOps Engineer at ExampleCorp, Kubernetes Docker. Email: hiring@examplecorp.com"
-r = c.post("/api/jobs/manual", json={"url": murl, "text": mtext})
-d = r.get_json()
-check("POST /api/jobs/manual", r.status_code == 200 and d.get("ok"))
-r = c.post("/api/jobs/manual", json={"url": murl, "text": mtext})
-check("manual duplicate -> 409", r.status_code == 409)
-r = c.post("/api/jobs/manual", json={})
-check("manual no payload -> 400", r.status_code == 400)
-
-# --- 6. Scan endpoint ---
+# --- 5. Scan endpoint ---
 print("  [scan] starting background scan...")
 r = c.post("/api/scan")
 d = r.get_json()
@@ -85,7 +74,7 @@ r2 = c.post("/api/scan")
 d2 = r2.get_json()
 check("POST /api/scan (already running -> 202)", r2.status_code in (200, 202) and d2.get("started") is False)
 
-# --- 7. Auth: logout + unauthenticated access ---
+# --- 6. Auth: logout + unauthenticated access ---
 c.get("/logout")
 r = c.get("/")
 check("GET / unauthenticated -> redirect to login", r.status_code == 302 and "/login" in r.headers.get("Location", ""))
@@ -94,12 +83,6 @@ check("GET /profile unauthenticated -> redirect", r.status_code == 302)
 
 # Re-login for cleanup
 c.post("/login", data={"username": "testuser", "password": "password123"}, follow_redirects=True)
-
-# --- cleanup manual test job ---
-s = SessionLocal()
-s.query(Job).filter_by(source_site="www.linkedin.com").delete()
-s.commit()
-s.close()
 
 print("\n" + "=" * 60)
 passed = sum(1 for _, ok, _ in results if ok)

@@ -4,10 +4,11 @@ from datetime import datetime, timedelta
 
 from sqlalchemy.exc import IntegrityError
 
-from app.db import SessionLocal, Job, Profile, init_db, profile_to_dict, get_or_create_profile
+from app.db import SessionLocal, Job, init_db
 from app.sources import fetch_bangladesh_jobs
-from app.filter import detect_role, score_job, is_relevant
+from app.filter import detect_role, score_job, is_relevant, detect_fresher
 from app.gmail_link import build_job_gmail_link
+from app.cv.parse import extract_email
 from app.config import load_search_config
 
 _scan_lock = threading.Lock()
@@ -45,6 +46,8 @@ def _clean_job(raw: dict) -> dict:
         "snippet": snippet,
         "role": raw.get("role") or raw.get("_role") or detect_role(raw),
         "relevance_score": 0.0,
+        "is_fresher": 0,
+        "hr_email": raw.get("hr_email") or extract_email(snippet),
         "posted_date": posted_date,
         "deadline": raw.get("deadline") or None,
     }
@@ -95,8 +98,7 @@ def run_scan(verbose: bool = True) -> int:
     cutoff = datetime.utcnow() - timedelta(days=max_age_days)
 
     session = SessionLocal()
-    profile = get_or_create_profile(session)
-    p_dict = profile_to_dict(profile)
+    p_dict = {"skills": []}
 
     inserted = 0
     seen = 0
@@ -110,13 +112,18 @@ def run_scan(verbose: bool = True) -> int:
                 no_role += 1
                 continue
             job["relevance_score"] = score_job(job)
+            job["is_fresher"] = 1 if detect_fresher(job) else 0
             if not is_relevant(job, min_score):
                 no_role += 1
                 continue
             if job["posted_date"] and job["posted_date"] < cutoff:
                 too_old += 1
                 continue
-            job["gmail_link"] = build_job_gmail_link(job, p_dict)
+            job["gmail_link"] = build_job_gmail_link(
+                {"title": job["title"], "company": job["company"],
+                 "location": job["location"], "hr_email": job["hr_email"]},
+                p_dict,
+            )
 
             dup_key = (job["source_site"], job["posting_url"])
             if dup_key in run_seen:
@@ -140,6 +147,8 @@ def run_scan(verbose: bool = True) -> int:
                 snippet=job["snippet"],
                 role=job["role"],
                 relevance_score=job["relevance_score"],
+                is_fresher=job["is_fresher"],
+                hr_email=job["hr_email"],
                 gmail_link=job["gmail_link"],
                 posted_date=job["posted_date"],
                 deadline=job["deadline"],

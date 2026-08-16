@@ -393,8 +393,40 @@ def api_cron_scan():
     expected = os.getenv("CRON_SECRET", "")
     if expected and secret != expected:
         return jsonify({"error": "unauthorized"}), 401
+    from app.db import init_db
+    init_db()
     started = run_scan_async()
-    return jsonify({"ok": True, "started": started})
+    db_session = SessionLocal()
+    try:
+        job_count = db_session.query(Job).count()
+    finally:
+        db_session.close()
+    return jsonify({"ok": True, "started": started, "jobs_in_db": job_count})
+
+
+@app.route("/api/debug")
+def api_debug():
+    """Public debug endpoint — shows DB status and job count."""
+    from app.db import init_db, IS_POSTGRES
+    from app.paths import DATABASE_URL
+    try:
+        init_db()
+        db_session = SessionLocal()
+        try:
+            job_count = db_session.query(Job).count()
+            from sqlalchemy import text
+            db_url_masked = DATABASE_URL[:30] + "..." if len(DATABASE_URL) > 30 else DATABASE_URL
+            return jsonify({
+                "ok": True,
+                "db_type": "postgres" if IS_POSTGRES else "sqlite",
+                "database_url_prefix": db_url_masked,
+                "jobs_in_db": job_count,
+                "scan_running": scan_is_running(),
+            })
+        finally:
+            db_session.close()
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e), "db_type": "postgres" if IS_POSTGRES else "sqlite"})
 
 
 @app.route("/api/jobs/<int:job_id>/status", methods=["POST"])

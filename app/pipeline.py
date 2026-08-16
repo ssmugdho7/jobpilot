@@ -69,6 +69,10 @@ def run_scan_async() -> bool:
         global _scan_running
         try:
             run_scan()
+        except Exception as e:
+            import traceback
+            print(f"[scan] ERROR: {e}")
+            traceback.print_exc()
         finally:
             with _scan_lock:
                 _scan_running = False

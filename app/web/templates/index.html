@@ -150,18 +150,29 @@
     .company-links a { font-size: 12px; padding: 4px 10px; border-radius: 6px; background: var(--bg); color: var(--muted); border: 1px solid var(--border); font-weight: 500; transition: all .15s; }
     .company-links a:hover { color: var(--blue); border-color: var(--blue); }
 
-    /* ── Mark as applied ── */
-    .mark-applied { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 999px; font-size: 13px; font-weight: 600; background: transparent; color: var(--green); border: 1.5px solid var(--green); cursor: pointer; transition: all .2s; font-family: inherit; }
-    .mark-applied:hover { background: var(--green); color: #fff; transform: translateY(-1px); box-shadow: 0 2px 8px rgba(22,163,74,.25); }
-    .mark-applied.done { background: var(--green); color: #fff; border-color: var(--green); pointer-events: none; opacity: .8; }
+    /* ── Company links ── */
+    .company-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .company-links { display: flex; gap: 6px; align-items: center; }
+    .company-links .review-label { font-size: 12px; color: var(--muted); font-weight: 500; white-space: nowrap; }
+    .company-links a { font-size: 12px; padding: 4px 10px; border-radius: 6px; background: var(--bg); color: var(--muted); border: 1px solid var(--border); font-weight: 500; transition: all .15s; }
+    .company-links a:hover { color: var(--blue); border-color: var(--blue); }
+    .company-badges { display: flex; gap: 6px; align-items: center; }
 
-    /* ── Status chips (compact) ── */
-    .status-chips { display: none; gap: 4px; }
-    .status-chip { padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; border: 1.5px solid var(--border); background: var(--card); color: var(--muted); cursor: pointer; transition: all .15s; white-space: nowrap; }
-    .status-chip:hover { border-color: var(--muted); color: var(--text); }
-    .status-chip.active-new { background: var(--blue); color: #fff; border-color: var(--blue); }
-    .status-chip.active-applied { background: var(--green-bg); color: var(--green); border-color: var(--green); }
-    .status-chip.active-dismissed { background: var(--red-bg); color: var(--red); border-color: var(--red); }
+    /* ── Did you apply? prompt ── */
+    .apply-prompt { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 600; background: var(--blue-light); color: var(--blue); border: 1.5px solid var(--blue); }
+    .apply-prompt .yes-btn, .apply-prompt .no-btn { padding: 5px 14px; border-radius: 999px; font-size: 12px; font-weight: 700; cursor: pointer; border: none; transition: all .15s; font-family: inherit; }
+    .apply-prompt .yes-btn { background: var(--green); color: #fff; }
+    .apply-prompt .yes-btn:hover { background: #15803d; transform: translateY(-1px); }
+    .apply-prompt .no-btn { background: var(--card); color: var(--muted); border: 1px solid var(--border); }
+    .apply-prompt .no-btn:hover { border-color: var(--muted); color: var(--text); }
+
+    /* ── News ticker ── */
+    .ticker-wrap { background: var(--blue-light); border-bottom: 1px solid var(--border); overflow: hidden; white-space: nowrap; height: 36px; display: flex; align-items: center; }
+    [data-theme="dark"] .ticker-wrap { background: rgba(96,165,250,.1); }
+    .ticker-label { background: var(--blue); color: #fff; font-size: 11px; font-weight: 700; padding: 4px 12px; text-transform: uppercase; letter-spacing: .5px; flex-shrink: 0; z-index: 1; }
+    .ticker-content { display: inline-block; animation: ticker-scroll 30s linear infinite; padding-left: 20px; font-size: 13px; font-weight: 500; color: var(--text); }
+    .ticker-content a { color: var(--blue); text-decoration: underline; }
+    @keyframes ticker-scroll { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
 
     /* ── Empty state ── */
     .empty { text-align: center; padding: 80px 24px; color: var(--muted); }
@@ -208,15 +219,19 @@
       .job-actions .btn, .job-actions .gmail-btn, .job-actions .apply-now { flex: 1 1 auto; min-width: 0; font-size: 13px; padding: 8px 12px; }
       .job-actions .status-select { display: none !important; }
       .job-actions .status-chips { display: flex !important; }
-      .job-actions .source-badge { align-self: center; width: auto; font-size: 10px; }
       .toolbar { flex-direction: column; align-items: stretch; }
       .toolbar select { width: 100%; }
       .page-link { min-width: 44px; height: 44px; }
-      .company-links { flex-wrap: wrap; justify-content: center; }
+      .company-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+      .company-links { flex-wrap: wrap; }
       .company-links a { font-size: 11px; padding: 3px 8px; }
+      .company-badges { align-self: flex-start; }
       .skill-gap .labels { flex-direction: column; gap: 4px; }
       .modal { padding: 28px 20px; }
-      .mark-applied { font-size: 12px; padding: 6px 12px; }
+      .apply-prompt { font-size: 12px; padding: 4px 10px; gap: 6px; }
+      .apply-prompt .yes-btn, .apply-prompt .no-btn { padding: 4px 10px; font-size: 11px; }
+      .ticker-label { font-size: 10px; padding: 3px 8px; }
+      .ticker-content { font-size: 12px; }
     }
     @media (max-width: 480px) {
       .layout { padding: 12px 10px 48px; gap: 12px; }
@@ -255,6 +270,15 @@
         <span></span><span></span><span></span>
       </button>
     </div>
+  </div>
+
+  <div class="ticker-wrap">
+    <span class="ticker-label">Jobs</span>
+    <span class="ticker-content">
+      <strong>NextJobz Career Summit &amp; Job Fest</strong> — Aug 18, KIB Bhaban, Farmgate, Dhaka | 100+ employers, on-the-spot interviews &amp; offers.
+      Register via NextJobz app. &nbsp;&nbsp;&bull;&nbsp;&nbsp;
+      <strong>VoB Job Fair 2026</strong> — Aug 16-17, Faculty of Business Studies, Dhaka University | Pubali Bank, bKash, MetLife, City Bank &amp; more.
+    </span>
   </div>
 
   <!-- Mobile filter drawer -->
@@ -383,7 +407,7 @@
             <div class="job-header">
               <div>
                 <div class="job-title">
-                  {% if job.posting_url %}<a href="{{ job.posting_url }}" target="_blank" rel="noopener">{{ job.title }}</a>{% else %}{{ job.title }}{% endif %}
+                  {% if job.posting_url %}<a href="{{ job.posting_url }}" target="_blank" rel="noopener" onclick="trackView({{ job.id }})">{{ job.title }}</a>{% else %}{{ job.title }}{% endif %}
                 </div>
                 <div class="job-meta">
                   {% if job.company %}<span class="company">{{ job.company }}</span>{% endif %}
@@ -393,7 +417,6 @@
                   {% if job.user_relevance == 1 and has_skills %}<span class="badge match-badge">Perfect Match</span>{% endif %}
                   {% if job.deadline_urgency is not none %}<span class="badge deadline-badge">{{ job.deadline_urgency }}d left</span>{% endif %}
                   {% if job.follow_up_needed %}<span class="badge followup-badge">Follow up</span>{% endif %}
-                  {% if job.early_applicant %}<span class="badge early-badge">{{ job.early_applicant }}</span>{% endif %}
                 </div>
               </div>
               <span class="badge status-badge status-{{ job.status }}">{{ job.status }}</span>
@@ -413,15 +436,16 @@
 
             <div class="job-actions">
               {% if job.status == 'new' %}
-                <button class="mark-applied" onclick="markApplied({{ job.id }}, this)">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
+                <div class="apply-prompt" id="prompt-{{ job.id }}" style="display:none">
                   Did you apply?
-                </button>
+                  <button class="yes-btn" onclick="markApplied({{ job.id }}, 'applied', this)">Yes</button>
+                  <button class="no-btn" onclick="dismissPrompt({{ job.id }})">No</button>
+                </div>
               {% elif job.status == 'applied' %}
-                <button class="mark-applied done">
+                <span class="apply-prompt" style="background:var(--green-bg);color:var(--green);border-color:var(--green)">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
                   Applied
-                </button>
+                </span>
               {% endif %}
               {% if job.user_relevance == 1 and has_skills and job.gmail_link %}
                 <a class="apply-now" href="{{ job.gmail_link }}" target="_blank" rel="noopener">
@@ -435,25 +459,31 @@
                 </a>
               {% endif %}
               {% if job.posting_url %}
-                <a class="btn btn-ghost" href="{{ job.posting_url }}" target="_blank" rel="noopener" style="font-size:13px">View posting</a>
+                <a class="btn btn-ghost" href="{{ job.posting_url }}" target="_blank" rel="noopener" style="font-size:13px" onclick="trackView({{ job.id }})">View posting</a>
               {% endif %}
-              <div class="status-chips">
-                <button class="status-chip {{ 'active-new' if job.status == 'new' }}" onclick="setStatus({{ job.id }}, 'new')">New</button>
-                <button class="status-chip {{ 'active-applied' if job.status == 'applied' }}" onclick="setStatus({{ job.id }}, 'applied')">Applied</button>
-                <button class="status-chip {{ 'active-dismissed' if job.status == 'dismissed' }}" onclick="setStatus({{ job.id }}, 'dismissed')">Dismissed</button>
-              </div>
               <select class="status-select" onchange="setStatus({{ job.id }}, this.value)">
                 <option value="new" {{ 'selected' if job.status == 'new' }}>New</option>
                 <option value="applied" {{ 'selected' if job.status == 'applied' }}>Applied</option>
                 <option value="dismissed" {{ 'selected' if job.status == 'dismissed' }}>Dismissed</option>
               </select>
-              <span class="badge source-badge">{{ job.source_site }}</span>
             </div>
 
             {% if job.company_links %}
-            <div class="company-links">
-              {% if job.company_links.glassdoor %}<a href="{{ job.company_links.glassdoor }}" target="_blank" rel="noopener">Glassdoor</a>{% endif %}
-              {% if job.company_links.deshimula %}<a href="{{ job.company_links.deshimula }}" target="_blank" rel="noopener">Deshimula</a>{% endif %}
+            <div class="company-row">
+              <div class="company-links">
+                <span class="review-label">Check review on &rarr;</span>
+                {% if job.company_links.glassdoor %}<a href="{{ job.company_links.glassdoor }}" target="_blank" rel="noopener">Glassdoor</a>{% endif %}
+                {% if job.company_links.deshimula %}<a href="{{ job.company_links.deshimula }}" target="_blank" rel="noopener">Deshimula</a>{% endif %}
+              </div>
+              <div class="company-badges">
+                {% if job.early_applicant %}<span class="badge early-badge">{{ job.early_applicant }}</span>{% endif %}
+                <span class="badge source-badge">{{ job.source_site }}</span>
+              </div>
+            </div>
+            {% else %}
+            <div style="margin-top:10px;display:flex;justify-content:flex-end;gap:6px;align-items:center">
+              {% if job.early_applicant %}<span class="badge early-badge">{{ job.early_applicant }}</span>{% endif %}
+              <span class="badge source-badge">{{ job.source_site }}</span>
             </div>
             {% endif %}
           </div>
@@ -535,6 +565,7 @@
       document.querySelectorAll('a[href^="/dashboard?"]').forEach(a => {
         a.href = preserveSort(a.href);
       });
+      showViewedPrompts();
     });
 
     function setSort(value) {
@@ -572,16 +603,53 @@
       } catch (e) {}
     }
 
-    async function markApplied(id, btn) {
-      btn.classList.add('done');
-      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg> Applied';
+    function getViewedJobs() {
+      try { return JSON.parse(localStorage.getItem('viewed_jobs') || '[]'); } catch (e) { return []; }
+    }
+
+    function trackView(jobId) {
+      const viewed = getViewedJobs();
+      if (!viewed.includes(jobId)) {
+        viewed.push(jobId);
+        localStorage.setItem('viewed_jobs', JSON.stringify(viewed));
+      }
+    }
+
+    function showViewedPrompts() {
+      const viewed = getViewedJobs();
+      const dismissed = getViewedJobs();  // reuse for "No" clicks
+      const noList = JSON.parse(localStorage.getItem('no_apply_jobs') || '[]');
+      viewed.forEach(id => {
+        const el = document.getElementById('prompt-' + id);
+        if (el && !noList.includes(id)) el.style.display = 'inline-flex';
+      });
+    }
+
+    async function markApplied(id, value, btn) {
+      const prompt = document.getElementById('prompt-' + id);
+      if (prompt) {
+        prompt.style.background = 'var(--green-bg)';
+        prompt.style.color = 'var(--green)';
+        prompt.style.borderColor = 'var(--green)';
+        prompt.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg> Applied';
+      }
       try {
         await fetch('/api/jobs/' + id + '/status', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: 'applied' })
+          body: JSON.stringify({ status: value })
         });
         showToast('Marked as applied');
       } catch (e) { showToast('Error marking applied'); }
+    }
+
+    function dismissPrompt(jobId) {
+      const el = document.getElementById('prompt-' + jobId);
+      if (el) el.style.display = 'none';
+      const noList = JSON.parse(localStorage.getItem('no_apply_jobs') || '[]');
+      if (!noList.includes(jobId)) {
+        noList.push(jobId);
+        localStorage.setItem('no_apply_jobs', JSON.stringify(noList));
+      }
     }
 
     function showToast(msg) {

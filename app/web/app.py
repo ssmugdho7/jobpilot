@@ -483,6 +483,38 @@ def api_save_profile():
         db_session.close()
 
 
+@app.route("/api/profile/parse-cv", methods=["POST"])
+@login_required
+def api_parse_cv():
+    """Accept a CV file (PDF/DOCX), extract text, parse into profile fields."""
+    file = request.files.get("file")
+    if not file or not file.filename:
+        return jsonify({"error": "no file"}), 400
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in (".pdf", ".docx", ".doc"):
+        return jsonify({"error": "unsupported file type; use PDF or DOCX"}), 400
+    import tempfile
+    from app.cv.parse import extract_text
+    from app.cv.profile import profile_from_text
+
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=ext)
+    try:
+        file.save(tmp.name)
+        tmp.close()
+        text = extract_text(tmp.name)
+        if not text.strip():
+            return jsonify({"error": "could not extract text from CV"}), 400
+        parsed = profile_from_text(text)
+        return jsonify({"ok": True, "profile": parsed})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        try:
+            os.unlink(tmp.name)
+        except OSError:
+            pass
+
+
 def start_web(host="0.0.0.0", port=None):
     port = port or int(os.environ.get("PORT", 5001))
     print(f"  [web] JobPilot dashboard at http://localhost:{port}")

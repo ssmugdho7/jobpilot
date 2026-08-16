@@ -83,6 +83,33 @@
 
     .actions-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 
+    /* ── CV Upload dropzone ── */
+    .dropzone-card { border: 1.5px dashed var(--border); transition: all .25s; text-align: center; cursor: pointer; position: relative; }
+    .dropzone-card:hover, .dropzone-card.dragover { border-color: var(--blue); background: var(--blue-light); }
+    [data-theme="dark"] .dropzone-card:hover, [data-theme="dark"] .dropzone-card.dragover { background: rgba(96,165,250,.08); }
+    .dropzone-card.uploading { pointer-events: none; opacity: .7; }
+    .dropzone-card.success { border-color: var(--green); border-style: solid; background: var(--green-bg); }
+    .dropzone-card.error { border-color: var(--red); border-style: solid; background: var(--red-bg); }
+    .dropzone-icon { width: 48px; height: 48px; border-radius: 12px; background: var(--blue-light); display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; transition: all .25s; }
+    [data-theme="dark"] .dropzone-icon { background: rgba(96,165,250,.12); }
+    .dropzone-card:hover .dropzone-icon, .dropzone-card.dragover .dropzone-icon { background: var(--blue); }
+    .dropzone-card:hover .dropzone-icon svg, .dropzone-card.dragover .dropzone-icon svg { stroke: #fff; }
+    .dropzone-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+    .dropzone-sub { font-size: 13px; color: var(--muted); }
+    .dropzone-sub strong { color: var(--blue); cursor: pointer; }
+    .dropzone-formats { font-size: 11px; color: var(--muted); margin-top: 8px; opacity: .7; }
+    .dropzone-progress { display: none; margin-top: 16px; }
+    .dropzone-progress.show { display: block; }
+    .dropzone-progress .bar-outer { height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; margin-bottom: 8px; }
+    .dropzone-progress .bar-fill { height: 100%; border-radius: 3px; background: var(--blue); transition: width .3s; }
+    .dropzone-status { font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px; justify-content: center; }
+    .dropzone-status.parsing { color: var(--blue); }
+    .dropzone-status.done { color: var(--green); }
+    .dropzone-status.fail { color: var(--red); }
+    .dropzone-spinner { width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin .6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #cvFile { display: none; }
+
     /* ── Compose link card ── */
     .compose-card { border: 1.5px solid var(--border); transition: all .3s; position: relative; overflow: hidden; }
     .compose-card.unlocked { border-color: var(--green); }
@@ -115,6 +142,17 @@
       .card { padding: 20px; border-radius: 12px; }
       .actions-row { flex-direction: column; align-items: stretch; }
       .actions-row .btn { width: 100%; }
+      .dropzone-icon { width: 40px; height: 40px; }
+      .dropzone-icon svg { width: 20px; height: 20px; }
+      .dropzone-title { font-size: 14px; }
+      .dropzone-sub { font-size: 12px; }
+    }
+    @media (max-width: 400px) {
+      .main { padding: 20px 12px 44px; }
+      .card { padding: 16px; }
+      .page-header h1 { font-size: 22px; }
+      .page-header .subtitle { font-size: 13px; }
+      .field input, .field textarea { padding: 10px 12px; font-size: 14px; }
     }
   </style>
 </head>
@@ -153,6 +191,21 @@
     <div class="page-header">
       <h1>Profile</h1>
       <p class="subtitle">Your information is used to personalize Gmail application drafts for each job.</p>
+    </div>
+
+    <!-- CV Upload dropzone -->
+    <div class="card dropzone-card" id="dropzone" onclick="document.getElementById('cvFile').click()">
+      <input type="file" id="cvFile" accept=".pdf,.docx,.doc" onchange="handleCvUpload(this.files)">
+      <div class="dropzone-icon" id="dzIcon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      </div>
+      <div class="dropzone-title" id="dzTitle">Drop your CV here to auto-fill your profile</div>
+      <div class="dropzone-sub" id="dzSub">or <strong>browse files</strong> to upload</div>
+      <div class="dropzone-formats">Accepts PDF or DOCX</div>
+      <div class="dropzone-progress" id="dzProgress">
+        <div class="bar-outer"><div class="bar-fill" id="dzBar" style="width:0%"></div></div>
+        <div class="dropzone-status parsing" id="dzStatus"><span class="dropzone-spinner"></span> Parsing CV...</div>
+      </div>
     </div>
 
     <!-- Gmail compose link card -->
@@ -330,6 +383,78 @@
       t.textContent = msg; t.style.display = 'block';
       clearTimeout(t._h);
       t._h = setTimeout(() => { t.style.display = 'none'; }, 3000);
+    }
+
+    /* ── CV Upload / Drag-and-Drop ── */
+    const dz = document.getElementById('dropzone');
+    const dzTitle = document.getElementById('dzTitle');
+    const dzSub = document.getElementById('dzSub');
+    const dzProgress = document.getElementById('dzProgress');
+    const dzBar = document.getElementById('dzBar');
+    const dzStatus = document.getElementById('dzStatus');
+    const dzIcon = document.getElementById('dzIcon');
+
+    ['dragenter','dragover'].forEach(evt => dz.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); dz.classList.add('dragover'); }));
+    ['dragleave','drop'].forEach(evt => dz.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); dz.classList.remove('dragover'); }));
+    dz.addEventListener('drop', e => { if (e.dataTransfer.files.length) handleCvUpload(e.dataTransfer.files); });
+
+    function handleCvUpload(files) {
+      if (!files || !files.length) return;
+      const file = files[0];
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (!['pdf','docx','doc'].includes(ext)) { showToast('Please upload a PDF or DOCX file'); return; }
+
+      dz.classList.add('uploading');
+      dz.classList.remove('success','error');
+      dzTitle.textContent = file.name;
+      dzSub.textContent = 'Uploading...';
+      dzProgress.classList.add('show');
+      dzBar.style.width = '30%';
+      dzStatus.className = 'dropzone-status parsing';
+      dzStatus.innerHTML = '<span class="dropzone-spinner"></span> Parsing CV...';
+
+      const fd = new FormData();
+      fd.append('file', file);
+
+      fetch('/api/profile/parse-cv', { method: 'POST', body: fd })
+        .then(r => r.json().then(d => ({ ok: r.ok, data: d })))
+        .then(({ ok, data }) => {
+          dzBar.style.width = '100%';
+          if (!ok || !data.ok) {
+            throw new Error(data.error || 'Parse failed');
+          }
+          const p = data.profile;
+          if (p.name) document.getElementById('name').value = p.name;
+          if (p.email) document.getElementById('email').value = p.email;
+          if (p.phone) document.getElementById('phone').value = p.phone;
+          if (p.linkedin) document.getElementById('linkedin').value = p.linkedin;
+          if (p.github) document.getElementById('github').value = p.github;
+          if (p.portfolio) document.getElementById('portfolio').value = p.portfolio;
+          if (p.summary) document.getElementById('summary').value = p.summary;
+          if (p.experience) document.getElementById('experience').value = p.experience;
+          if (p.education) document.getElementById('education').value = p.education;
+          if (p.skills && Array.isArray(p.skills)) document.getElementById('skills').value = p.skills.join(', ');
+          checkProgress();
+
+          dz.classList.remove('uploading');
+          dz.classList.add('success');
+          dzStatus.className = 'dropzone-status done';
+          dzStatus.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg> Profile auto-filled from CV — review and save below';
+          dzTitle.textContent = 'CV uploaded successfully';
+          dzSub.textContent = '<strong>Click to upload a different CV</strong>';
+          dzSub.innerHTML = '<strong>Click to upload a different CV</strong>';
+          showToast('Profile auto-filled from CV');
+        })
+        .catch(err => {
+          dzBar.style.width = '100%';
+          dz.classList.remove('uploading');
+          dz.classList.add('error');
+          dzStatus.className = 'dropzone-status fail';
+          dzStatus.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> ' + (err.message || 'Failed to parse CV');
+          dzTitle.textContent = 'Upload failed';
+          dzSub.innerHTML = '<strong>Click to try again</strong>';
+          showToast('CV parse failed: ' + (err.message || 'unknown error'));
+        });
     }
   </script>
 </body>

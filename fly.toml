@@ -1,0 +1,48 @@
+# fly.io configuration for JobPilot
+app = "jobpilot"
+primary_region = "sea"  # Seattle — change to nearest region: iad, lhr, nrt, syd, etc.
+
+[build]
+  builder = "heroku"  # Uses Heroku buildpacks (auto-detects Python + Procfile)
+
+[env]
+  GEMINI_MODEL = "gemini-3-flash-preview"
+  PORT = "8080"
+
+[[services]]
+  protocol = "tcp"
+  internal_port = 8080
+  processes = ["app"]
+
+  [services.concurrency]
+    type = "connections"
+    hard_limit = 25
+    soft_limit = 20
+
+  [[services.tcp_checks]]
+    grace_period = "30s"
+    interval = "15s"
+    timeout = "5s"
+
+[[mounts]]
+  source = "jobpilot_data"
+  destination = "/app/data"
+  processes = ["app"]
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+[checks]
+  [checks.http]
+    type = "http"
+    interval = "10s"
+    timeout = "5s"
+    grace_period = "30s"
+    method = "GET"
+    path = "/"
+    expected_http_status = 200

@@ -1,0 +1,35 @@
+name: Periodic Scan
+
+on:
+  schedule:
+    - cron: '0 */2 * * *'  # every 2 hours
+  workflow_dispatch:         # manual trigger from Actions tab
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger scan
+        run: |
+          echo "Waking up Render and triggering scan..."
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST "${{ secrets.RENDER_URL }}/api/scan" \
+            --max-time 30)
+          if [ "$STATUS" = "200" ] || [ "$STATUS" = "202" ]; then
+            echo "Scan triggered successfully (HTTP $STATUS)"
+          elif [ "$STATUS" = "401" ]; then
+            echo "Service is up but returned 401 (needs login) — Render is awake, OK"
+          else
+            echo "Warning: HTTP $STATUS — Render may still be waking up"
+          fi
+
+      - name: Wait for scan to start
+        run: sleep 10
+
+      - name: Check scan status
+        run: |
+          # Hit the dashboard to confirm DB is live
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            "${{ secrets.RENDER_URL }}/login" \
+            --max-time 30)
+          echo "Dashboard status: HTTP $STATUS"

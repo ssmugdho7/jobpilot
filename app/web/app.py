@@ -386,6 +386,17 @@ def api_scan():
     return jsonify({"ok": True, "started": True})
 
 
+@app.route("/api/cron/scan", methods=["POST"])
+def api_cron_scan():
+    """Unauthenticated endpoint for GitHub Actions / cron to trigger scans."""
+    secret = request.headers.get("X-Cron-Secret") or request.args.get("secret")
+    expected = os.getenv("CRON_SECRET", "")
+    if expected and secret != expected:
+        return jsonify({"error": "unauthorized"}), 401
+    started = run_scan_async()
+    return jsonify({"ok": True, "started": started})
+
+
 @app.route("/api/jobs/<int:job_id>/status", methods=["POST"])
 @login_required
 def api_update_status(job_id):

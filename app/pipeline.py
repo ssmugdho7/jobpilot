@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.db import SessionLocal, Job, init_db
 from app.sources import fetch_bangladesh_jobs
-from app.filter import detect_role, score_job, is_relevant, detect_fresher
+from app.filter import detect_role, score_job, is_relevant, detect_experience_level
 from app.gmail_link import build_job_gmail_link
 from app.cv.parse import extract_email
 from app.config import load_search_config
@@ -46,7 +46,7 @@ def _clean_job(raw: dict) -> dict:
         "snippet": snippet,
         "role": raw.get("role") or raw.get("_role") or detect_role(raw),
         "relevance_score": 0.0,
-        "is_fresher": 0,
+        "experience_level": "",
         "hr_email": raw.get("hr_email") or extract_email(snippet),
         "posted_date": posted_date,
         "deadline": raw.get("deadline") or None,
@@ -112,7 +112,7 @@ def run_scan(verbose: bool = True) -> int:
                 no_role += 1
                 continue
             job["relevance_score"] = score_job(job)
-            job["is_fresher"] = 1 if detect_fresher(job) else 0
+            job["experience_level"] = detect_experience_level(job)
             if not is_relevant(job, min_score):
                 no_role += 1
                 continue
@@ -147,7 +147,7 @@ def run_scan(verbose: bool = True) -> int:
                 snippet=job["snippet"],
                 role=job["role"],
                 relevance_score=job["relevance_score"],
-                is_fresher=job["is_fresher"],
+                experience_level=job["experience_level"],
                 hr_email=job["hr_email"],
                 gmail_link=job["gmail_link"],
                 posted_date=job["posted_date"],

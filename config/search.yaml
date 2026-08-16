@@ -8,7 +8,7 @@ roles:
 - data analyst
 - app developer
 custom_roles:
-- mto
+- management trainee officer
 location: Bangladesh
 bdjobs_max_pages: 3
 max_age_days: 30

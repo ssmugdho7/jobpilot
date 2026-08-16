@@ -193,3 +193,195 @@ companies:
     careers_url: "https://www.dhakabank.com.bd/careers"
     type: html
     location: "Bangladesh"
+
+  - name: "Enosis Solutions"
+    site: "enosisbd.com"
+    careers_url: "https://enosisbd.com/career/"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Dynamic Solution Innovators"
+    site: "dsi.bd"
+    careers_url: "https://dsi.bd/career/"
+    type: html
+    location: "Bangladesh"
+
+  - name: "LeadSoft Bangladesh"
+    site: "leadsoft.com.bd"
+    careers_url: "https://www.leadsoft.com.bd/career"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Kona Software Lab"
+    site: "konasl.com"
+    careers_url: "https://konasl.com/career/"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Bit Mascot"
+    site: "bitmascot.com"
+    careers_url: "https://bitmascot.com/careers/"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Craftsmen"
+    site: "craftsmenltd.com"
+    careers_url: "https://craftsmenltd.com/career/"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Nascenia"
+    site: "nascenia.com"
+    careers_url: "https://nascenia.com/career/"
+    type: html
+    location: "Bangladesh"
+
+  - name: "W3 Engineers"
+    site: "w3engineers.com"
+    careers_url: "https://www.w3engineers.com/careers"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Flyte Solutions"
+    site: "flyte.xyz"
+    careers_url: "https://flyte.xyz/careers/"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Banglalink"
+    site: "banglalink.net"
+    careers_url: "https://www.banglalink.net/careers"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Huawei Bangladesh"
+    site: "huawei.com.bd"
+    careers_url: "https://www.huawei.com/bd-en/careers"
+    type: html
+    location: "Bangladesh"
+
+  - name: "SSD-TECH"
+    site: "ssdtechbd.com"
+    careers_url: "https://ssdtechbd.com/career/"
+    type: html
+    location: "Bangladesh"
+
+  - name: "VU Mobile"
+    site: "vumobile.com.bd"
+    careers_url: "https://vumobile.com.bd/career/"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Link3 Technologies"
+    site: "link3.net"
+    careers_url: "https://link3.net/careers/"
+    type: html
+    location: "Bangladesh"
+
+  - name: "NovoTel Limited"
+    site: "novotelbd.com"
+    careers_url: "https://novotelbd.com/careers/"
+    type: html
+    location: "Bangladesh"
+
+  - name: "TigerIT Bangladesh"
+    site: "tigerit.com"
+    careers_url: "https://tigerit.com/career/"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Soft BD Limited"
+    site: "softbd.com"
+    careers_url: "https://softbd.com/career/"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Dream71 Bangladesh"
+    site: "dream71.com"
+    careers_url: "https://dream71.com/career/"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Synesis IT"
+    site: "synesisit.com"
+    careers_url: "https://synesisit.com/career/"
+    type: html
+    location: "Bangladesh"
+
+  - name: "DataEdge Limited"
+    site: "dataedge.com.bd"
+    careers_url: "https://dataedge.com.bd/career/"
+    type: html
+    location: "Bangladesh"
+
+  - name: "LEADS Corporation"
+    site: "leads.com.bd"
+    careers_url: "https://leads.com.bd/career/"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Apsis Solutions"
+    site: "apsissolutions.com"
+    careers_url: "https://apsissolutions.com/career/"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Dhrubok Infotech"
+    site: "dhrubok.com"
+    careers_url: "https://dhrubok.com/career/"
+    type: html
+    location: "Bangladesh"
+
+  - name: "weDevs"
+    site: "wedevs.com"
+    careers_url: "https://wedevs.com/careers/"
+    type: html
+    location: "Bangladesh"
+
+  - name: "JoomShaper"
+    site: "joomshaper.com"
+    careers_url: "https://www.joomshaper.com/careers"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Kolpolok Limited"
+    site: "kolpolok.com"
+    careers_url: "https://kolpolok.com/careers/"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Technext"
+    site: "technextit.com"
+    careers_url: "https://technextit.com/career/"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Mediusware"
+    site: "mediusware.com"
+    careers_url: "https://mediusware.com/career/"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Codeware Ltd"
+    site: "codewareltd.com"
+    careers_url: "https://codewareltd.com/career/"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Nextgen Limited"
+    site: "nextgenbd.com"
+    careers_url: "https://nextgenbd.com/career/"
+    type: html
+    location: "Bangladesh"
+
+  - name: "DataCraft Ltd"
+    site: "datacraft-bd.com"
+    careers_url: "https://datacraft-bd.com/career/"
+    type: html
+    location: "Bangladesh"
+
+  - name: "JobsYo"
+    site: "jobsyo.com"
+    careers_url: "https://jobsyo.com/jobs"
+    type: html
+    location: "Bangladesh"

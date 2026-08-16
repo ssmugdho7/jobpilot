@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JobPilot — Bangladesh IT Job Aggregator</title>
+  <style>
+    :root, [data-theme="light"] {
+      --blue: #2563eb; --blue-dark: #1d4ed8; --blue-bright: #3b82f6;
+      --indigo: #6366f1; --bg: #f8fafc; --card: #ffffff;
+      --border: #e2e8f0; --text: #0f172a; --muted: #64748b;
+      --green: #16a34a; --green-bg: #f0fdf4;
+    }
+    [data-theme="dark"] {
+      --blue: #60a5fa; --blue-dark: #93bbfd; --blue-bright: #3b82f6;
+      --indigo: #818cf8; --bg: #0f172a; --card: #1e293b;
+      --border: #334155; --text: #f1f5f9; --muted: #94a3b8;
+      --green: #4ade80; --green-bg: #052e16;
+    }
+    * { box-sizing: border-box; margin: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .header { background: rgba(255,255,255,.85); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); padding: 0 32px; height: 64px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+    [data-theme="dark"] .header { background: rgba(15,23,42,.85); }
+    .header-inner { max-width: 1120px; width: 100%; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
+    .logo { font-size: 20px; font-weight: 700; color: var(--blue); }
+    .logo span { color: var(--text); }
+    .header-right { display: flex; align-items: center; gap: 16px; }
+    .nav-links { display: flex; gap: 24px; }
+    .nav-links a { font-size: 14px; font-weight: 500; color: var(--muted); }
+    .nav-links a:hover { color: var(--blue); text-decoration: none; }
+    .theme-toggle { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    .theme-toggle:hover { color: var(--text); border-color: var(--muted); }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: all .15s; }
+    .btn-primary { background: var(--blue); color: #fff; }
+    .btn-primary:hover { background: var(--blue-dark); }
+    .btn-ghost { background: transparent; color: var(--text); border: 1px solid var(--border); }
+    .btn-ghost:hover { background: var(--card); border-color: var(--blue); }
+    .btn-lg { padding: 14px 28px; font-size: 15px; }
+
+    .hero { max-width: 1120px; margin: 0 auto; padding: 96px 32px 64px; text-align: center; position: relative; }
+    .hero::before { content: ""; position: absolute; inset: 0; background: radial-gradient(600px circle at 50% 0%, rgba(37,99,235,.12), transparent 70%); pointer-events: none; }
+    .hero-badge { display: inline-flex; align-items: center; gap: 8px; background: var(--green-bg); color: var(--green); font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 999px; margin-bottom: 24px; }
+    .hero-badge .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); animation: blink 1.5s infinite; }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+    .hero h1 { font-size: 52px; font-weight: 800; letter-spacing: -1.5px; line-height: 1.1; max-width: 760px; margin: 0 auto 20px; }
+    .hero h1 .grad { background: linear-gradient(90deg, var(--blue), var(--indigo)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .hero p.sub { font-size: 19px; color: var(--muted); max-width: 620px; margin: 0 auto 36px; }
+    .hero-cta { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+    .hero-note { font-size: 13px; color: var(--muted); margin-top: 18px; }
+
+    .hero-stats { max-width: 900px; margin: 56px auto 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .hero-stat { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
+    .hero-stat .num { font-size: 30px; font-weight: 800; color: var(--blue); }
+    .hero-stat .lbl { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+    .section { max-width: 1120px; margin: 0 auto; padding: 72px 32px; }
+    .section-head { text-align: center; max-width: 640px; margin: 0 auto 48px; }
+    .section-head .eyebrow { font-size: 13px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+    .section-head h2 { font-size: 34px; font-weight: 800; letter-spacing: -.5px; margin-bottom: 12px; }
+    .section-head p { font-size: 16px; color: var(--muted); }
+
+    .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .feature { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 28px; transition: all .2s; }
+    .feature:hover { transform: translateY(-3px); border-color: var(--blue); box-shadow: 0 12px 30px rgba(37,99,235,.1); }
+    .feature .icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: rgba(37,99,235,.1); color: var(--blue); margin-bottom: 16px; }
+    .feature h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+    .feature p { font-size: 14px; color: var(--muted); }
+
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; counter-reset: step; }
+    .step { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 28px; position: relative; }
+    .step .num { width: 36px; height: 36px; border-radius: 50%; background: var(--blue); color: #fff; font-weight: 700; font-size: 15px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; }
+    .step h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+    .step p { font-size: 14px; color: var(--muted); }
+
+    .cta-band { background: linear-gradient(120deg, var(--blue), var(--indigo)); border-radius: 20px; padding: 56px 40px; text-align: center; color: #fff; }
+    .cta-band h2 { font-size: 30px; font-weight: 800; margin-bottom: 12px; }
+    .cta-band p { font-size: 16px; opacity: .9; margin-bottom: 28px; }
+    .cta-band .btn-white { background: #fff; color: var(--blue); }
+    .cta-band .btn-white:hover { background: #eef2ff; }
+    .cta-band .btn-outline-white { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.6); }
+    .cta-band .btn-outline-white:hover { background: rgba(255,255,255,.1); }
+
+    .footer { border-top: 1px solid var(--border); padding: 40px 32px; }
+    .footer-inner { max-width: 1120px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+    .footer .copyright { font-size: 13px; color: var(--muted); }
+    .footer .links { display: flex; gap: 20px; }
+    .footer .links a { font-size: 13px; color: var(--muted); }
+    .footer .links a:hover { color: var(--blue); text-decoration: none; }
+
+    @media (max-width: 900px) {
+      .features { grid-template-columns: 1fr 1fr; }
+      .steps { grid-template-columns: 1fr; }
+      .hero-stats { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 640px) {
+      .hero { padding: 64px 20px 40px; }
+      .hero h1 { font-size: 36px; }
+      .features { grid-template-columns: 1fr; }
+      .nav-links { display: none; }
+      .section { padding: 48px 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-inner">
+      <a class="logo" href="/" style="text-decoration:none">Job<span>Pilot</span></a>
+      <div class="header-right">
+        <div class="nav-links">
+          <a href="#features">Features</a>
+          <a href="#how">How it works</a>
+          <a href="#stats">Why JobPilot</a>
+        </div>
+        <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode" id="themeBtn">&#9789;</button>
+        <a href="/login" class="btn btn-ghost">Sign in</a>
+        <a href="/register" class="btn btn-primary">Get started</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero">
+    <div class="hero-badge"><span class="dot"></span> 500+ live IT jobs scanned across Bangladesh</div>
+    <h1>Never miss a CSE job in <span class="grad">Bangladesh</span> again</h1>
+    <p class="sub">JobPilot aggregates openings from Bdjobs, LinkedIn and top company career pages — then ranks each one against your skills so you can apply in one click.</p>
+    <div class="hero-cta">
+      <a href="/register" class="btn btn-primary btn-lg">Get started free</a>
+      <a href="/login" class="btn btn-ghost btn-lg">Sign in</a>
+    </div>
+    <p class="hero-note">Personalized for CSE freshers, developers, QA, data &amp; cloud engineers.</p>
+
+    <div class="hero-stats" id="stats">
+      <div class="hero-stat"><div class="num">{{ stats.jobs }}</div><div class="lbl">Jobs tracked</div></div>
+      <div class="hero-stat"><div class="num">{{ stats.roles }}</div><div class="lbl">CSE roles covered</div></div>
+      <div class="hero-stat"><div class="num">{{ stats.sources }}</div><div class="lbl">Job sources</div></div>
+      <div class="hero-stat"><div class="num">{{ stats.users }}</div><div class="lbl">Active users</div></div>
+    </div>
+  </div>
+
+  <div class="section" id="features">
+    <div class="section-head">
+      <div class="eyebrow">Features</div>
+      <h2>Everything you need to land your next role</h2>
+      <p>Built specifically for CSE job seekers in Bangladesh — from your first interview to your final offer.</p>
+    </div>
+    <div class="features">
+      <div class="feature">
+        <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/><path d="M11 7v8"/><path d="M7 11h8"/></svg></div>
+        <h3>Live aggregation</h3>
+        <p>Continuous scans of Bdjobs, LinkedIn and 20+ Bangladeshi company career pages — new openings appear automatically, filtered to office/onsite roles.</p>
+      </div>
+      <div class="feature">
+        <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 7l9 5 9-5-9-5z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/></svg></div>
+        <h3>Smart relevance scoring</h3>
+        <p>Every job is scored against your profile skills and flagged a &quot;Perfect Match&quot; when it fits — so you always know where to focus first.</p>
+      </div>
+      <div class="feature">
+        <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h20v16H2V4zm0 2v.01L12 13 22 6.01V6l-10 7L2 6zm0 2.5L12 15l10-6.5V18H2V8.5z"/></svg></div>
+        <h3>One-click Gmail application</h3>
+        <p>Pre-filled, personalized emails drafted for each job's HR contact. Open Gmail and hit send — apply in seconds, not hours.</p>
+      </div>
+      <div class="feature">
+        <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6 4 9v6l5 3 6-3 5 3V9l-5-3-6 3z"/><path d="M9 6v6"/><path d="M14 9v6"/></svg></div>
+        <h3>Skill gap analysis</h3>
+        <p>See which skills each job expects and which ones you're missing — a live checklist to close the gap between you and the role.</p>
+      </div>
+      <div class="feature">
+        <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+        <h3>Deadline &amp; follow-up radar</h3>
+        <p>Urgency badges when deadlines approach and reminders to follow up 5 days after you apply — you'll never let an opportunity slip.</p>
+      </div>
+      <div class="feature">
+        <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></div>
+        <h3>Company insights</h3>
+        <p>One-click research — Glassdoor reviews and Deshimula company pages open right from each job card so you can vet employers before you apply.</p>
+      </div>
+      <div class="feature">
+        <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6l4 9 4-9h6L16.5 21h-9L2 3z"/></svg></div>
+        <h3>Experience-aware</h3>
+        <p>Fresher, 2-yr, 3-yr and 3+ labels on every job. Filter by what fits your experience level, not a wall of irrelevant postings.</p>
+      </div>
+      <div class="feature">
+        <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
+        <h3>Learning hub</h3>
+        <p>A built-in study companion that rotates through REST APIs, Django, Git, Docker and Linux — upskill while you job-hunt.</p>
+      </div>
+      <div class="feature">
+        <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        <h3>Private personal board</h3>
+        <p>Track every job with New / Applied / Dismissed statuses. Your board, your data — protected by secure accounts and invite-only signups.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="how">
+    <div class="section-head">
+      <div class="eyebrow">How it works</div>
+      <h2>Three steps to your next job</h2>
+      <p>From signup to sending your first application in under five minutes.</p>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="num">1</div>
+        <h3>Create your profile</h3>
+        <p>Sign up and add your skills, experience and links. JobPilot uses these to score every job against you.</p>
+      </div>
+      <div class="step">
+        <div class="num">2</div>
+        <h3>Browse your matches</h3>
+        <p>Filter by role, experience and freshness. Perfect matches are highlighted so your shortlist builds itself.</p>
+      </div>
+      <div class="step">
+        <div class="num">3</div>
+        <h3>Apply in one click</h3>
+        <p>Open a pre-written Gmail draft to HR, hit send, and JobPilot reminds you to follow up until you hear back.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="cta-band">
+      <h2>Start your job hunt the smart way</h2>
+      <p>Join {{ stats.users }} other CSE job seekers already using JobPilot.</p>
+      <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
+        <a href="/register" class="btn btn-white btn-lg">Create free account</a>
+        <a href="/login" class="btn btn-outline-white btn-lg">Sign in</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="footer-inner">
+      <div class="copyright">&copy; 2026 JobPilot &middot; Made for CSE job seekers in Bangladesh</div>
+      <div class="links">
+        <a href="#features">Features</a>
+        <a href="#how">How it works</a>
+        <a href="/login">Sign in</a>
+        <a href="/register">Register</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const saved = localStorage.getItem('theme');
+      if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+      updateThemeBtn();
+    })();
+    function toggleTheme() {
+      const html = document.documentElement;
+      const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+      updateThemeBtn();
+    }
+    function updateThemeBtn() {
+      const btn = document.getElementById('themeBtn');
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      btn.innerHTML = isDark ? '&#9788;' : '&#9789;';
+    }
+  </script>
+</body>
+</html>

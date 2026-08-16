@@ -5,6 +5,11 @@ from app.config import load_search_config
 # Role -> keywords that strongly indicate the role (matched against title+snippet)
 # Order matters: more specific roles first, "software engineer" as the catch-all last.
 ROLE_KEYWORDS = {
+    "management trainee officer": [
+        "management trainee", "mt officer", "management trainee officer",
+        "trainee officer", "mt program", "management trainee program",
+        "graduate trainee", "management trainee scheme",
+    ],
     "ai engineer": [
         "ai engineer", "ai developer", "artificial intelligence", "machine learning engineer",
         "llm", "genai", "generative ai", "nlp", "computer vision", "deep learning",
@@ -64,10 +69,10 @@ def _get_all_roles() -> dict:
 
 
 def _get_role_order() -> list:
-    """Return role order with custom roles first."""
+    """Return role order with custom roles first (skip if already in ROLE_ORDER)."""
     cfg = load_search_config()
     custom = cfg.get("custom_roles") or []
-    custom_lower = [cr.lower().strip() for cr in custom if cr.strip()]
+    custom_lower = [cr.lower().strip() for cr in custom if cr.strip() and cr.lower().strip() not in ROLE_KEYWORDS]
     return custom_lower + ROLE_ORDER
 
 
@@ -120,8 +125,8 @@ def score_job(job: dict) -> float:
     return round(min(score, 1.0), 2)
 
 
-def detect_fresher(job: dict) -> bool:
-    """Return True if job targets freshers / entry-level (0-1 years experience)."""
+def detect_experience_level(job: dict) -> str:
+    """Detect experience level from job text. Returns: fresher, 2y, 3y, 3y_plus, or ''."""
     title = (job.get("title") or "").lower()
     snippet = (job.get("snippet") or "").lower()
     text = f"{title} {snippet}"
@@ -135,15 +140,48 @@ def detect_fresher(job: dict) -> bool:
     ]
     for kw in fresher_kw:
         if kw in text:
-            return True
+            return "fresher"
 
-    exp_pattern = re.search(r"(\d+)[\s-]*(?:to|–|-)?[\s]*(\d+)\s*years?\s*(?:of\s+)?experience", text)
+    # Try to extract numeric experience range
+    exp_pattern = re.search(
+        r"(\d+)[\s-]*(?:to|–|-|–)?[\s]*(\d+)\s*years?\s*(?:of\s+)?experience", text
+    )
     if exp_pattern:
         low = int(exp_pattern.group(1))
+        high = int(exp_pattern.group(2))
         if low <= 1:
-            return True
+            return "fresher"
+        if high <= 2 or low == 2:
+            return "2y"
+        if high <= 3 or low == 3:
+            return "3y"
+        return "3y_plus"
 
-    return False
+    # Single number: "2 years experience", "3+ years"
+    single = re.search(r"(\d+)\+?\s*years?\s*(?:of\s+)?experience", text)
+    if single:
+        years = int(single.group(1))
+        if years <= 1:
+            return "fresher"
+        if years == 2:
+            return "2y"
+        if years == 3:
+            return "3y"
+        return "3y_plus"
+
+    # "X-Y years" where only lower bound is captured
+    range_low = re.search(r"(\d+)\s*(?:years?\s*(?:of\s+)?experience|yr)", text)
+    if range_low:
+        years = int(range_low.group(1))
+        if years <= 1:
+            return "fresher"
+        if years == 2:
+            return "2y"
+        if years == 3:
+            return "3y"
+        return "3y_plus"
+
+    return ""
 
 
 def is_relevant(job: dict, min_score: float = 0.0) -> bool:
@@ -169,10 +207,9 @@ def skill_gap_analysis(user_skills: list, job_title: str, job_snippet: str) -> d
 
 def company_links(company: str) -> dict:
     """Generate research links for a company (Glassdoor + Deshimula)."""
-    q = urllib.parse.quote(company or "")
     encoded = urllib.parse.quote(company or "")
+    plus = urllib.parse.quote_plus(company or "")
     return {
-        "glassdoor": f"https://www.glassdoor.com/Reviews/{encoded}-reviews-SRCH_KE0,{encoded}.htm" if company else "",
-        "deshimula": f"https://deshimula.com/search?q={encoded}" if company else "",
-        "linkedin": f"https://www.linkedin.com/company/{encoded}/jobs/" if company else "",
+        "glassdoor": f"https://www.glassdoor.com/Search/results.htm?keyword={encoded}" if company else "",
+        "deshimula": f"https://deshimula.com/stories/1?SearchTerm={plus}&Vibe=0" if company else "",
     }

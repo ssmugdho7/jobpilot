@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JobPilot - Learning</title>
+  <style>
+    :root, [data-theme="light"] {
+      --blue: #2563eb;
+      --blue-dark: #1d4ed8;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --muted: #64748b;
+      --green: #16a34a;
+      --green-bg: #f0fdf4;
+      --red: #dc2626;
+      --red-bg: #fef2f2;
+      --radius: 10px;
+      --code-bg: #f1f5f9;
+    }
+    [data-theme="dark"] {
+      --blue: #60a5fa;
+      --blue-dark: #93bbfd;
+      --bg: #0f172a;
+      --card: #1e293b;
+      --border: #334155;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --green: #4ade80;
+      --green-bg: #052e16;
+      --red: #f87171;
+      --red-bg: #450a0a;
+      --code-bg: #0f172a;
+    }
+    * { box-sizing: border-box; margin: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .header { background: var(--card); border-bottom: 1px solid var(--border); padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+    .logo { font-size: 18px; font-weight: 700; color: var(--blue); }
+    .logo span { color: var(--text); }
+    .header-right { display: flex; align-items: center; gap: 4px; }
+    .nav { display: flex; align-items: center; gap: 4px; }
+    .nav a { padding: 6px 12px; border-radius: 6px; font-size: 14px; color: var(--muted); font-weight: 500; }
+    .nav a:hover { background: var(--bg); text-decoration: none; }
+    .nav a.active { color: var(--blue); background: var(--bg); }
+    .theme-toggle { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    .theme-toggle:hover { color: var(--text); border-color: var(--muted); }
+    .user-menu { display: flex; align-items: center; gap: 8px; margin-left: 8px; padding-left: 12px; border-left: 1px solid var(--border); }
+    .user-menu .name { font-size: 13px; color: var(--muted); }
+    .user-menu .logout { font-size: 13px; color: var(--muted); padding: 4px 10px; border-radius: 6px; }
+    .user-menu .logout:hover { background: var(--red-bg); color: var(--red); text-decoration: none; }
+
+    .main { max-width: 960px; margin: 0 auto; padding: 24px 20px 60px; }
+    .learning-header { margin-bottom: 24px; }
+    .learning-header h1 { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+    .learning-header p { color: var(--muted); font-size: 14px; }
+
+    .current-topic { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 24px; }
+    .current-topic .topic-icon { font-size: 36px; margin-bottom: 8px; }
+    .current-topic h2 { font-size: 20px; font-weight: 700; margin-bottom: 12px; color: var(--blue); }
+    .topic-content h2 { font-size: 20px; font-weight: 700; margin: 20px 0 10px; color: var(--blue); }
+    .topic-content h3 { font-size: 16px; font-weight: 600; margin: 16px 0 8px; }
+    .topic-content p { margin-bottom: 12px; }
+    .topic-content pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; overflow-x: auto; font-size: 13px; line-height: 1.5; margin-bottom: 16px; }
+    .topic-content code { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 13px; }
+    .topic-content ul, .topic-content ol { margin-bottom: 12px; padding-left: 24px; }
+    .topic-content li { margin-bottom: 4px; }
+
+    .topics-list { margin-top: 24px; }
+    .topics-list h3 { font-size: 16px; font-weight: 600; margin-bottom: 12px; }
+    .topic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+    .topic-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; cursor: pointer; transition: border-color .15s; text-decoration: none; color: var(--text); display: block; }
+    .topic-card:hover { border-color: var(--blue); text-decoration: none; }
+    .topic-card.active { border-color: var(--blue); background: var(--bg); }
+    .topic-card .icon { font-size: 24px; margin-bottom: 6px; }
+    .topic-card .title { font-size: 14px; font-weight: 600; }
+
+    .next-topic { text-align: center; margin-top: 16px; font-size: 13px; color: var(--muted); }
+    .next-topic .timer { font-weight: 600; color: var(--blue); }
+
+    @media (max-width: 640px) {
+      .header { padding: 0 14px; }
+      .main { padding: 16px 12px 40px; }
+      .topic-grid { grid-template-columns: 1fr; }
+      .user-menu { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">Job<span>Pilot</span></div>
+    <div class="header-right">
+      <div class="nav">
+        <a href="/dashboard">Jobs</a>
+        <a href="/learning" class="active">Learning</a>
+        <a href="/profile">Profile</a>
+      </div>
+      <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode" id="themeBtn">&#9789;</button>
+      <div class="user-menu">
+        <span class="name">{{ username }}</span>
+        <a href="/logout" class="logout">Sign out</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="learning-header">
+      <h1>&#128218; Learning Hub</h1>
+      <p>One topic at a time. Learn something new every 20 minutes.</p>
+    </div>
+
+    <div class="current-topic">
+      <div class="topic-icon">{{ topic.icon }}</div>
+      <div class="topic-content">{{ topic.content|safe }}</div>
+    </div>
+
+    <div class="next-topic">
+      Next topic in <span class="timer" id="timer">--:--</span>
+    </div>
+
+    <div class="topics-list">
+      <h3>All Topics</h3>
+      <div class="topic-grid">
+        {% for t in all_topics %}
+        <div class="topic-card {{ 'active' if t.id == topic.id }}" onclick="showTopic({{ loop.index0 }})">
+          <div class="icon">{{ t.icon }}</div>
+          <div class="title">{{ t.title }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const saved = localStorage.getItem('theme');
+      if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+      updateThemeBtn();
+      updateTimer();
+      setInterval(updateTimer, 1000);
+    })();
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+      updateThemeBtn();
+    }
+
+    function updateThemeBtn() {
+      const btn = document.getElementById('themeBtn');
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      btn.innerHTML = isDark ? '&#9788;' : '&#9789;';
+    }
+
+    function updateTimer() {
+      const now = new Date();
+      const mins = now.getMinutes();
+      const secs = now.getSeconds();
+      const remaining = 20 - (mins % 20) - 1;
+      const secsLeft = 60 - secs;
+      document.getElementById('timer').textContent =
+        (remaining < 0 ? 0 : remaining) + ':' + String(secsLeft).padStart(2, '0');
+    }
+
+    function showTopic(index) {
+      // Reload with topic query param (future: could be AJAX)
+      const topics = {{ all_topics | map(attribute='id') | list | tojson }};
+      if (topics[index]) {
+        window.location.href = '/learning?topic=' + topics[index];
+      }
+    }
+  </script>
+</body>
+</html>

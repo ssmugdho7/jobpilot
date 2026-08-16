@@ -19,6 +19,7 @@
       --red: #dc2626;
       --red-bg: #fef2f2;
       --radius: 10px;
+      --code-bg: #f1f5f9;
     }
     [data-theme="dark"] {
       --blue: #60a5fa;
@@ -35,6 +36,7 @@
       --red-bg: #450a0a;
       --orange: #fb923c;
       --orange-bg: #431407;
+      --code-bg: #0f172a;
     }
     * { box-sizing: border-box; margin: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
@@ -56,10 +58,20 @@
     .user-menu .logout { font-size: 13px; color: var(--muted); padding: 4px 10px; border-radius: 6px; }
     .user-menu .logout:hover { background: var(--red-bg); color: var(--red); text-decoration: none; }
 
-    .main { max-width: 960px; margin: 0 auto; padding: 24px 20px 60px; }
+    .layout { display: flex; max-width: 1200px; margin: 0 auto; padding: 24px 20px 60px; gap: 24px; }
+    .sidebar { width: 260px; flex-shrink: 0; position: sticky; top: 80px; align-self: flex-start; max-height: calc(100vh - 100px); overflow-y: auto; }
+    .sidebar-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; }
+    .sidebar-card .label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
+    .sidebar-card .filter-list { display: flex; flex-direction: column; gap: 4px; }
+    .sidebar-card .filter-pill { display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--muted); text-decoration: none; transition: all .15s; }
+    .sidebar-card .filter-pill:hover { background: var(--bg); color: var(--blue); text-decoration: none; }
+    .sidebar-card .filter-pill.active { background: var(--blue); color: #fff; }
+    .sidebar-card .filter-pill .count { opacity: .7; font-size: 12px; }
+
+    .content { flex: 1; min-width: 0; }
 
     .stats { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
-    .stat { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 18px; flex: 1; min-width: 100px; }
+    .stat { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 18px; flex: 1; min-width: 80px; }
     .stat .num { font-size: 22px; font-weight: 700; color: var(--text); }
     .stat .label { font-size: 12px; color: var(--muted); margin-top: 2px; }
     .stat.blue .num { color: var(--blue); }
@@ -73,13 +85,6 @@
     .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
     .btn-ghost:hover { background: var(--bg); color: var(--text); }
     .btn:disabled { opacity: .5; cursor: wait; }
-
-    .filter-bar { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
-    .filter-bar .label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-right: 4px; }
-    .pill { display: inline-block; padding: 5px 14px; border-radius: 20px; font-size: 13px; font-weight: 500; background: var(--card); border: 1px solid var(--border); color: var(--muted); transition: all .15s; }
-    .pill:hover { border-color: var(--blue); color: var(--blue); text-decoration: none; }
-    .pill.active { background: var(--blue); color: #fff; border-color: var(--blue); }
-    .pill .count { opacity: .7; margin-left: 4px; }
 
     .job { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin-bottom: 12px; transition: border-color .15s; }
     .job:hover { border-color: var(--muted); }
@@ -100,10 +105,12 @@
     .status-applied { background: var(--green-bg); color: var(--green); }
     .status-dismissed { background: var(--red-bg); color: var(--red); }
     .source-badge { font-size: 11px; padding: 3px 8px; border-radius: 6px; background: var(--bg); color: var(--muted); border: 1px solid var(--border); font-weight: 500; }
-    .fresher-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 3px 10px; border-radius: 12px; background: #dbeafe; color: #1e40af; font-weight: 600; }
+    .exp-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 3px 10px; border-radius: 12px; background: #e0e7ff; color: #3730a3; font-weight: 600; }
     .match-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 3px 10px; border-radius: 12px; background: var(--green-bg); color: var(--green); font-weight: 600; }
     .deadline-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 3px 10px; border-radius: 12px; background: var(--red-bg); color: var(--red); font-weight: 600; }
     .followup-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 3px 10px; border-radius: 12px; background: var(--orange-bg, #fef3c7); color: var(--orange, #92400e); font-weight: 600; }
+    .early-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 4px 12px; border-radius: 12px; background: #fff7ed; color: #c2410c; font-weight: 700; border: 1px solid #fdba74; letter-spacing: .2px; }
+    [data-theme="dark"] .early-badge { background: #431407; color: #fdba74; border-color: #7c2d12; }
     .gmail-btn { display: inline-flex; align-items: center; gap: 5px; padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 500; background: #1a73e8; color: #fff; border: none; cursor: pointer; }
     .gmail-btn:hover { background: #1557b0; text-decoration: none; color: #fff; }
     .apply-now { display: inline-flex; align-items: center; gap: 5px; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 600; background: #16a34a; color: #fff; border: none; cursor: pointer; animation: pulse 2s infinite; }
@@ -125,17 +132,32 @@
     .empty h3 { font-size: 18px; color: var(--text); margin-bottom: 8px; }
     .empty p { font-size: 14px; max-width: 400px; margin: 0 auto; }
 
-    .pagination { display: flex; align-items: center; gap: 4px; justify-content: center; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border); }
-    .page-link { display: inline-flex; align-items: center; justify-content: center; min-width: 36px; height: 36px; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--muted); border: 1px solid var(--border); background: var(--card); }
-    .page-link:hover { background: var(--bg); border-color: var(--blue); color: var(--blue); text-decoration: none; }
-    .page-link.current { background: var(--blue); color: #fff; border-color: var(--blue); }
-    .page-link.ellipsis { border: none; background: transparent; cursor: default; }
+    .pagination { display: flex; align-items: center; gap: 6px; justify-content: center; margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--border); flex-wrap: wrap; }
+    .page-link { display: inline-flex; align-items: center; justify-content: center; min-width: 38px; height: 38px; padding: 0 12px; border-radius: 10px; font-size: 13px; font-weight: 500; color: var(--muted); border: 1px solid var(--border); background: var(--card); text-decoration: none; transition: all .15s ease; }
+    .page-link:hover { background: var(--bg); border-color: var(--blue); color: var(--blue); transform: translateY(-1px); box-shadow: 0 2px 6px rgba(0,0,0,.06); }
+    .page-link.current { background: var(--blue); color: #fff; border-color: var(--blue); font-weight: 600; box-shadow: 0 2px 8px rgba(37,99,235,.25); }
+    .page-link.ellipsis { border: none; background: transparent; cursor: default; color: var(--muted); min-width: 30px; }
+    .page-link.ellipsis:hover { transform: none; box-shadow: none; color: var(--muted); }
 
     .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 12px 20px; border-radius: 10px; font-size: 14px; display: none; z-index: 200; box-shadow: 0 4px 12px rgba(0,0,0,.25); }
 
-    @media (max-width: 640px) {
-      .header { padding: 0 14px; }
-      .main { padding: 16px 12px 40px; }
+    /* Onboarding Modal */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 300; align-items: center; justify-content: center; }
+    .modal-overlay.show { display: flex; }
+    .modal { background: var(--card); border-radius: 16px; padding: 32px; max-width: 520px; width: 90%; max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+    .modal h2 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+    .modal .subtitle { font-size: 14px; color: var(--muted); margin-bottom: 20px; }
+    .radio-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+    .radio-item { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: all .15s; font-size: 13px; }
+    .radio-item:hover { border-color: var(--blue); }
+    .radio-item input { accent-color: var(--blue); }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+    .modal-actions .btn-primary { padding: 10px 24px; }
+
+    @media (max-width: 768px) {
+      .layout { flex-direction: column; padding: 16px 12px 40px; }
+      .sidebar { width: 100%; position: static; max-height: none; }
+      .sidebar-card .filter-list { flex-direction: row; flex-wrap: wrap; }
       .stats { gap: 8px; }
       .stat { min-width: 70px; padding: 10px 12px; }
       .stat .num { font-size: 18px; }
@@ -148,10 +170,11 @@
 </head>
 <body>
   <div class="header">
-    <div class="logo">Job<span>Pilot</span></div>
+    <div class="logo"><a href="/dashboard" style="color:var(--blue);text-decoration:none">Job<span style="color:var(--text)">Pilot</span></a></div>
     <div class="header-right">
       <div class="nav">
-        <a href="/" class="active">Jobs</a>
+        <a href="/dashboard" class="active">Jobs</a>
+        <a href="/learning">Learning</a>
         <a href="/profile">Profile</a>
       </div>
       <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode" id="themeBtn">&#9789;</button>
@@ -162,144 +185,223 @@
     </div>
   </div>
 
-  <div class="main">
-    <div class="stats">
-      <div class="stat blue"><div class="num">{{ counts.all }}</div><div class="label">Total jobs</div></div>
-      <div class="stat"><div class="num">{{ counts.new }}</div><div class="label">New</div></div>
-      <div class="stat green"><div class="num">{{ counts.applied }}</div><div class="label">Applied</div></div>
-      <div class="stat red"><div class="num">{{ counts.dismissed }}</div><div class="label">Dismissed</div></div>
+  <!-- Onboarding Modal -->
+  {% if not onboarding_done %}
+  <div class="modal-overlay show" id="onboardingModal">
+    <div class="modal">
+      <h2>&#128197; How recent should job postings be?</h2>
+      <p class="subtitle">Select how many days ago you want to see results from.</p>
+      <div class="radio-list">
+        <label class="radio-item"><input type="radio" name="days" value="1"> 1 day (most recent)</label>
+        <label class="radio-item"><input type="radio" name="days" value="3"> 3 days</label>
+        <label class="radio-item"><input type="radio" name="days" value="7"> 1 week</label>
+        <label class="radio-item"><input type="radio" name="days" value="30" checked> 1 month</label>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" onclick="finishOnboarding()">Get Started</button>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="preloader" id="preloader">
+    <div class="preloader-inner">
+      <div class="spinner"></div>
+      <p>Loading jobs...</p>
+    </div>
+  </div>
+
+  <style>
+    .preloader { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; align-items: center; justify-content: center; transition: opacity .3s, visibility .3s; }
+    .preloader.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+    .preloader-inner { text-align: center; }
+    .spinner { width: 40px; height: 40px; border: 4px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin .8s linear infinite; margin: 0 auto 12px; }
+    .preloader p { color: var(--muted); font-size: 14px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+
+  <div class="layout">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-card">
+        <div class="label">Status</div>
+        <div class="filter-list">
+          <a class="filter-pill {{ 'active' if active_status == '' }}" href="/dashboard?days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">All CSE Jobs<span class="count">{{ counts.all }}</span></a>
+          <a class="filter-pill {{ 'active' if active_status == 'new' }}" href="/dashboard?status=new&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">New<span class="count">{{ counts.new }}</span></a>
+          <a class="filter-pill {{ 'active' if active_status == 'applied' }}" href="/dashboard?status=applied&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">Applied<span class="count">{{ counts.applied }}</span></a>
+          <a class="filter-pill {{ 'active' if active_status == 'dismissed' }}" href="/dashboard?status=dismissed&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">Dismissed<span class="count">{{ counts.dismissed }}</span></a>
+        </div>
+      </div>
+
+      <div class="sidebar-card">
+        <div class="label">Posted</div>
+        <div class="filter-list">
+          {% for value, label in days_options %}
+          <a class="filter-pill {{ 'active' if active_days == value }}" href="/dashboard?status={{ active_status }}&days={{ value }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">{{ label }}</a>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="sidebar-card">
+        <div class="label">Experience</div>
+        <div class="filter-list">
+          <a class="filter-pill {{ 'active' if not active_exp }}" href="/dashboard?status={{ active_status }}&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}&sort={{ active_sort }}">All</a>
+          {% for value, label in experience_options %}
+          <a class="filter-pill {{ 'active' if active_exp == value }}" href="/dashboard?status={{ active_status }}&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}&exp={{ value }}&sort={{ active_sort }}">{{ label }}</a>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="sidebar-card">
+        <div class="label">Role</div>
+        <div class="filter-list">
+          <a class="filter-pill {{ 'active' if not active_role }}" href="/dashboard?status={{ active_status }}&days={{ active_days }}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">All CSE Jobs</a>
+          {% for r in roles %}
+          <a class="filter-pill {{ 'active' if active_role == r }}" href="/dashboard?status={{ active_status }}&days={{ active_days }}&role={{ r }}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">{{ r }}</a>
+          {% endfor %}
+          {% for cr in custom_roles %}
+          <a class="filter-pill {{ 'active' if active_role == cr }}" href="/dashboard?status={{ active_status }}&days={{ active_days }}&role={{ cr }}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">{{ cr }}</a>
+          {% endfor %}
+        </div>
+      </div>
     </div>
 
-    <div class="toolbar">
-      <button class="btn btn-primary" id="scanBtn" onclick="runScan()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        Scan now
-      </button>
-    </div>
+    <!-- Content -->
+    <div class="content">
+      <div class="stats">
+        <div class="stat blue"><div class="num">{{ counts.all }}</div><div class="label">Total jobs</div></div>
+        <div class="stat"><div class="num">{{ counts.new }}</div><div class="label">New</div></div>
+        <div class="stat green"><div class="num">{{ counts.applied }}</div><div class="label">Applied</div></div>
+        <div class="stat red"><div class="num">{{ counts.dismissed }}</div><div class="label">Dismissed</div></div>
+      </div>
 
-    <div class="filter-bar">
-      <span class="label">Status</span>
-      <a class="pill {{ 'active' if active_status == '' }}" href="/?days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}">All<span class="count">{{ counts.all }}</span></a>
-      <a class="pill {{ 'active' if active_status == 'new' }}" href="/?status=new&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}">New<span class="count">{{ counts.new }}</span></a>
-      <a class="pill {{ 'active' if active_status == 'applied' }}" href="/?status=applied&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}">Applied<span class="count">{{ counts.applied }}</span></a>
-      <a class="pill {{ 'active' if active_status == 'dismissed' }}" href="/?status=dismissed&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}">Dismissed<span class="count">{{ counts.dismissed }}</span></a>
-    </div>
+      <div class="toolbar">
+        <button class="btn btn-primary" id="scanBtn" onclick="runScan()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          Scan now
+        </button>
+        <select class="status-select" id="sortSelect" onchange="setSort(this.value)" style="margin-left:auto">
+          <option value="latest" {{ 'selected' if active_sort == 'latest' }}>Latest posted</option>
+          <option value="relevant" {{ 'selected' if active_sort == 'relevant' }}>Most relevant</option>
+          <option value="deadline" {{ 'selected' if active_sort == 'deadline' }}>Deadline soon</option>
+        </select>
+      </div>
 
-    <div class="filter-bar">
-      <span class="label">Posted</span>
-      {% for value, label in days_options %}
-      <a class="pill {{ 'active' if active_days == value }}" href="/?status={{ active_status }}&days={{ value }}{% if active_role %}&role={{ active_role }}{% endif %}">{{ label }}</a>
-      {% endfor %}
-    </div>
-
-    <div class="filter-bar">
-      <span class="label">Role</span>
-      <a class="pill {{ 'active' if not active_role }}" href="/?status={{ active_status }}&days={{ active_days }}">All</a>
-      {% for r in roles %}
-      <a class="pill {{ 'active' if active_role == r }}" href="/?status={{ active_status }}&days={{ active_days }}&role={{ r }}">{{ r }}</a>
-      {% endfor %}
-      {% for cr in custom_roles %}
-      <a class="pill {{ 'active' if active_role == cr }}" href="/?status={{ active_status }}&days={{ active_days }}&role={{ cr }}">{{ cr }}</a>
-      {% endfor %}
-    </div>
-
-    {% if jobs %}
-      {% for job in jobs %}
-        <div class="job {{ 'perfect-match' if job.user_relevance == 1 }} {{ 'fresher' if job.is_fresher }}" id="job-{{ job.id }}">
-          <div class="job-header">
-            <div>
-              <div class="job-title">
-                {% if job.posting_url %}<a href="{{ job.posting_url }}" target="_blank" rel="noopener">{{ job.title }}</a>{% else %}{{ job.title }}{% endif %}
+      {% if jobs %}
+        {% for job in jobs %}
+          <div class="job {{ 'perfect-match' if job.user_relevance == 1 }} {{ 'fresher' if job.experience_level == 'fresher' }}" id="job-{{ job.id }}">
+            <div class="job-header">
+              <div>
+                <div class="job-title">
+                  {% if job.posting_url %}<a href="{{ job.posting_url }}" target="_blank" rel="noopener">{{ job.title }}</a>{% else %}{{ job.title }}{% endif %}
+                </div>
+                 <div class="job-meta">
+                   {% if job.company %}<span class="company">{{ job.company }}</span>{% endif %}
+                   {% if job.role %}<span class="sep">&middot;</span> <span>{{ job.role }}</span>{% endif %}
+                   {% if job.location %}<span class="sep">&middot;</span> <span>{{ job.location }}</span>{% endif %}
+                   {% if job.exp_label %}<span class="exp-badge">{{ job.exp_label }}</span>{% endif %}
+                   {% if job.user_relevance == 1 %}<span class="match-badge">Perfect Match</span>{% endif %}
+                   {% if job.deadline_urgency is not none %}<span class="deadline-badge">Deadline in {{ job.deadline_urgency }}d</span>{% endif %}
+                   {% if job.follow_up_needed %}<span class="followup-badge">Follow up needed</span>{% endif %}
+                   {% if job.early_applicant %}<span class="early-badge">{{ job.early_applicant }}</span>{% endif %}
+                 </div>
               </div>
-              <div class="job-meta">
-                {% if job.company %}<span class="company">{{ job.company }}</span>{% endif %}
-                {% if job.role %}<span class="sep">&middot;</span> <span>{{ job.role }}</span>{% endif %}
-                {% if job.location %}<span class="sep">&middot;</span> <span>{{ job.location }}</span>{% endif %}
-                {% if job.is_fresher %}<span class="fresher-badge">Fresher</span>{% endif %}
-                {% if job.user_relevance == 1 %}<span class="match-badge">Perfect Match</span>{% endif %}
-                {% if job.deadline_urgency is not none %}<span class="deadline-badge">Deadline in {{ job.deadline_urgency }}d</span>{% endif %}
-                {% if job.follow_up_needed %}<span class="followup-badge">Follow up needed</span>{% endif %}
+              <span class="status-badge status-{{ job.status }}">{{ job.status }}</span>
+            </div>
+
+            {% if job.snippet %}<div class="job-snippet">{{ job.snippet }}</div>{% endif %}
+
+            {% if job.skill_gap and job.skill_gap.matched %}
+            <div class="skill-gap">
+              <div class="bar"><div class="bar-fill" style="width:{{ (job.skill_gap.score * 100)|int }}%"></div></div>
+              <div class="labels">
+                <span class="matched">Matched: {{ job.skill_gap.matched|join(', ') }}</span>
+                {% if job.skill_gap.missing %}<span class="missing">Missing: {{ job.skill_gap.missing|join(', ') }}</span>{% endif %}
               </div>
             </div>
-            <span class="status-badge status-{{ job.status }}">{{ job.status }}</span>
-          </div>
+            {% endif %}
 
-          {% if job.snippet %}<div class="job-snippet">{{ job.snippet }}</div>{% endif %}
-
-          {% if job.skill_gap and job.skill_gap.matched %}
-          <div class="skill-gap">
-            <div class="bar"><div class="bar-fill" style="width:{{ (job.skill_gap.score * 100)|int }}%"></div></div>
-            <div class="labels">
-              <span class="matched">Matched: {{ job.skill_gap.matched|join(', ') }}</span>
-              {% if job.skill_gap.missing %}<span class="missing">Missing: {{ job.skill_gap.missing|join(', ') }}</span>{% endif %}
+            <div class="job-actions">
+              {% if job.user_relevance == 1 and job.gmail_link %}
+                <a class="apply-now" href="{{ job.gmail_link }}" target="_blank" rel="noopener">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M2 4h20v16H2V4zm0 2v.01L12 13 22 6.01V6L12 13 2 6zm0 2.5L12 15l10-6.5V18H2V8.5z"/></svg>
+                  Apply Now
+                </a>
+              {% elif job.gmail_link %}
+                <a class="gmail-btn" href="{{ job.gmail_link }}" target="_blank" rel="noopener">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M2 4h20v16H2V4zm0 2v.01L12 13 22 6.01V6L12 13 2 6zm0 2.5L12 15l10-6.5V18H2V8.5z"/></svg>
+                  Gmail draft
+                </a>
+              {% endif %}
+              {% if job.posting_url %}
+                <a class="btn btn-ghost" href="{{ job.posting_url }}" target="_blank" rel="noopener" style="font-size:13px;padding:6px 14px">View posting</a>
+              {% endif %}
+              <select class="status-select" onchange="setStatus({{ job.id }}, this.value)">
+                <option value="new" {{ 'selected' if job.status == 'new' }}>New</option>
+                <option value="applied" {{ 'selected' if job.status == 'applied' }}>Applied</option>
+                <option value="dismissed" {{ 'selected' if job.status == 'dismissed' }}>Dismissed</option>
+              </select>
+              <span class="source-badge">{{ job.source_site }}</span>
             </div>
+
+            {% if job.company_links %}
+            <div class="company-links">
+              {% if job.company_links.glassdoor %}<a href="{{ job.company_links.glassdoor }}" target="_blank" rel="noopener">Glassdoor</a>{% endif %}
+              {% if job.company_links.deshimula %}<a href="{{ job.company_links.deshimula }}" target="_blank" rel="noopener">Deshimula</a>{% endif %}
+            </div>
+            {% endif %}
           </div>
+        {% endfor %}
+
+        {% if total_pages > 1 %}
+        <div class="pagination">
+          {% if active_page > 1 %}
+            <a class="page-link" href="/dashboard?status={{ active_status }}&days={{ active_days }}&role={{ active_role }}&exp={{ active_exp }}&sort={{ active_sort }}&page={{ active_page - 1 }}">&laquo;</a>
           {% endif %}
-
-          <div class="job-actions">
-            {% if job.user_relevance == 1 and job.gmail_link %}
-              <a class="apply-now" href="{{ job.gmail_link }}" target="_blank" rel="noopener">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M2 4h20v16H2V4zm0 2v.01L12 13 22 6.01V6L12 13 2 6zm0 2.5L12 15l10-6.5V18H2V8.5z"/></svg>
-                Apply Now
-              </a>
-            {% elif job.gmail_link %}
-              <a class="gmail-btn" href="{{ job.gmail_link }}" target="_blank" rel="noopener">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M2 4h20v16H2V4zm0 2v.01L12 13 22 6.01V6L12 13 2 6zm0 2.5L12 15l10-6.5V18H2V8.5z"/></svg>
-                Gmail draft
-              </a>
+          {% for p in range(1, total_pages + 1) %}
+            {% if p == active_page %}
+              <span class="page-link current">{{ p }}</span>
+            {% elif p == 1 or p == total_pages or (p >= active_page - 1 and p <= active_page + 1) %}
+              <a class="page-link" href="/dashboard?status={{ active_status }}&days={{ active_days }}&role={{ active_role }}&exp={{ active_exp }}&sort={{ active_sort }}&page={{ p }}">{{ p }}</a>
+            {% elif p == active_page - 2 or p == active_page + 2 %}
+              <span class="page-link ellipsis">&hellip;</span>
             {% endif %}
-            {% if job.posting_url %}
-              <a class="btn btn-ghost" href="{{ job.posting_url }}" target="_blank" rel="noopener" style="font-size:13px;padding:6px 14px">View posting</a>
-            {% endif %}
-            <select class="status-select" onchange="setStatus({{ job.id }}, this.value)">
-              <option value="new" {{ 'selected' if job.status == 'new' }}>New</option>
-              <option value="applied" {{ 'selected' if job.status == 'applied' }}>Applied</option>
-              <option value="dismissed" {{ 'selected' if job.status == 'dismissed' }}>Dismissed</option>
-            </select>
-            <span class="source-badge">{{ job.source_site }}</span>
-          </div>
-
-          {% if job.company_links %}
-          <div class="company-links">
-            {% if job.company_links.glassdoor %}<a href="{{ job.company_links.glassdoor }}" target="_blank" rel="noopener">Glassdoor</a>{% endif %}
-            {% if job.company_links.deshimula %}<a href="{{ job.company_links.deshimula }}" target="_blank" rel="noopener">Deshimula</a>{% endif %}
-            {% if job.company_links.linkedin %}<a href="{{ job.company_links.linkedin }}" target="_blank" rel="noopener">LinkedIn</a>{% endif %}
-          </div>
+          {% endfor %}
+          {% if active_page < total_pages %}
+            <a class="page-link" href="/dashboard?status={{ active_status }}&days={{ active_days }}&role={{ active_role }}&exp={{ active_exp }}&sort={{ active_sort }}&page={{ active_page + 1 }}">&raquo;</a>
           {% endif %}
         </div>
-      {% endfor %}
-
-      {% if total_pages > 1 %}
-      <div class="pagination">
-        {% if active_page > 1 %}
-          <a class="page-link" href="/?status={{ active_status }}&days={{ active_days }}&role={{ active_role }}&page={{ active_page - 1 }}">&laquo;</a>
         {% endif %}
-        {% for p in range(1, total_pages + 1) %}
-          {% if p == active_page %}
-            <span class="page-link current">{{ p }}</span>
-          {% elif p == 1 or p == total_pages or (p >= active_page - 1 and p <= active_page + 1) %}
-            <a class="page-link" href="/?status={{ active_status }}&days={{ active_days }}&role={{ active_role }}&page={{ p }}">{{ p }}</a>
-          {% elif p == active_page - 2 or p == active_page + 2 %}
-            <span class="page-link ellipsis">&hellip;</span>
-          {% endif %}
-        {% endfor %}
-        {% if active_page < total_pages %}
-          <a class="page-link" href="/?status={{ active_status }}&days={{ active_days }}&role={{ active_role }}&page={{ active_page + 1 }}">&raquo;</a>
-        {% endif %}
-      </div>
+      {% else %}
+        <div class="empty">
+          <div class="icon">&#128269;</div>
+          <h3>No jobs found</h3>
+          <p>Try scanning now or widening the date filter to see more results.</p>
+        </div>
       {% endif %}
-    {% else %}
-      <div class="empty">
-        <div class="icon">&#128269;</div>
-        <h3>No jobs found</h3>
-        <p>Try scanning now or widening the date filter to see more results.</p>
-      </div>
-    {% endif %}
+    </div>
   </div>
 
   <div class="toast" id="toast"></div>
 
   <script>
+    const CURRENT_SORT = "{{ active_sort }}";
+
+    function preserveSort(url) {
+      if (!CURRENT_SORT || url.includes('sort=')) return url;
+      const sep = url.includes('?') ? '&' : '?';
+      return url + sep + 'sort=' + CURRENT_SORT;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      const preloader = document.getElementById('preloader');
+      if (preloader) preloader.classList.add('hidden');
+
+      document.querySelectorAll('a[href^="/dashboard?"]').forEach(a => {
+        a.href = preserveSort(a.href);
+      });
+    });
+
     (function() {
       const saved = localStorage.getItem('theme');
       if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -310,8 +412,7 @@
 
     function toggleTheme() {
       const html = document.documentElement;
-      const current = html.getAttribute('data-theme');
-      const next = current === 'dark' ? 'light' : 'dark';
+      const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
       html.setAttribute('data-theme', next);
       localStorage.setItem('theme', next);
       updateThemeBtn();
@@ -322,6 +423,12 @@
       const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
       btn.innerHTML = isDark ? '&#9788;' : '&#9789;';
       btn.title = isDark ? 'Switch to light mode' : 'Switch to dark mode';
+    }
+
+    function setSort(value) {
+      const url = new URL(window.location.href);
+      url.searchParams.set('sort', value);
+      window.location.href = url.toString();
     }
 
     async function runScan() {
@@ -358,6 +465,26 @@
       t.textContent = msg; t.style.display = 'block';
       clearTimeout(t._h);
       t._h = setTimeout(() => { t.style.display = 'none'; }, 3000);
+    }
+
+    // Onboarding
+    async function finishOnboarding() {
+      const days = document.querySelector('input[name="days"]:checked');
+      const daysVal = days ? parseInt(days.value) : 30;
+
+      try {
+        await fetch('/api/onboarding', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ days: daysVal })
+        });
+        const url = new URL('/dashboard', window.location.origin);
+        url.searchParams.set('days', daysVal);
+        if (CURRENT_SORT) url.searchParams.set('sort', CURRENT_SORT);
+        window.location.href = url.toString();
+      } catch (e) {
+        window.location.href = '/dashboard';
+      }
     }
   </script>
 </body>

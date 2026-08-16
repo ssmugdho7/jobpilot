@@ -1,4 +1,5 @@
 import os
+import re
 from datetime import datetime, timedelta
 from functools import wraps
 
@@ -12,8 +13,15 @@ from app.gmail_link import build_job_gmail_link
 from app.paths import CONFIG_DIR
 from app.config import load_search_config
 from app.filter import skill_gap_analysis, company_links
+from app.learning_topics import TOPICS
 
 DAYS_OPTIONS = [("1", "1 day"), ("3", "3 days"), ("7", "1 week"), ("30", "1 month")]
+EXPERIENCE_OPTIONS = [
+    ("fresher", "Fresher (0-1 yr)"),
+    ("2y", "2 years"),
+    ("3y", "3 years"),
+    ("3y_plus", "3+ years"),
+]
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "jobpilot-super-secret-key-change-in-prod")
@@ -55,6 +63,25 @@ def _user_relevance_score(profile_skills: list, job) -> float:
     return round(min(0.5 + ratio * 0.5, 1.0), 2)
 
 
+_EARLY_RE = re.compile(r"(Be an early applicant\s*[·•\-–]?\s*[^\n<]+)", re.IGNORECASE)
+
+
+def _extract_early_applicant(job) -> tuple[str, str]:
+    """Extract 'Be an early applicant ...' text from title/snippet.
+    Returns (cleaned_text, early_applicant_text).
+    """
+    title = job.title or ""
+    snippet = job.snippet or ""
+    combined = f"{title} {snippet}"
+    m = _EARLY_RE.search(combined)
+    if not m:
+        return snippet, ""
+    early = m.group(1).strip()
+    cleaned_snippet = snippet.replace(early, "").strip()
+    cleaned_title = title.replace(early, "").strip()
+    return cleaned_snippet, early
+
+
 def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -75,7 +102,7 @@ def login():
             if user and check_password_hash(user.password_hash, password):
                 session["user_id"] = user.id
                 session["username"] = user.username
-                return redirect(url_for("index"))
+                return redirect(url_for("dashboard"))
             return render_template("login.html", error="Invalid username or password")
         finally:
             db_session.close()
@@ -105,7 +132,7 @@ def register():
             db_session.commit()
             session["user_id"] = user.id
             session["username"] = user.username
-            return redirect(url_for("index"))
+            return redirect(url_for("dashboard"))
         finally:
             db_session.close()
     return render_template("register.html", require_invite=require_invite)
@@ -118,12 +145,47 @@ def logout():
 
 
 @app.route("/")
+def home():
+    if "user_id" in session:
+        return redirect(url_for("dashboard"))
+    db_session = SessionLocal()
+    try:
+        stats = {
+            "jobs": db_session.query(func.count(Job.id)).scalar() or 0,
+            "roles": db_session.query(func.count(func.distinct(Job.role))).scalar() or 0,
+            "sources": db_session.query(func.count(func.distinct(Job.source_site))).scalar() or 0,
+            "users": db_session.query(func.count(User.id)).scalar() or 0,
+        }
+    finally:
+        db_session.close()
+    return render_template("home.html", stats=stats)
+
+
+@app.route("/dashboard")
 @login_required
-def index():
+def dashboard():
+    user_id = session["user_id"]
+    db_session = SessionLocal()
+    try:
+        user = db_session.query(User).get(user_id)
+        onboarding_done = bool(user and user.onboarding_done)
+    finally:
+        db_session.close()
+
     status = request.args.get("status", "").strip()
-    days = request.args.get("days", "30")
+    days = request.args.get("days", "")
     page = request.args.get("page", "1")
     role_filter = request.args.get("role", "").strip().lower()
+    exp_filter = request.args.get("exp", "").strip()
+    sort = (request.args.get("sort", "latest") or "latest").strip().lower()
+    if sort not in ("latest", "relevant", "deadline"):
+        sort = "latest"
+
+    # Use user preferences as defaults if no filter specified
+    if not days and onboarding_done:
+        days = str(user.pref_days) if user and user.pref_days else "30"
+    if not days:
+        days = "30"
     try:
         days = int(days)
     except ValueError:
@@ -144,6 +206,8 @@ def index():
         q = db_session.query(Job)
         if role_filter:
             q = q.filter(Job.role == role_filter)
+        if exp_filter and exp_filter in ("fresher", "2y", "3y", "3y_plus"):
+            q = q.filter(Job.experience_level == exp_filter)
         q = q.filter((Job.posted_date.is_(None)) | (Job.posted_date >= cutoff))
 
         if status in ("applied", "dismissed"):
@@ -158,12 +222,14 @@ def index():
         if page > total_pages:
             page = total_pages
         offset = (page - 1) * PER_PAGE
-        jobs = q.order_by(Job.posted_date.desc()).offset(offset).limit(PER_PAGE).all()
+
+        # Fetch all jobs for this filter, compute per-job fields, then sort in Python
+        all_jobs = q.order_by(Job.posted_date.desc()).all()
 
         profile = get_or_create_profile(user_id, db_session)
         p_dict = profile_to_dict(profile)
 
-        for job in jobs:
+        for job in all_jobs:
             uj = get_user_job(user_id, job.id, db_session)
             job.status = uj.status
 
@@ -182,7 +248,12 @@ def index():
 
             # Per-user relevance score
             job.user_relevance = _user_relevance_score(p_dict.get("skills", []), job)
-            job.is_fresher = bool(job.is_fresher)
+            job.exp_label = {"fresher": "Fresher", "2y": "2 yr", "3y": "3 yr", "3y_plus": "3+ yr"}.get(job.experience_level, "")
+
+            # Extract early-applicant badge text from title/snippet
+            cleaned_snippet, early_text = _extract_early_applicant(job)
+            job.snippet = cleaned_snippet
+            job.early_applicant = early_text
 
             # Skill gap analysis
             job.skill_gap = skill_gap_analysis(p_dict.get("skills", []), job.title, job.snippet or "")
@@ -197,35 +268,55 @@ def index():
             # Follow-up reminder (applied > 5 days ago, no follow-up yet)
             job.follow_up_needed = False
             if job.status == "applied" and uj.follow_up_at is None:
-                # Check if the UserJob was updated more than 5 days ago
                 if uj.updated_at and (datetime.utcnow() - uj.updated_at).days >= 5:
                     job.follow_up_needed = True
 
             # Company research links
             job.company_links = company_links(job.company)
 
+        # Apply Python-side sort
+        _EPOCH = datetime.min
+        if sort == "relevant":
+            all_jobs.sort(key=lambda j: (j.user_relevance or 0, j.posted_date or _EPOCH), reverse=True)
+        elif sort == "deadline":
+            all_jobs.sort(key=lambda j: (j.deadline or datetime.max, j.posted_date or _EPOCH))
+        else:
+            all_jobs.sort(key=lambda j: j.posted_date or _EPOCH, reverse=True)
+
+        jobs = all_jobs[offset:offset + PER_PAGE]
+
         search_cfg = load_search_config()
+        all_roles = search_cfg.get("roles", []) + search_cfg.get("custom_roles", [])
         return render_template(
             "index.html",
             jobs=jobs,
             active_status=status,
             active_days=days,
             active_role=role_filter,
+            active_exp=exp_filter,
+            active_sort=sort,
             active_page=page,
             total_pages=total_pages,
             days_options=DAYS_OPTIONS,
+            experience_options=EXPERIENCE_OPTIONS,
             roles=search_cfg.get("roles", []),
             custom_roles=search_cfg.get("custom_roles", []),
+            all_roles=all_roles,
             now=datetime.utcnow(),
-            counts=_status_counts(db_session, user_id, cutoff),
+            counts=_status_counts(db_session, user_id, cutoff, role_filter, exp_filter),
             username=session.get("username"),
+            onboarding_done=onboarding_done,
         )
     finally:
         db_session.close()
 
 
-def _status_counts(db_session, user_id, cutoff) -> dict:
+def _status_counts(db_session, user_id, cutoff, role_filter="", exp_filter="") -> dict:
     base_q = db_session.query(Job).filter((Job.posted_date.is_(None)) | (Job.posted_date >= cutoff))
+    if role_filter:
+        base_q = base_q.filter(Job.role == role_filter)
+    if exp_filter and exp_filter in ("fresher", "2y", "3y", "3y_plus"):
+        base_q = base_q.filter(Job.experience_level == exp_filter)
     total_jobs = base_q.count()
 
     subq = base_q.subquery()
@@ -324,6 +415,38 @@ def api_save_profile():
 def start_web(host="127.0.0.1", port=5001):
     print(f"  [web] JobPilot dashboard at http://localhost:{port}")
     app.run(host=host, port=port, debug=False, use_reloader=False, threaded=True)
+
+
+@app.route("/api/onboarding", methods=["POST"])
+@login_required
+def api_onboarding():
+    data = request.get_json(silent=True) or {}
+    roles = data.get("roles") or []
+    days = int(data.get("days") or 30)
+    if days not in (1, 3, 7, 30):
+        days = 30
+    db_session = SessionLocal()
+    try:
+        user = db_session.query(User).get(session["user_id"])
+        if user:
+            user.onboarding_done = 1
+            user.pref_roles = ",".join(str(r).strip() for r in roles if r)
+            user.pref_days = days
+            db_session.commit()
+        return jsonify({"ok": True})
+    finally:
+        db_session.close()
+
+
+@app.route("/learning")
+@login_required
+def learning():
+    # Rotate topics: show one topic at a time, changes every 20 minutes
+    now = datetime.utcnow()
+    minutes = (now.hour * 60 + now.minute)
+    topic_index = (minutes // 20) % len(TOPICS)
+    topic = TOPICS[topic_index]
+    return render_template("learning.html", topic=topic, all_topics=TOPICS, username=session.get("username"))
 
 
 if __name__ == "__main__":

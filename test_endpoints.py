@@ -27,8 +27,10 @@ def check(name, cond, extra=""):
     print(f"  {'PASS' if cond else 'FAIL'} {name}")
 
 # --- 1. Pages ---
+r = c.get("/dashboard")
+check("GET /dashboard", r.status_code == 200 and b"JobPilot" in r.data, f"status={r.status_code}")
 r = c.get("/")
-check("GET /", r.status_code == 200 and b"JobPilot" in r.data, f"status={r.status_code}")
+check("GET / logged in -> redirect to dashboard", r.status_code == 302 and "/dashboard" in r.headers.get("Location", ""), f"status={r.status_code}")
 r = c.get("/profile")
 check("GET /profile", r.status_code == 200, f"status={r.status_code}")
 
@@ -77,7 +79,9 @@ check("POST /api/scan (already running -> 202)", r2.status_code in (200, 202) an
 # --- 6. Auth: logout + unauthenticated access ---
 c.get("/logout")
 r = c.get("/")
-check("GET / unauthenticated -> redirect to login", r.status_code == 302 and "/login" in r.headers.get("Location", ""))
+check("GET / landing page", r.status_code == 200 and b"JobPilot" in r.data and b"Never miss a CSE job" in r.data, f"status={r.status_code}")
+r = c.get("/dashboard")
+check("GET /dashboard unauthenticated -> redirect to login", r.status_code == 302 and "/login" in r.headers.get("Location", ""))
 r = c.get("/profile")
 check("GET /profile unauthenticated -> redirect", r.status_code == 302)
 

@@ -15,6 +15,9 @@ class User(Base):
     id = Column(Integer, primary_key=True)
     username = Column(String(100), unique=True, index=True)
     password_hash = Column(String(200))
+    onboarding_done = Column(Integer, default=0)  # 1 = onboarding completed
+    pref_roles = Column(Text, default="")  # comma-separated preferred roles
+    pref_days = Column(Integer, default=30)  # preferred days filter
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
@@ -41,7 +44,7 @@ class Job(Base):
     snippet = Column(Text, default="")
     role = Column(String(100), default="")
     relevance_score = Column(Float, default=0.0)
-    is_fresher = Column(Integer, default=0)  # 1 = fresher/entry-level
+    experience_level = Column(String(20), default="")  # fresher / 2y / 3y / 3y_plus
     hr_email = Column(String(300), default="")  # extracted HR contact email
     gmail_link = Column(Text, default="")
     cv_path = Column(String(300), default="")
@@ -90,10 +93,20 @@ def init_db():
             conn.exec_driver_sql("ALTER TABLE jobs ADD COLUMN is_fresher INTEGER DEFAULT 0")
         if "hr_email" not in cols_jobs:
             conn.exec_driver_sql("ALTER TABLE jobs ADD COLUMN hr_email VARCHAR(300) DEFAULT ''")
+        if "experience_level" not in cols_jobs:
+            conn.exec_driver_sql("ALTER TABLE jobs ADD COLUMN experience_level VARCHAR(20) DEFAULT ''")
 
         cols_uj = [row[1] for row in conn.exec_driver_sql("PRAGMA table_info(user_jobs)")]
         if "follow_up_at" not in cols_uj:
             conn.exec_driver_sql("ALTER TABLE user_jobs ADD COLUMN follow_up_at DATETIME")
+
+        cols_user = [row[1] for row in conn.exec_driver_sql("PRAGMA table_info(users)")]
+        if "onboarding_done" not in cols_user:
+            conn.exec_driver_sql("ALTER TABLE users ADD COLUMN onboarding_done INTEGER DEFAULT 0")
+        if "pref_roles" not in cols_user:
+            conn.exec_driver_sql("ALTER TABLE users ADD COLUMN pref_roles TEXT DEFAULT ''")
+        if "pref_days" not in cols_user:
+            conn.exec_driver_sql("ALTER TABLE users ADD COLUMN pref_days INTEGER DEFAULT 30")
 
         cols_profile = [row[1] for row in conn.exec_driver_sql("PRAGMA table_info(profile)")]
         if "user_id" not in cols_profile:

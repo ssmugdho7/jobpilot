@@ -26,6 +26,22 @@ EXPERIENCE_OPTIONS = [
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "jobpilot-super-secret-key-change-in-prod")
 
+
+def _startup_scan():
+    """Trigger an initial job scan in a background thread on server startup."""
+    import threading
+    def _scan():
+        from app.db import init_db
+        init_db()
+        run_scan_async()
+    threading.Thread(target=_scan, daemon=True).start()
+
+
+try:
+    _startup_scan()
+except Exception:
+    pass
+
 # Emails that are NOT a real HR/person contact — skip for Gmail compose
 JUNK_EMAILS = {
     "noreply", "no-reply", "donotreply", "do-not-reply",

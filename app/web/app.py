@@ -412,7 +412,8 @@ def api_save_profile():
         db_session.close()
 
 
-def start_web(host="127.0.0.1", port=5001):
+def start_web(host="0.0.0.0", port=None):
+    port = port or int(os.environ.get("PORT", 5001))
     print(f"  [web] JobPilot dashboard at http://localhost:{port}")
     app.run(host=host, port=port, debug=False, use_reloader=False, threaded=True)
 

@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: jobpilot
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app.web.app:app --bind 0.0.0.0:$PORT --timeout 120 --workers 1
+    envVars:
+      - key: GEMINI_MODEL
+        value: gemini-3-flash-preview
+      - key: PYTHON_VERSION
+        value: 3.11.9
+    disk:
+      name: jobpilot-data
+      mountPath: /opt/render/project/src/data
+      sizeGB: 1

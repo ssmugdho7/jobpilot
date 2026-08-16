@@ -9,12 +9,18 @@
   <style>
     :root, [data-theme="light"] {
       --blue: #2563eb; --blue-dark: #1d4ed8; --blue-light: #dbeafe;
+      --green: #16a34a; --green-bg: #f0fdf4; --green-light: #bbf7d0;
+      --red: #dc2626; --red-bg: #fef2f2;
+      --orange: #ea580c; --orange-bg: #fff7ed;
       --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0;
       --text: #0f172a; --muted: #64748b;
       --shadow: 0 1px 3px rgba(0,0,0,.1), 0 1px 2px rgba(0,0,0,.06);
     }
     [data-theme="dark"] {
       --blue: #60a5fa; --blue-dark: #93bbfd; --blue-light: #1e3a5f;
+      --green: #4ade80; --green-bg: #052e16; --green-light: #166534;
+      --red: #f87171; --red-bg: #450a0a;
+      --orange: #fb923c; --orange-bg: #431407;
       --bg: #0f172a; --card: #1e293b; --border: #334155;
       --text: #f1f5f9; --muted: #94a3b8;
       --shadow: 0 1px 3px rgba(0,0,0,.4);
@@ -45,9 +51,12 @@
     .hamburger span { display: block; width: 18px; height: 2px; background: var(--text); border-radius: 2px; transition: all .2s; }
     .mobile-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 200; }
     .mobile-overlay.open { display: block; }
-    .mobile-drawer { position: absolute; right: 0; top: 0; bottom: 0; width: 280px; background: var(--card); box-shadow: var(--shadow); padding: 72px 16px 24px; display: flex; flex-direction: column; gap: 8px; }
+    .mobile-drawer { position: absolute; right: 0; top: 0; bottom: 0; width: 280px; background: var(--card); box-shadow: var(--shadow); padding: 72px 16px 24px; display: flex; flex-direction: column; gap: 4px; }
     .mobile-drawer a { padding: 12px 16px; border-radius: 10px; font-size: 15px; font-weight: 500; color: var(--text); transition: all .15s; }
     .mobile-drawer a:hover { background: var(--bg); color: var(--blue); }
+    .mobile-drawer .drawer-sep { height: 1px; background: var(--border); margin: 8px 0; }
+    .mobile-drawer .drawer-logout { color: var(--red); }
+    [data-theme="dark"] .mobile-drawer .drawer-logout { color: #f87171; }
     .mobile-drawer-close { position: absolute; top: 16px; right: 16px; width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; color: var(--muted); }
 
     .main { max-width: 720px; margin: 0 auto; padding: 32px 20px 60px; }
@@ -58,16 +67,42 @@
     .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 28px; margin-bottom: 20px; box-shadow: var(--shadow); }
     .card h2 { font-size: 17px; font-weight: 700; margin-bottom: 20px; }
     .card .desc { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
-    .field { margin-bottom: 16px; }
-    .field label { display: block; font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+    .field { margin-bottom: 16px; position: relative; }
+    .field label { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+    .field label .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border); flex-shrink: 0; transition: background .2s; }
+    .field label .dot.filled { background: var(--green); }
     .field input, .field textarea { width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 15px; font-family: inherit; background: var(--bg); color: var(--text); transition: all .15s; }
     .field input:focus, .field textarea:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
     .field textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     @media (max-width: 560px) { .row { grid-template-columns: 1fr; } }
+
     .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 24px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: all .2s; font-family: inherit; }
     .btn-primary { background: var(--blue); color: #fff; box-shadow: 0 1px 2px rgba(37,99,235,.3); }
     .btn-primary:hover { background: var(--blue-dark); box-shadow: 0 4px 12px rgba(37,99,235,.3); transform: translateY(-1px); }
+
+    .actions-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+
+    /* ── Compose link card ── */
+    .compose-card { border: 1.5px solid var(--border); transition: all .3s; position: relative; overflow: hidden; }
+    .compose-card.unlocked { border-color: var(--green); }
+    .compose-progress { margin-bottom: 20px; }
+    .compose-progress .bar-outer { height: 8px; border-radius: 4px; background: var(--border); overflow: hidden; margin-bottom: 8px; }
+    .compose-progress .bar-fill { height: 100%; border-radius: 4px; background: var(--green); transition: width .4s ease; }
+    .compose-progress .bar-text { font-size: 13px; color: var(--muted); font-weight: 500; }
+    .compose-progress .bar-text strong { color: var(--text); }
+    .compose-hint { font-size: 13px; color: var(--muted); margin-bottom: 16px; line-height: 1.6; }
+    .compose-hint code { background: var(--bg); padding: 2px 6px; border-radius: 4px; font-size: 12px; font-weight: 600; color: var(--text); }
+    .compose-preview { background: var(--bg); border-radius: 10px; padding: 14px 16px; margin-bottom: 16px; font-size: 13px; color: var(--muted); line-height: 1.6; }
+    .compose-preview .subject { font-weight: 700; color: var(--text); margin-bottom: 4px; }
+    .compose-unlock { display: none; margin-top: 16px; }
+    .compose-unlock.show { display: block; }
+    .compose-unlock .btn { width: 100%; }
+    .btn-gmail { background: #1a73e8; color: #fff; box-shadow: 0 2px 8px rgba(26,115,232,.3); }
+    .btn-gmail:hover { background: #1557b0; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(26,115,232,.35); }
+    .btn-gmail svg { flex-shrink: 0; }
+    .compose-locked { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: var(--bg); border-radius: 10px; font-size: 13px; color: var(--muted); font-weight: 500; margin-top: 16px; }
+    .compose-locked svg { color: var(--muted); flex-shrink: 0; }
 
     .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 14px 24px; border-radius: 12px; font-size: 14px; font-weight: 500; display: none; z-index: 300; box-shadow: 0 4px 12px rgba(0,0,0,.25); }
 
@@ -78,15 +113,18 @@
       .main { padding: 24px 16px 48px; }
       .page-header h1 { font-size: 24px; }
       .card { padding: 20px; border-radius: 12px; }
+      .actions-row { flex-direction: column; align-items: stretch; }
+      .actions-row .btn { width: 100%; }
     }
   </style>
 </head>
 <body>
   <div class="header">
-    <div class="logo">Job<span>Pilot</span></div>
+    <div class="logo"><a href="/dashboard" style="color:var(--blue);text-decoration:none">Job<span>Pilot</span></a></div>
     <div class="header-right">
       <div class="nav">
         <a href="/dashboard">Jobs</a>
+        <a href="/learning">Learning</a>
         <a href="/profile" class="active">Profile</a>
       </div>
       <button class="theme-btn" onclick="toggleTheme()" title="Toggle dark mode" id="themeBtn">&#9789;</button>
@@ -104,7 +142,10 @@
     <div class="mobile-drawer" onclick="event.stopPropagation()">
       <button class="mobile-drawer-close" onclick="closeDrawer()">&times;</button>
       <a href="/dashboard">Jobs</a>
+      <a href="/learning">Learning</a>
       <a href="/profile" style="color:var(--blue);font-weight:600">Profile</a>
+      <div class="drawer-sep"></div>
+      <a href="/logout" class="drawer-logout">Sign out</a>
     </div>
   </div>
 
@@ -114,14 +155,44 @@
       <p class="subtitle">Your information is used to personalize Gmail application drafts for each job.</p>
     </div>
 
+    <!-- Gmail compose link card -->
+    <div class="card compose-card" id="composeCard">
+      <h2 style="display:flex;align-items:center;gap:8px">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        Gmail Compose Link
+      </h2>
+      <p class="compose-hint">Complete all fields below to unlock a <strong>universal Gmail compose link</strong>. It opens Gmail with a pre-filled application email you can send to any HR &mdash; just add the recipient and attach your CV.</p>
+
+      <div class="compose-progress">
+        <div class="bar-outer"><div class="bar-fill" id="progressBar" style="width:0%"></div></div>
+        <div class="bar-text" id="progressText"><strong>0</strong> of 7 fields completed</div>
+      </div>
+
+      <div class="compose-preview">
+        <div class="subject">Subject: Application for the position of Software Engineer</div>
+        <div>Dear Hiring Manager, ... your skills, experience, and contact info will be auto-filled from your profile.</div>
+      </div>
+
+      <div class="compose-unlock" id="composeUnlock">
+        <a class="btn btn-gmail" id="composeLink" href="#" target="_blank" rel="noopener">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M2 4h20v16H2V4zm0 2v.01L12 13 22 6.01V6L12 13 2 6zm0 2.5L12 15l10-6.5V18H2V8.5z"/></svg>
+          Open Gmail Compose
+        </a>
+      </div>
+      <div class="compose-locked" id="composeLocked">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Fill all required fields to unlock
+      </div>
+    </div>
+
     <div class="card">
       <h2>Personal information</h2>
       <div class="row">
-        <div class="field"><label>Full name</label><input id="name" value="{{ profile.name }}"></div>
-        <div class="field"><label>Email</label><input id="email" value="{{ profile.email }}" type="email"></div>
+        <div class="field"><label><span class="dot" id="dot-name"></span>Full name</label><input id="name" value="{{ profile.name }}" oninput="checkProgress()"></div>
+        <div class="field"><label><span class="dot" id="dot-email"></span>Email</label><input id="email" value="{{ profile.email }}" type="email" oninput="checkProgress()"></div>
       </div>
       <div class="row">
-        <div class="field"><label>Phone</label><input id="phone" value="{{ profile.phone }}"></div>
+        <div class="field"><label><span class="dot" id="dot-phone"></span>Phone</label><input id="phone" value="{{ profile.phone }}" oninput="checkProgress()"></div>
         <div class="field"><label>LinkedIn</label><input id="linkedin" value="{{ profile.linkedin }}"></div>
       </div>
       <div class="row">
@@ -133,15 +204,17 @@
     <div class="card">
       <h2>Professional details</h2>
       <p class="desc">Used to personalize the Gmail compose body text for each job application.</p>
-      <div class="field"><label>Skills (comma-separated)</label><textarea id="skills" rows="2">{{ profile.skills|join(', ') }}</textarea></div>
-      <div class="field"><label>Summary</label><textarea id="summary" rows="3">{{ profile.summary }}</textarea></div>
+      <div class="field"><label><span class="dot" id="dot-skills"></span>Skills (comma-separated)</label><textarea id="skills" rows="2" oninput="checkProgress()">{{ profile.skills|join(', ') }}</textarea></div>
+      <div class="field"><label><span class="dot" id="dot-summary"></span>Summary</label><textarea id="summary" rows="3" oninput="checkProgress()">{{ profile.summary }}</textarea></div>
       <div class="row">
-        <div class="field"><label>Experience</label><textarea id="experience" rows="4">{{ profile.experience }}</textarea></div>
-        <div class="field"><label>Education</label><textarea id="education" rows="4">{{ profile.education }}</textarea></div>
+        <div class="field"><label><span class="dot" id="dot-experience"></span>Experience</label><textarea id="experience" rows="4" oninput="checkProgress()">{{ profile.experience }}</textarea></div>
+        <div class="field"><label><span class="dot" id="dot-education"></span>Education</label><textarea id="education" rows="4" oninput="checkProgress()">{{ profile.education }}</textarea></div>
       </div>
     </div>
 
-    <button class="btn btn-primary" onclick="saveProfile()">Save profile</button>
+    <div class="actions-row">
+      <button class="btn btn-primary" onclick="saveProfile()">Save profile</button>
+    </div>
   </div>
 
   <div class="toast" id="toast"></div>
@@ -153,6 +226,7 @@
         document.documentElement.setAttribute('data-theme', 'dark');
       }
       updateThemeBtn();
+      checkProgress();
     })();
 
     function toggleTheme() {
@@ -180,6 +254,60 @@
     }
 
     function val(id) { return document.getElementById(id).value.trim(); }
+
+    const REQUIRED_FIELDS = ['name', 'email', 'phone', 'skills', 'summary', 'experience', 'education'];
+
+    function checkProgress() {
+      let filled = 0;
+      REQUIRED_FIELDS.forEach(id => {
+        const v = val(id);
+        const dot = document.getElementById('dot-' + id);
+        if (dot) { if (v) { dot.classList.add('filled'); } else { dot.classList.remove('filled'); } }
+        if (v) filled++;
+      });
+      const pct = Math.round((filled / REQUIRED_FIELDS.length) * 100);
+      document.getElementById('progressBar').style.width = pct + '%';
+      document.getElementById('progressText').innerHTML = '<strong>' + filled + '</strong> of ' + REQUIRED_FIELDS.length + ' fields completed';
+      const allDone = filled === REQUIRED_FIELDS.length;
+      document.getElementById('composeUnlock').classList.toggle('show', allDone);
+      document.getElementById('composeLocked').style.display = allDone ? 'none' : 'flex';
+      document.getElementById('composeCard').classList.toggle('unlocked', allDone);
+      if (allDone) buildComposeLink();
+    }
+
+    function buildComposeLink() {
+      const name = val('name');
+      const phone = val('phone');
+      const email = val('email');
+      const linkedin = val('linkedin');
+      const github = val('github');
+      const portfolio = val('portfolio');
+      const skills = val('skills');
+      const summary = val('summary');
+      const experience = val('experience');
+      const education = val('education');
+
+      const subject = 'Application for the position of Software Engineer';
+      const skillsFirst = skills.split(',').slice(0, 8).join(', ');
+
+      let body = 'Dear Hiring Manager,\n\n';
+      body += 'I am writing to express my interest in the Software Engineer position at your esteemed organization.\n\n';
+      if (summary) body += summary + '\n\n';
+      if (skillsFirst) body += 'My key skills include: ' + skillsFirst + '.\n\n';
+      if (experience) body += 'Experience:\n' + experience + '\n\n';
+      if (education) body += 'Education:\n' + education + '\n\n';
+      body += 'I would welcome the opportunity to discuss how my background aligns with your needs. Please find my resume attached.\n\n';
+      body += 'Thank you for your consideration.\n\n';
+      body += 'Best regards,\n' + name + '\n';
+      if (phone) body += phone + '\n';
+      if (email) body += email + '\n';
+      if (linkedin) body += 'LinkedIn: ' + linkedin + '\n';
+      if (github) body += 'GitHub: ' + github + '\n';
+      if (portfolio) body += 'Portfolio: ' + portfolio + '\n';
+
+      const params = new URLSearchParams({ view: 'cm', su: subject, body: body });
+      document.getElementById('composeLink').href = 'https://mail.google.com/mail/?' + params.toString();
+    }
 
     async function saveProfile() {
       const body = {

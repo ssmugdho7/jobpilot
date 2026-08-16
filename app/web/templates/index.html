@@ -62,6 +62,8 @@
     .mobile-drawer .drawer-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; padding: 0 12px; margin-bottom: 8px; }
     .mobile-drawer .drawer-link { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: var(--radius-sm); font-size: 14px; font-weight: 500; color: var(--muted); transition: all .15s; }
     .mobile-drawer .drawer-link:hover, .mobile-drawer .drawer-link.active { background: var(--bg); color: var(--blue); }
+    .mobile-drawer .drawer-link.drawer-logout { color: var(--red); }
+    .mobile-drawer .drawer-link.drawer-logout:hover { background: var(--red-bg); color: var(--red); }
     .mobile-drawer .drawer-link .count { font-size: 12px; opacity: .7; }
     .mobile-drawer-close { position: absolute; top: 16px; right: 16px; width: 40px; height: 40px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--card); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; color: var(--muted); }
 
@@ -222,10 +224,10 @@
       .toolbar { flex-direction: column; align-items: stretch; }
       .toolbar select { width: 100%; }
       .page-link { min-width: 44px; height: 44px; }
-      .company-row { flex-direction: column; align-items: flex-start; gap: 6px; }
-      .company-links { flex-wrap: wrap; }
+      .company-row { justify-content: space-between; align-items: center; }
+      .company-links { flex-wrap: wrap; justify-content: flex-start; }
       .company-links a { font-size: 11px; padding: 3px 8px; }
-      .company-badges { align-self: flex-start; }
+      .company-badges { justify-content: flex-end; }
       .skill-gap .labels { flex-direction: column; gap: 4px; }
       .modal { padding: 28px 20px; }
       .apply-prompt { font-size: 12px; padding: 4px 10px; gap: 6px; }
@@ -315,6 +317,10 @@
         <a class="drawer-link {{ 'active' if active_role == cr }}" href="/dashboard?status={{ active_status }}&days={{ active_days }}&role={{ cr }}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">{{ cr }}</a>
         {% endfor %}
       </div>
+      <div style="height:1px;background:var(--border);margin:4px 0"></div>
+      <a class="drawer-link" href="/learning">Learning</a>
+      <a class="drawer-link" href="/profile">Profile</a>
+      <a class="drawer-link drawer-logout" href="/logout">Sign out</a>
     </div>
   </div>
 
@@ -419,7 +425,10 @@
                   {% if job.follow_up_needed %}<span class="badge followup-badge">Follow up</span>{% endif %}
                 </div>
               </div>
-              <span class="badge status-badge status-{{ job.status }}">{{ job.status }}</span>
+              <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+                {% if job.early_applicant %}<span class="badge early-badge">{{ job.early_applicant }}</span>{% endif %}
+                <span class="badge status-badge status-{{ job.status }}">{{ job.status }}</span>
+              </div>
             </div>
 
             {% if job.snippet %}<div class="job-snippet">{{ job.snippet }}</div>{% endif %}
@@ -476,13 +485,11 @@
                 {% if job.company_links.deshimula %}<a href="{{ job.company_links.deshimula }}" target="_blank" rel="noopener">Deshimula</a>{% endif %}
               </div>
               <div class="company-badges">
-                {% if job.early_applicant %}<span class="badge early-badge">{{ job.early_applicant }}</span>{% endif %}
                 <span class="badge source-badge">{{ job.source_site }}</span>
               </div>
             </div>
             {% else %}
             <div style="margin-top:10px;display:flex;justify-content:flex-end;gap:6px;align-items:center">
-              {% if job.early_applicant %}<span class="badge early-badge">{{ job.early_applicant }}</span>{% endif %}
               <span class="badge source-badge">{{ job.source_site }}</span>
             </div>
             {% endif %}

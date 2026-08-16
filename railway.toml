@@ -1,0 +1,12 @@
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "gunicorn app.web.app:app --bind 0.0.0.0:$PORT --timeout 120 --workers 1"
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 10
+
+[[deploy.volumes]]
+mountPath = "/app/data"
+name = "jobpilot-data"
+size = "1GB"

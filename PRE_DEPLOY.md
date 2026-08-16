@@ -1,6 +1,6 @@
 # Pre-Deployment Checklist — JobPilot
 
-Use this checklist before deploying to production. It covers branch state, required files, environment variables, host-specific notes, and post-deploy verification.
+Use this checklist before deploying to production. It covers branch state, required files, Railway-specific configuration, environment variables, and post-deploy verification.
 
 ---
 
@@ -25,14 +25,14 @@ git log --oneline main..staging
 These files must exist at the project root:
 
 - [ ] **`Procfile`** — web process command
-- [ ] **`render.yaml`** — Render service + disk config (if deploying on Render)
+- [ ] **`railway.toml`** — Railway deploy + volume config
 - [ ] **`requirements.txt`** — includes `gunicorn>=21.0`
 - [ ] **`.env.example`** — documents required env vars (do NOT commit real `.env`)
 
 Verify:
 ```bash
 cat Procfile
-cat render.yaml
+cat railway.toml
 grep gunicorn requirements.txt
 ```
 
@@ -59,7 +59,6 @@ if os.name != "nt":
 ### Data directory
 - [ ] `app/paths.py` creates `data/`, `data/uploads/`, `data/cv/` on startup
 - [ ] DB path uses relative path from project root: `data/jobs.db`
-- [ ] On Render, disk is mounted at `/opt/render/project/src/data`
 - [ ] On Railway, volume is mounted at `/app/data`
 
 ### Static files
@@ -70,7 +69,7 @@ if os.name != "nt":
 
 ## 4. Environment variables
 
-Set these in your hosting dashboard (Render → Environment, Railway → Variables, PythonAnywhere → Web → Environment):
+Set these in the Railway dashboard (**Variables** tab):
 
 | Variable | Required | Example / Notes |
 |---|---|---|
@@ -79,51 +78,55 @@ Set these in your hosting dashboard (Render → Environment, Railway → Variabl
 | `GEMINI_MODEL` | Yes | `gemini-3-flash-preview` |
 | `FACEBOOK_ACCESS_TOKEN` | Optional | Facebook Graph API token |
 | `SECRET_KEY` | Yes | Random long string for Flask sessions |
-| `PYTHON_VERSION` | Render only | `3.11.9` (already in `render.yaml`) |
 
 **Never commit `.env` to Git.**
 
 ---
 
-## 5. Host-specific configuration
+## 5. Railway-specific configuration
 
-### Render (recommended)
+### Deploy from GitHub
 
-- [ ] Web service created from `ssmugdho7/jobpilot` repo
-- [ ] `render.yaml` auto-detected (or paste contents manually)
-- [ ] Disk attached: name `jobpilot-data`, mount `/opt/render/project/src/data`, size `1 GB`
-- [ ] Build command: `pip install -r requirements.txt`
-- [ ] Start command: `gunicorn app.web.app:app --bind 0.0.0.0:$PORT --timeout 120 --workers 1`
-- [ ] Environment variables set (see section 4)
-- [ ] **Cron job added** to trigger `/api/scan` every 3 hours:
-  - Schedule: `0 */3 * * *`
-  - URL: `/api/scan`
-  - Method: `POST`
-  - Service: `jobpilot`
+- [ ] Go to **https://railway.app** → **New Project** → **Deploy from GitHub repo**
+- [ ] Select `ssmugdho7/jobpilot`
+- [ ] Railway auto-detects `railway.toml` and starts building
 
-### Railway
+### Volume (persistent SQLite DB)
 
-- [ ] Project deployed from `ssmugdho7/jobpilot` repo
-- [ ] Variables set (see section 4)
-- [ ] Volume created: mount `/app/data`, size `1 GB`
-- [ ] Start command: `gunicorn app.web.app:app --bind 0.0.0.0:$PORT --timeout 120 --workers 1`
-- [ ] Scheduler / cron job set up to hit `/api/scan`
+- [ ] In Railway dashboard → **Volumes** → **New Volume**
+- [ ] **Name:** `jobpilot-data`
+- [ ] **Mount path:** `/app/data`
+- [ ] **Size:** `1 GB`
 
-### PythonAnywhere
+### Variables
 
-- [ ] Repo cloned to `/home/yourusername/jobpilot`
-- [ ] Virtualenv created with Python 3.11
-- [ ] `pip install -r requirements.txt gunicorn`
-- [ ] WSGI config points to `app.web.app:app`
-- [ ] Environment variables set
-- [ ] Web app reloaded
+- [ ] Add all environment variables from section 4 in the **Variables** tab
+- [ ] Railway automatically sets `PORT` — no need to set it manually
+
+### Start command
+
+- [ ] `railway.toml` sets:
+  ```toml
+  startCommand = "gunicorn app.web.app:app --bind 0.0.0.0:$PORT --timeout 120 --workers 1"
+  ```
+- [ ] Railway uses this automatically; no need to override in dashboard
+
+### Scheduler (cron for scans)
+
+Railway free tier includes a scheduler. Set it up to trigger scans:
+
+- [ ] In Railway dashboard → **Scheduler** → **New Job**
+- [ ] **Name:** `scan-jobs`
+- [ ] **Schedule:** `0 */3 * * *` (every 3 hours)
+- [ ] **Command:** `curl -X POST https://your-app.up.railway.app/api/scan -H "Content-Type: application/json" -d "{}"`
+- [ ] Or use Railway's built-in HTTP trigger if available
 
 ---
 
 ## 6. Database migration and persistence
 
 - [ ] `data/jobs.db` will be created on first run (`init_db()` in `app/db.py`)
-- [ ] SQLite file is on persistent storage (disk/volume/home dir)
+- [ ] SQLite file is on persistent volume (`/app/data`)
 - [ ] `init_db()` runs lightweight migrations for new columns:
   - `jobs.status`, `jobs.posted_date`, `jobs.deadline`, `jobs.hr_email`, `jobs.experience_level`
   - `user_jobs.follow_up_at`
@@ -138,7 +141,7 @@ After deploying, verify these endpoints and features:
 
 ### Health check
 ```bash
-curl https://your-app.onrender.com/
+curl https://your-app.up.railway.app/
 ```
 - [ ] Returns 200 with `JobPilot` in HTML
 
@@ -151,10 +154,10 @@ curl https://your-app.onrender.com/
 
 ### API
 ```bash
-curl -X POST https://your-app.onrender.com/api/scan -H "Content-Type: application/json" -d "{}"
+curl -X POST https://your-app.up.railway.app/api/scan -H "Content-Type: application/json" -d "{}"
 ```
 - [ ] Returns `{"ok": true, "started": true}`
-- [ ] Scan completes without errors (check Render logs)
+- [ ] Scan completes without errors (check Railway logs)
 
 ### Auth
 - [ ] Register new user works
@@ -208,12 +211,13 @@ Confirm these features are present in the deployed build:
 
 ## 10. Performance and limits
 
-- [ ] Free tier limits understood:
-  - **Render:** 512 MB RAM, sleeps after 15 min, cron jobs available
-  - **Railway:** $5/month credit, then paid
-  - **PythonAnywhere:** 512 MB, always-on, no cron on free tier
-- [ ] Scans are triggered via cron, not background threads (for Render)
-- [ ] SQLite DB is on persistent disk to survive redeploys
+- [ ] Railway free tier limits understood:
+  - **$5/month credit** included with free account
+  - App sleeps after period of inactivity if credit is exhausted
+  - 512 MB RAM, shared CPU
+- [ ] Scans are triggered via scheduler, not background threads
+- [ ] SQLite DB is on persistent volume to survive redeploys
+- [ ] `gunicorn --workers 1` is used to stay within memory limits
 
 ---
 
@@ -233,4 +237,4 @@ git log --oneline -5
 git push origin main
 ```
 
-Then follow **Option A: Render** steps in `DEPLOYMENT.md` to complete deployment.
+Then follow the Railway steps in section 5 to complete deployment.

@@ -4,203 +4,216 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>JobPilot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root, [data-theme="light"] {
-      --blue: #2563eb;
-      --blue-dark: #1d4ed8;
-      --bg: #f8fafc;
-      --card: #ffffff;
-      --border: #e2e8f0;
-      --text: #1e293b;
-      --muted: #64748b;
-      --snippet: #475569;
-      --green: #16a34a;
-      --green-bg: #f0fdf4;
-      --red: #dc2626;
-      --red-bg: #fef2f2;
-      --radius: 10px;
-      --code-bg: #f1f5f9;
+      --blue: #2563eb; --blue-dark: #1d4ed8; --blue-light: #dbeafe;
+      --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0;
+      --text: #0f172a; --muted: #64748b; --snippet: #475569;
+      --green: #16a34a; --green-bg: #f0fdf4; --green-light: #dcfce7;
+      --red: #dc2626; --red-bg: #fef2f2;
+      --orange: #ea580c; --orange-bg: #fff7ed;
+      --radius: 12px; --radius-sm: 8px;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,.05);
+      --shadow: 0 1px 3px rgba(0,0,0,.1), 0 1px 2px rgba(0,0,0,.06);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,.1), 0 2px 4px -2px rgba(0,0,0,.1);
     }
     [data-theme="dark"] {
-      --blue: #60a5fa;
-      --blue-dark: #93bbfd;
-      --bg: #0f172a;
-      --card: #1e293b;
-      --border: #334155;
-      --text: #f1f5f9;
-      --muted: #94a3b8;
-      --snippet: #cbd5e1;
-      --green: #4ade80;
-      --green-bg: #052e16;
-      --red: #f87171;
-      --red-bg: #450a0a;
-      --orange: #fb923c;
-      --orange-bg: #431407;
-      --code-bg: #0f172a;
+      --blue: #60a5fa; --blue-dark: #93bbfd; --blue-light: #1e3a5f;
+      --bg: #0f172a; --card: #1e293b; --border: #334155;
+      --text: #f1f5f9; --muted: #94a3b8; --snippet: #cbd5e1;
+      --green: #4ade80; --green-bg: #052e16; --green-light: #14532d;
+      --red: #f87171; --red-bg: #450a0a;
+      --orange: #fb923c; --orange-bg: #431407;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,.3);
+      --shadow: 0 1px 3px rgba(0,0,0,.4); --shadow-md: 0 4px 6px rgba(0,0,0,.4);
     }
-    * { box-sizing: border-box; margin: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; -webkit-font-smoothing: antialiased; }
     a { color: var(--blue); text-decoration: none; }
-    a:hover { text-decoration: underline; }
 
-    .header { background: var(--card); border-bottom: 1px solid var(--border); padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
-    .logo { font-size: 18px; font-weight: 700; color: var(--blue); flex-shrink: 0; }
+    /* ── Header ── */
+    .header { background: rgba(255,255,255,.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 20px; height: 60px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+    [data-theme="dark"] .header { background: rgba(15,23,42,.85); }
+    .logo { font-size: 20px; font-weight: 800; color: var(--blue); letter-spacing: -.5px; flex-shrink: 0; }
     .logo span { color: var(--text); }
-    .header-right { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
-    .nav { display: flex; align-items: center; gap: 2px; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; }
+    .header-right { display: flex; align-items: center; gap: 6px; }
+    .nav { display: flex; align-items: center; gap: 2px; overflow-x: auto; scrollbar-width: none; }
     .nav::-webkit-scrollbar { display: none; }
-    .nav a { padding: 6px 12px; border-radius: 6px; font-size: 14px; color: var(--muted); font-weight: 500; white-space: nowrap; }
-    .nav a:hover { background: var(--bg); text-decoration: none; }
-    .nav a.active { color: var(--blue); background: var(--bg); }
-    .theme-toggle { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
-    .theme-toggle:hover { color: var(--text); border-color: var(--muted); }
-    .user-menu { display: flex; align-items: center; gap: 8px; margin-left: 8px; padding-left: 12px; border-left: 1px solid var(--border); flex-shrink: 0; }
-    .user-menu .name { font-size: 13px; color: var(--muted); }
-    .user-menu .logout { font-size: 13px; color: var(--muted); padding: 4px 10px; border-radius: 6px; }
-    .user-menu .logout:hover { background: var(--red-bg); color: var(--red); text-decoration: none; }
+    .nav a { padding: 8px 14px; border-radius: var(--radius-sm); font-size: 14px; color: var(--muted); font-weight: 500; white-space: nowrap; transition: all .15s; }
+    .nav a:hover { background: var(--bg); color: var(--text); }
+    .nav a.active { color: var(--blue); background: var(--blue-light); }
+    [data-theme="dark"] .nav a.active { background: rgba(96,165,250,.15); }
+    .theme-btn { width: 40px; height: 40px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--card); color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; transition: all .15s; }
+    .theme-btn:hover { color: var(--text); border-color: var(--muted); }
+    .user-pill { display: flex; align-items: center; gap: 8px; margin-left: 8px; padding-left: 12px; border-left: 1px solid var(--border); flex-shrink: 0; }
+    .user-pill .name { font-size: 13px; color: var(--muted); font-weight: 500; max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .user-pill .logout { font-size: 13px; color: var(--muted); padding: 6px 12px; border-radius: var(--radius-sm); font-weight: 500; transition: all .15s; }
+    .user-pill .logout:hover { background: var(--red-bg); color: var(--red); }
 
-    .layout { display: flex; max-width: 1200px; margin: 0 auto; padding: 24px 20px 60px; gap: 24px; }
-    .sidebar { width: 260px; flex-shrink: 0; position: sticky; top: 80px; align-self: flex-start; max-height: calc(100vh - 100px); overflow-y: auto; }
-    .sidebar-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; }
-    .sidebar-card .label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
+    /* ── Mobile hamburger ── */
+    .hamburger { display: none; width: 40px; height: 40px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--card); cursor: pointer; align-items: center; justify-content: center; flex-direction: column; gap: 5px; padding: 10px; flex-shrink: 0; }
+    .hamburger span { display: block; width: 18px; height: 2px; background: var(--text); border-radius: 2px; transition: all .2s; }
+    .mobile-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 200; }
+    .mobile-overlay.open { display: block; }
+    .mobile-drawer { position: absolute; left: 0; top: 0; bottom: 0; width: 300px; background: var(--card); box-shadow: var(--shadow-md); padding: 72px 16px 24px; overflow-y: auto; }
+    .mobile-drawer .drawer-section { margin-bottom: 20px; }
+    .mobile-drawer .drawer-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; padding: 0 12px; margin-bottom: 8px; }
+    .mobile-drawer .drawer-link { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: var(--radius-sm); font-size: 14px; font-weight: 500; color: var(--muted); transition: all .15s; }
+    .mobile-drawer .drawer-link:hover, .mobile-drawer .drawer-link.active { background: var(--bg); color: var(--blue); }
+    .mobile-drawer .drawer-link .count { font-size: 12px; opacity: .7; }
+    .mobile-drawer-close { position: absolute; top: 16px; right: 16px; width: 40px; height: 40px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--card); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; color: var(--muted); }
+
+    /* ── Layout ── */
+    .layout { display: flex; max-width: 1280px; margin: 0 auto; padding: 24px 24px 80px; gap: 24px; }
+    .sidebar { width: 260px; flex-shrink: 0; position: sticky; top: 84px; align-self: flex-start; max-height: calc(100vh - 108px); overflow-y: auto; }
+    .sidebar-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow-sm); }
+    .sidebar-card .label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 10px; }
     .sidebar-card .filter-list { display: flex; flex-direction: column; gap: 4px; }
-    .sidebar-card .filter-pill { display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--muted); text-decoration: none; transition: all .15s; }
-    .sidebar-card .filter-pill:hover { background: var(--bg); color: var(--blue); text-decoration: none; }
+    .sidebar-card .filter-pill { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; color: var(--muted); text-decoration: none; transition: all .15s; min-height: 40px; }
+    .sidebar-card .filter-pill:hover { background: var(--bg); color: var(--blue); }
     .sidebar-card .filter-pill.active { background: var(--blue); color: #fff; }
     .sidebar-card .filter-pill .count { opacity: .7; font-size: 12px; }
 
     .content { flex: 1; min-width: 0; }
 
-    .stats { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
-    .stat { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 18px; flex: 1; min-width: 80px; }
-    .stat .num { font-size: 22px; font-weight: 700; color: var(--text); }
-    .stat .label { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    /* ── Stats row ── */
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+    .stat { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow-sm); }
+    .stat .num { font-size: 24px; font-weight: 800; color: var(--text); line-height: 1; }
+    .stat .label { font-size: 12px; color: var(--muted); margin-top: 4px; font-weight: 500; }
     .stat.blue .num { color: var(--blue); }
     .stat.green .num { color: var(--green); }
     .stat.red .num { color: var(--red); }
 
+    /* ── Toolbar ── */
     .toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
-    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all .15s; }
-    .btn-primary { background: var(--blue); color: #fff; }
-    .btn-primary:hover { background: var(--blue-dark); }
-    .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
-    .btn-ghost:hover { background: var(--bg); color: var(--text); }
-    .btn:disabled { opacity: .5; cursor: wait; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 18px; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: all .15s; min-height: 44px; font-family: inherit; }
+    .btn-primary { background: var(--blue); color: #fff; box-shadow: 0 1px 2px rgba(37,99,235,.3); }
+    .btn-primary:hover { background: var(--blue-dark); box-shadow: 0 4px 12px rgba(37,99,235,.3); transform: translateY(-1px); }
+    .btn-ghost { background: transparent; color: var(--muted); border: 1.5px solid var(--border); }
+    .btn-ghost:hover { background: var(--bg); color: var(--text); border-color: var(--muted); }
+    .btn:disabled { opacity: .5; cursor: wait; transform: none; }
+    .status-select { padding: 10px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border); font-size: 14px; background: var(--card); color: var(--text); cursor: pointer; min-height: 44px; font-family: inherit; }
 
-    .job { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin-bottom: 12px; transition: border-color .15s; }
-    .job:hover { border-color: var(--muted); }
+    /* ── Job card ── */
+    .job { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 12px; transition: all .2s; box-shadow: var(--shadow-sm); }
+    .job:hover { border-color: var(--muted); box-shadow: var(--shadow); }
     .job.fresher { border-left: 4px solid var(--blue); }
     .job.perfect-match { border-left: 4px solid var(--green); }
     .job.fresher.perfect-match { border-left: 4px solid var(--green); border-top: 2px solid var(--blue); }
-    .job-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 8px; }
-    .job-title { font-size: 16px; font-weight: 600; color: var(--text); line-height: 1.3; }
-    .job-title a { color: inherit; }
-    .job-title a:hover { color: var(--blue); text-decoration: underline; }
-    .job-meta { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+    .job-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+    .job-title { font-size: 16px; font-weight: 700; color: var(--text); line-height: 1.35; }
+    .job-title a { color: inherit; transition: color .15s; }
+    .job-title a:hover { color: var(--blue); }
+    .job-meta { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 13px; color: var(--muted); margin-bottom: 10px; align-items: center; }
     .job-meta .company { font-weight: 600; color: var(--text); }
-    .job-meta .sep { color: var(--border); }
-    .job-snippet { font-size: 13px; color: var(--snippet); line-height: 1.5; margin-bottom: 12px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .job-snippet { font-size: 13px; color: var(--snippet); line-height: 1.6; margin-bottom: 14px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
     .job-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-    .status-badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .3px; }
+
+    /* ── Badges ── */
+    .badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+    .status-badge { text-transform: uppercase; letter-spacing: .3px; }
     .status-new { background: var(--blue); color: #fff; }
-    .status-applied { background: var(--green-bg); color: var(--green); }
-    .status-dismissed { background: var(--red-bg); color: var(--red); }
-    .source-badge { font-size: 11px; padding: 3px 8px; border-radius: 6px; background: var(--bg); color: var(--muted); border: 1px solid var(--border); font-weight: 500; }
-    .exp-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 3px 10px; border-radius: 12px; background: #e0e7ff; color: #3730a3; font-weight: 600; }
-    .match-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 3px 10px; border-radius: 12px; background: var(--green-bg); color: var(--green); font-weight: 600; }
-    .deadline-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 3px 10px; border-radius: 12px; background: var(--red-bg); color: var(--red); font-weight: 600; }
-    .followup-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 3px 10px; border-radius: 12px; background: var(--orange-bg, #fef3c7); color: var(--orange, #92400e); font-weight: 600; }
-    .early-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 4px 12px; border-radius: 12px; background: #fff7ed; color: #c2410c; font-weight: 700; border: 1px solid #fdba74; letter-spacing: .2px; }
+    .status-applied { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-light); }
+    .status-dismissed { background: var(--red-bg); color: var(--red); border: 1px solid #fecaca; }
+    [data-theme="dark"] .status-applied { border-color: var(--green); }
+    [data-theme="dark"] .status-dismissed { border-color: var(--red); }
+    .source-badge { background: var(--bg); color: var(--muted); border: 1px solid var(--border); font-weight: 500; }
+    .exp-badge { background: var(--blue-light); color: var(--blue-dark); }
+    [data-theme="dark"] .exp-badge { background: rgba(96,165,250,.15); color: var(--blue); }
+    .match-badge { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-light); }
+    .deadline-badge { background: var(--red-bg); color: var(--red); border: 1px solid #fecaca; }
+    [data-theme="dark"] .deadline-badge { border-color: var(--red); }
+    .followup-badge { background: var(--orange-bg); color: var(--orange); border: 1px solid #fed7aa; }
+    [data-theme="dark"] .followup-badge { border-color: var(--orange); }
+    .early-badge { background: #fff7ed; color: #c2410c; border: 1px solid #fdba74; font-weight: 700; }
     [data-theme="dark"] .early-badge { background: #431407; color: #fdba74; border-color: #7c2d12; }
-    .gmail-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 16px; border-radius: 8px; font-size: 14px; font-weight: 600; background: #1a73e8; color: #fff; border: none; cursor: pointer; min-height: 44px; }
-    .gmail-btn:hover { background: #1557b0; text-decoration: none; color: #fff; }
-    .apply-now { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 18px; border-radius: 8px; font-size: 14px; font-weight: 600; background: #16a34a; color: #fff; border: none; cursor: pointer; animation: pulse 2s infinite; min-height: 44px; }
-    .apply-now:hover { background: #15803d; text-decoration: none; color: #fff; }
-    @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(22,163,74,.4); } 50% { box-shadow: 0 0 0 8px rgba(22,163,74,0); } }
-    .status-select { padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); font-size: 14px; background: var(--card); color: var(--text); cursor: pointer; min-height: 44px; }
-    .skill-gap { margin-top: 8px; margin-bottom: 12px; font-size: 12px; }
-    .skill-gap .bar { height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; margin-bottom: 4px; }
-    .skill-gap .bar-fill { height: 100%; border-radius: 3px; background: var(--green); transition: width .3s; }
-    .skill-gap .labels { display: flex; gap: 8px; flex-wrap: wrap; }
-    .skill-gap .matched { color: var(--green); }
-    .skill-gap .missing { color: var(--red); }
-    .company-links { display: flex; gap: 6px; margin-top: 6px; }
-    .company-links a { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
-    .company-links a:hover { color: var(--blue); border-color: var(--blue); text-decoration: none; }
 
-    .empty { text-align: center; padding: 60px 20px; color: var(--muted); }
-    .empty .icon { font-size: 48px; margin-bottom: 16px; }
-    .empty h3 { font-size: 18px; color: var(--text); margin-bottom: 8px; }
-    .empty p { font-size: 14px; max-width: 400px; margin: 0 auto; }
+    /* ── Action buttons ── */
+    .gmail-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 18px; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; background: #1a73e8; color: #fff; border: none; cursor: pointer; min-height: 44px; transition: all .15s; font-family: inherit; }
+    .gmail-btn:hover { background: #1557b0; color: #fff; transform: translateY(-1px); }
+    .apply-now { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 20px; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; background: var(--green); color: #fff; border: none; cursor: pointer; min-height: 44px; animation: pulse-green 2s infinite; font-family: inherit; transition: all .15s; }
+    .apply-now:hover { background: #15803d; color: #fff; transform: translateY(-1px); }
+    @keyframes pulse-green { 0%, 100% { box-shadow: 0 0 0 0 rgba(22,163,74,.4); } 50% { box-shadow: 0 0 0 8px rgba(22,163,74,0); } }
 
-    .pagination { display: flex; align-items: center; gap: 6px; justify-content: center; margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--border); flex-wrap: wrap; }
-    .page-link { display: inline-flex; align-items: center; justify-content: center; min-width: 38px; height: 38px; padding: 0 12px; border-radius: 10px; font-size: 13px; font-weight: 500; color: var(--muted); border: 1px solid var(--border); background: var(--card); text-decoration: none; transition: all .15s ease; }
-    .page-link:hover { background: var(--bg); border-color: var(--blue); color: var(--blue); transform: translateY(-1px); box-shadow: 0 2px 6px rgba(0,0,0,.06); }
-    .page-link.current { background: var(--blue); color: #fff; border-color: var(--blue); font-weight: 600; box-shadow: 0 2px 8px rgba(37,99,235,.25); }
-    .page-link.ellipsis { border: none; background: transparent; cursor: default; color: var(--muted); min-width: 30px; }
-    .page-link.ellipsis:hover { transform: none; box-shadow: none; color: var(--muted); }
+    /* ── Skill gap ── */
+    .skill-gap { margin: 10px 0 14px; font-size: 12px; }
+    .skill-gap .bar { height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; margin-bottom: 6px; }
+    .skill-gap .bar-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--green), #22c55e); transition: width .3s; }
+    .skill-gap .labels { display: flex; gap: 10px; flex-wrap: wrap; }
+    .skill-gap .matched { color: var(--green); font-weight: 500; }
+    .skill-gap .missing { color: var(--red); font-weight: 500; }
 
-    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 12px 20px; border-radius: 10px; font-size: 14px; display: none; z-index: 200; box-shadow: 0 4px 12px rgba(0,0,0,.25); }
+    .company-links { display: flex; gap: 6px; margin-top: 10px; }
+    .company-links a { font-size: 12px; padding: 4px 10px; border-radius: 6px; background: var(--bg); color: var(--muted); border: 1px solid var(--border); font-weight: 500; transition: all .15s; }
+    .company-links a:hover { color: var(--blue); border-color: var(--blue); }
 
-    /* Onboarding Modal */
-    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 300; align-items: center; justify-content: center; }
+    /* ── Empty state ── */
+    .empty { text-align: center; padding: 80px 24px; color: var(--muted); }
+    .empty .icon { font-size: 56px; margin-bottom: 16px; }
+    .empty h3 { font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+    .empty p { font-size: 15px; max-width: 400px; margin: 0 auto; line-height: 1.6; }
+
+    /* ── Pagination ── */
+    .pagination { display: flex; align-items: center; gap: 8px; justify-content: center; margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border); flex-wrap: wrap; }
+    .page-link { display: inline-flex; align-items: center; justify-content: center; min-width: 42px; height: 42px; padding: 0 14px; border-radius: var(--radius-sm); font-size: 14px; font-weight: 500; color: var(--muted); border: 1px solid var(--border); background: var(--card); text-decoration: none; transition: all .15s; }
+    .page-link:hover { background: var(--bg); border-color: var(--blue); color: var(--blue); transform: translateY(-1px); box-shadow: var(--shadow); }
+    .page-link.current { background: var(--blue); color: #fff; border-color: var(--blue); font-weight: 600; box-shadow: 0 2px 8px rgba(37,99,235,.3); }
+    .page-link.ellipsis { border: none; background: transparent; cursor: default; min-width: 32px; }
+
+    /* ── Toast ── */
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 14px 24px; border-radius: var(--radius); font-size: 14px; font-weight: 500; display: none; z-index: 300; box-shadow: var(--shadow-md); }
+
+    /* ── Onboarding modal ── */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 400; align-items: center; justify-content: center; padding: 20px; }
     .modal-overlay.show { display: flex; }
-    .modal { background: var(--card); border-radius: 16px; padding: 32px; max-width: 520px; width: 90%; max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
-    .modal h2 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
-    .modal .subtitle { font-size: 14px; color: var(--muted); margin-bottom: 20px; }
-    .radio-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
-    .radio-item { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: all .15s; font-size: 13px; }
-    .radio-item:hover { border-color: var(--blue); }
-    .radio-item input { accent-color: var(--blue); }
-    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
-    .modal-actions .btn-primary { padding: 10px 24px; }
+    .modal { background: var(--card); border-radius: 16px; padding: 36px; max-width: 520px; width: 100%; max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+    .modal h2 { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+    .modal .subtitle { font-size: 14px; color: var(--muted); margin-bottom: 24px; line-height: 1.6; }
+    .radio-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; }
+    .radio-item { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; transition: all .15s; font-size: 14px; font-weight: 500; }
+    .radio-item:hover { border-color: var(--blue); background: var(--bg); }
+    .radio-item input { accent-color: var(--blue); width: 18px; height: 18px; }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
 
+    /* ── Responsive ── */
     @media (max-width: 768px) {
-      .layout { flex-direction: column; padding: 16px 12px 40px; gap: 16px; }
-      .sidebar { width: 100%; position: static; max-height: none; }
-      .sidebar-card .filter-list { flex-direction: row; flex-wrap: wrap; gap: 6px; }
-      .sidebar-card .filter-pill { padding: 8px 12px; font-size: 13px; border-radius: 10px; }
-      .stats { gap: 8px; }
-      .stat { min-width: 70px; padding: 10px 12px; }
-      .stat .num { font-size: 18px; }
-      .job { padding: 16px; border-radius: 12px; }
+      .layout { flex-direction: column; padding: 16px 12px 60px; gap: 16px; }
+      .sidebar { display: none; }
+      .hamburger { display: flex; }
+      .nav { display: none; }
+      .user-pill { display: none; }
+      .stats { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+      .stat { padding: 12px; }
+      .stat .num { font-size: 20px; }
+      .job { padding: 16px; border-radius: var(--radius); }
       .job-header { flex-direction: column; gap: 8px; }
-      .job-title { font-size: 18px; font-weight: 700; line-height: 1.35; }
-      .job-meta { gap: 8px 12px; font-size: 13px; }
-      .job-snippet { font-size: 14px; line-height: 1.6; margin-bottom: 14px; }
-      .job-actions { flex-direction: column; align-items: stretch; gap: 10px; }
-      .job-actions .btn, .job-actions .gmail-btn, .job-actions .apply-now, .job-actions .status-select { width: 100%; justify-content: center; text-align: center; }
+      .job-title { font-size: 17px; font-weight: 700; }
+      .job-actions { flex-direction: column; align-items: stretch; }
+      .job-actions .btn, .job-actions .gmail-btn, .job-actions .apply-now, .job-actions .status-select { width: 100%; }
       .job-actions .source-badge { align-self: flex-start; width: auto; }
-      .user-menu { display: none; }
-      .header { padding: 0 16px; height: 56px; }
-      .nav a { padding: 8px 10px; font-size: 13px; }
-      .toolbar { flex-direction: column; align-items: stretch; gap: 10px; }
-      .toolbar select { width: 100%; margin-left: 0; }
-      .pagination { gap: 8px; }
-      .page-link { min-width: 42px; height: 42px; font-size: 14px; border-radius: 10px; }
+      .toolbar { flex-direction: column; align-items: stretch; }
+      .toolbar select { width: 100%; }
+      .page-link { min-width: 44px; height: 44px; }
       .company-links { flex-wrap: wrap; }
-      .company-links a { font-size: 12px; padding: 6px 10px; }
       .skill-gap .labels { flex-direction: column; gap: 4px; }
-      .modal { padding: 24px; }
+      .modal { padding: 28px 20px; }
     }
-
     @media (max-width: 480px) {
-      .layout { padding: 12px 10px 32px; gap: 12px; }
+      .layout { padding: 12px 10px 48px; gap: 12px; }
       .job { padding: 14px; }
-      .job-title { font-size: 17px; }
-      .stat { min-width: 60px; padding: 8px 10px; }
-      .stat .num { font-size: 16px; }
+      .job-title { font-size: 16px; }
+      .stats { gap: 6px; }
+      .stat { padding: 10px; min-width: 0; }
+      .stat .num { font-size: 18px; }
       .stat .label { font-size: 11px; }
-      .header { padding: 0 12px; }
-      .logo { font-size: 16px; }
-      .nav a { padding: 6px 8px; font-size: 12px; }
-      .sidebar-card { padding: 14px; }
-      .sidebar-card .label { font-size: 10px; }
-      .sidebar-card .filter-pill { padding: 7px 10px; font-size: 12px; }
+      .header { padding: 0 12px; height: 56px; }
+      .logo { font-size: 18px; }
+      .toolbar .btn { font-size: 13px; padding: 8px 14px; }
       .pagination { gap: 6px; }
-      .page-link { min-width: 38px; height: 38px; font-size: 13px; }
-      .job-actions { gap: 8px; }
-      .job-actions .source-badge { align-self: flex-start; width: auto; }
+      .page-link { min-width: 40px; height: 40px; font-size: 13px; }
     }
   </style>
 </head>
@@ -213,20 +226,60 @@
         <a href="/learning">Learning</a>
         <a href="/profile">Profile</a>
       </div>
-      <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode" id="themeBtn">&#9789;</button>
-      <div class="user-menu">
+      <button class="theme-btn" onclick="toggleTheme()" title="Toggle dark mode" id="themeBtn">&#9789;</button>
+      <div class="user-pill">
         <span class="name">{{ username }}</span>
         <a href="/logout" class="logout">Sign out</a>
+      </div>
+      <button class="hamburger" onclick="openDrawer()" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Mobile filter drawer -->
+  <div class="mobile-overlay" id="mobileDrawer" onclick="closeDrawer()">
+    <div class="mobile-drawer" onclick="event.stopPropagation()">
+      <button class="mobile-drawer-close" onclick="closeDrawer()">&times;</button>
+      <div class="drawer-section">
+        <div class="drawer-label">Status</div>
+        <a class="drawer-link {{ 'active' if active_status == '' }}" href="/dashboard?days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">All CSE Jobs<span class="count">{{ counts.all }}</span></a>
+        <a class="drawer-link {{ 'active' if active_status == 'new' }}" href="/dashboard?status=new&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">New<span class="count">{{ counts.new }}</span></a>
+        <a class="drawer-link {{ 'active' if active_status == 'applied' }}" href="/dashboard?status=applied&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">Applied<span class="count">{{ counts.applied }}</span></a>
+        <a class="drawer-link {{ 'active' if active_status == 'dismissed' }}" href="/dashboard?status=dismissed&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">Dismissed<span class="count">{{ counts.dismissed }}</span></a>
+      </div>
+      <div class="drawer-section">
+        <div class="drawer-label">Posted</div>
+        {% for value, label in days_options %}
+        <a class="drawer-link {{ 'active' if active_days == value }}" href="/dashboard?status={{ active_status }}&days={{ value }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">{{ label }}</a>
+        {% endfor %}
+      </div>
+      <div class="drawer-section">
+        <div class="drawer-label">Experience</div>
+        <a class="drawer-link {{ 'active' if not active_exp }}" href="/dashboard?status={{ active_status }}&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}&sort={{ active_sort }}">All</a>
+        {% for value, label in experience_options %}
+        <a class="drawer-link {{ 'active' if active_exp == value }}" href="/dashboard?status={{ active_status }}&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}&exp={{ value }}&sort={{ active_sort }}">{{ label }}</a>
+        {% endfor %}
+      </div>
+      <div class="drawer-section">
+        <div class="drawer-label">Role</div>
+        <a class="drawer-link {{ 'active' if not active_role }}" href="/dashboard?status={{ active_status }}&days={{ active_days }}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">All CSE Jobs</a>
+        {% for r in roles %}
+        <a class="drawer-link {{ 'active' if active_role == r }}" href="/dashboard?status={{ active_status }}&days={{ active_days }}&role={{ r }}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">{{ r }}</a>
+        {% endfor %}
+        {% for cr in custom_roles %}
+        <a class="drawer-link {{ 'active' if active_role == cr }}" href="/dashboard?status={{ active_status }}&days={{ active_days }}&role={{ cr }}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">{{ cr }}</a>
+        {% endfor %}
       </div>
     </div>
   </div>
 
-  <!-- Onboarding Modal -->
+  <!-- Onboarding modal -->
   {% if not onboarding_done %}
   <div class="modal-overlay show" id="onboardingModal">
     <div class="modal">
-      <h2>&#128197; How recent should job postings be?</h2>
-      <p class="subtitle">Select how many days ago you want to see results from.</p>
+      <h2>Welcome to JobPilot</h2>
+      <p class="subtitle">How recent should job postings be? You can change this later.</p>
       <div class="radio-list">
         <label class="radio-item"><input type="radio" name="days" value="1"> 1 day (most recent)</label>
         <label class="radio-item"><input type="radio" name="days" value="3"> 3 days</label>
@@ -234,30 +287,14 @@
         <label class="radio-item"><input type="radio" name="days" value="30" checked> 1 month</label>
       </div>
       <div class="modal-actions">
-        <button class="btn btn-primary" onclick="finishOnboarding()">Get Started</button>
+        <button class="btn btn-primary" onclick="finishOnboarding()" style="padding:12px 28px">Get Started</button>
       </div>
     </div>
   </div>
   {% endif %}
 
-  <div class="preloader" id="preloader">
-    <div class="preloader-inner">
-      <div class="spinner"></div>
-      <p>Loading jobs...</p>
-    </div>
-  </div>
-
-  <style>
-    .preloader { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; align-items: center; justify-content: center; transition: opacity .3s, visibility .3s; }
-    .preloader.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
-    .preloader-inner { text-align: center; }
-    .spinner { width: 40px; height: 40px; border: 4px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin .8s linear infinite; margin: 0 auto 12px; }
-    .preloader p { color: var(--muted); font-size: 14px; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-  </style>
-
   <div class="layout">
-    <!-- Sidebar -->
+    <!-- Sidebar (desktop) -->
     <div class="sidebar">
       <div class="sidebar-card">
         <div class="label">Status</div>
@@ -268,7 +305,6 @@
           <a class="filter-pill {{ 'active' if active_status == 'dismissed' }}" href="/dashboard?status=dismissed&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">Dismissed<span class="count">{{ counts.dismissed }}</span></a>
         </div>
       </div>
-
       <div class="sidebar-card">
         <div class="label">Posted</div>
         <div class="filter-list">
@@ -277,7 +313,6 @@
           {% endfor %}
         </div>
       </div>
-
       <div class="sidebar-card">
         <div class="label">Experience</div>
         <div class="filter-list">
@@ -287,7 +322,6 @@
           {% endfor %}
         </div>
       </div>
-
       <div class="sidebar-card">
         <div class="label">Role</div>
         <div class="filter-list">
@@ -331,18 +365,18 @@
                 <div class="job-title">
                   {% if job.posting_url %}<a href="{{ job.posting_url }}" target="_blank" rel="noopener">{{ job.title }}</a>{% else %}{{ job.title }}{% endif %}
                 </div>
-                 <div class="job-meta">
-                   {% if job.company %}<span class="company">{{ job.company }}</span>{% endif %}
-                   {% if job.role %}<span class="sep">&middot;</span> <span>{{ job.role }}</span>{% endif %}
-                   {% if job.location %}<span class="sep">&middot;</span> <span>{{ job.location }}</span>{% endif %}
-                   {% if job.exp_label %}<span class="exp-badge">{{ job.exp_label }}</span>{% endif %}
-                   {% if job.user_relevance == 1 %}<span class="match-badge">Perfect Match</span>{% endif %}
-                   {% if job.deadline_urgency is not none %}<span class="deadline-badge">Deadline in {{ job.deadline_urgency }}d</span>{% endif %}
-                   {% if job.follow_up_needed %}<span class="followup-badge">Follow up needed</span>{% endif %}
-                   {% if job.early_applicant %}<span class="early-badge">{{ job.early_applicant }}</span>{% endif %}
-                 </div>
+                <div class="job-meta">
+                  {% if job.company %}<span class="company">{{ job.company }}</span>{% endif %}
+                  {% if job.role %}<span>&middot;</span> <span>{{ job.role }}</span>{% endif %}
+                  {% if job.location %}<span>&middot;</span> <span>{{ job.location }}</span>{% endif %}
+                  {% if job.exp_label %}<span class="badge exp-badge">{{ job.exp_label }}</span>{% endif %}
+                  {% if job.user_relevance == 1 %}<span class="badge match-badge">Perfect Match</span>{% endif %}
+                  {% if job.deadline_urgency is not none %}<span class="badge deadline-badge">{{ job.deadline_urgency }}d left</span>{% endif %}
+                  {% if job.follow_up_needed %}<span class="badge followup-badge">Follow up</span>{% endif %}
+                  {% if job.early_applicant %}<span class="badge early-badge">{{ job.early_applicant }}</span>{% endif %}
+                </div>
               </div>
-              <span class="status-badge status-{{ job.status }}">{{ job.status }}</span>
+              <span class="badge status-badge status-{{ job.status }}">{{ job.status }}</span>
             </div>
 
             {% if job.snippet %}<div class="job-snippet">{{ job.snippet }}</div>{% endif %}
@@ -351,7 +385,7 @@
             <div class="skill-gap">
               <div class="bar"><div class="bar-fill" style="width:{{ (job.skill_gap.score * 100)|int }}%"></div></div>
               <div class="labels">
-                <span class="matched">Matched: {{ job.skill_gap.matched|join(', ') }}</span>
+                <span class="matched">{{ job.skill_gap.matched|join(', ') }}</span>
                 {% if job.skill_gap.missing %}<span class="missing">Missing: {{ job.skill_gap.missing|join(', ') }}</span>{% endif %}
               </div>
             </div>
@@ -370,14 +404,14 @@
                 </a>
               {% endif %}
               {% if job.posting_url %}
-                <a class="btn btn-ghost" href="{{ job.posting_url }}" target="_blank" rel="noopener" style="font-size:13px;padding:6px 14px">View posting</a>
+                <a class="btn btn-ghost" href="{{ job.posting_url }}" target="_blank" rel="noopener" style="font-size:13px">View posting</a>
               {% endif %}
               <select class="status-select" onchange="setStatus({{ job.id }}, this.value)">
                 <option value="new" {{ 'selected' if job.status == 'new' }}>New</option>
                 <option value="applied" {{ 'selected' if job.status == 'applied' }}>Applied</option>
                 <option value="dismissed" {{ 'selected' if job.status == 'dismissed' }}>Dismissed</option>
               </select>
-              <span class="source-badge">{{ job.source_site }}</span>
+              <span class="badge source-badge">{{ job.source_site }}</span>
             </div>
 
             {% if job.company_links %}
@@ -423,21 +457,6 @@
   <script>
     const CURRENT_SORT = "{{ active_sort }}";
 
-    function preserveSort(url) {
-      if (!CURRENT_SORT || url.includes('sort=')) return url;
-      const sep = url.includes('?') ? '&' : '?';
-      return url + sep + 'sort=' + CURRENT_SORT;
-    }
-
-    document.addEventListener('DOMContentLoaded', function() {
-      const preloader = document.getElementById('preloader');
-      if (preloader) preloader.classList.add('hidden');
-
-      document.querySelectorAll('a[href^="/dashboard?"]').forEach(a => {
-        a.href = preserveSort(a.href);
-      });
-    });
-
     (function() {
       const saved = localStorage.getItem('theme');
       if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -458,8 +477,29 @@
       const btn = document.getElementById('themeBtn');
       const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
       btn.innerHTML = isDark ? '&#9788;' : '&#9789;';
-      btn.title = isDark ? 'Switch to light mode' : 'Switch to dark mode';
     }
+
+    function openDrawer() {
+      document.getElementById('mobileDrawer').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeDrawer() {
+      document.getElementById('mobileDrawer').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    function preserveSort(url) {
+      if (!CURRENT_SORT || url.includes('sort=')) return url;
+      const sep = url.includes('?') ? '&' : '?';
+      return url + sep + 'sort=' + CURRENT_SORT;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      document.querySelectorAll('a[href^="/dashboard?"]').forEach(a => {
+        a.href = preserveSort(a.href);
+      });
+    });
 
     function setSort(value) {
       const url = new URL(window.location.href);
@@ -503,11 +543,9 @@
       t._h = setTimeout(() => { t.style.display = 'none'; }, 3000);
     }
 
-    // Onboarding
     async function finishOnboarding() {
       const days = document.querySelector('input[name="days"]:checked');
       const daysVal = days ? parseInt(days.value) : 30;
-
       try {
         await fetch('/api/onboarding', {
           method: 'POST',

@@ -4,56 +4,80 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>JobPilot — Profile</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root, [data-theme="light"] {
-      --blue: #2563eb; --blue-dark: #1d4ed8; --bg: #f8fafc; --card: #ffffff;
-      --border: #e2e8f0; --text: #1e293b; --muted: #64748b; --radius: 10px;
+      --blue: #2563eb; --blue-dark: #1d4ed8; --blue-light: #dbeafe;
+      --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0;
+      --text: #0f172a; --muted: #64748b;
+      --shadow: 0 1px 3px rgba(0,0,0,.1), 0 1px 2px rgba(0,0,0,.06);
     }
     [data-theme="dark"] {
-      --blue: #60a5fa; --blue-dark: #93bbfd; --bg: #0f172a; --card: #1e293b;
-      --border: #334155; --text: #f1f5f9; --muted: #94a3b8;
+      --blue: #60a5fa; --blue-dark: #93bbfd; --blue-light: #1e3a5f;
+      --bg: #0f172a; --card: #1e293b; --border: #334155;
+      --text: #f1f5f9; --muted: #94a3b8;
+      --shadow: 0 1px 3px rgba(0,0,0,.4);
     }
-    * { box-sizing: border-box; margin: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; -webkit-font-smoothing: antialiased; }
     a { color: var(--blue); text-decoration: none; }
-    a:hover { text-decoration: underline; }
 
-    .header { background: var(--card); border-bottom: 1px solid var(--border); padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
-    .logo { font-size: 18px; font-weight: 700; color: var(--blue); }
+    .header { background: rgba(255,255,255,.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 20px; height: 60px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+    [data-theme="dark"] .header { background: rgba(15,23,42,.85); }
+    .logo { font-size: 20px; font-weight: 800; color: var(--blue); letter-spacing: -.5px; }
     .logo span { color: var(--text); }
-    .header-right { display: flex; align-items: center; gap: 4px; }
-    .nav { display: flex; align-items: center; gap: 4px; }
-    .nav a { padding: 6px 12px; border-radius: 6px; font-size: 14px; color: var(--muted); font-weight: 500; }
-    .nav a:hover { background: var(--bg); text-decoration: none; }
-    .nav a.active { color: var(--blue); background: var(--bg); }
-    .theme-toggle { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; }
-    .theme-toggle:hover { color: var(--text); border-color: var(--muted); }
-    .user-menu { display: flex; align-items: center; gap: 8px; margin-left: 8px; padding-left: 12px; border-left: 1px solid var(--border); }
-    .user-menu .name { font-size: 13px; color: var(--muted); }
-    .user-menu .logout { font-size: 13px; color: var(--muted); padding: 4px 10px; border-radius: 6px; }
-    .user-menu .logout:hover { background: #fef2f2; color: #dc2626; text-decoration: none; }
+    .header-right { display: flex; align-items: center; gap: 6px; }
+    .nav { display: flex; align-items: center; gap: 2px; }
+    .nav a { padding: 8px 14px; border-radius: 10px; font-size: 14px; color: var(--muted); font-weight: 500; transition: all .15s; }
+    .nav a:hover { background: var(--bg); color: var(--text); }
+    .nav a.active { color: var(--blue); background: var(--blue-light); }
+    [data-theme="dark"] .nav a.active { background: rgba(96,165,250,.15); }
+    .theme-btn { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; transition: all .15s; }
+    .theme-btn:hover { color: var(--text); border-color: var(--muted); }
+    .user-pill { display: flex; align-items: center; gap: 8px; margin-left: 8px; padding-left: 12px; border-left: 1px solid var(--border); }
+    .user-pill .name { font-size: 13px; color: var(--muted); font-weight: 500; }
+    .user-pill .logout { font-size: 13px; color: var(--muted); padding: 6px 12px; border-radius: 8px; font-weight: 500; transition: all .15s; }
+    .user-pill .logout:hover { background: #fef2f2; color: #dc2626; }
+    [data-theme="dark"] .user-pill .logout:hover { background: #450a0a; color: #f87171; }
 
-    .main { max-width: 700px; margin: 0 auto; padding: 32px 20px 60px; }
-    h1 { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
-    .subtitle { font-size: 14px; color: var(--muted); margin-bottom: 28px; }
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 20px; }
-    .card h2 { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
-    .card p { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
-    .field { margin-bottom: 14px; }
-    .field label { display: block; font-size: 13px; font-weight: 500; color: var(--muted); margin-bottom: 4px; }
-    .field input, .field textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-family: inherit; background: var(--bg); color: var(--text); }
-    .field input:focus, .field textarea:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
-    .field textarea { resize: vertical; min-height: 70px; }
-    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-    @media (max-width: 500px) { .row { grid-template-columns: 1fr; } }
-    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all .15s; }
-    .btn-primary { background: var(--blue); color: #fff; }
-    .btn-primary:hover { background: var(--blue-dark); }
-    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 12px 20px; border-radius: 10px; font-size: 14px; display: none; z-index: 200; }
-    @media (max-width: 640px) {
-      .header { padding: 0 14px; }
-      .main { padding: 20px 14px 40px; }
-      .user-menu { display: none; }
+    .hamburger { display: none; width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); cursor: pointer; align-items: center; justify-content: center; flex-direction: column; gap: 5px; padding: 10px; }
+    .hamburger span { display: block; width: 18px; height: 2px; background: var(--text); border-radius: 2px; transition: all .2s; }
+    .mobile-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 200; }
+    .mobile-overlay.open { display: block; }
+    .mobile-drawer { position: absolute; right: 0; top: 0; bottom: 0; width: 280px; background: var(--card); box-shadow: var(--shadow); padding: 72px 16px 24px; display: flex; flex-direction: column; gap: 8px; }
+    .mobile-drawer a { padding: 12px 16px; border-radius: 10px; font-size: 15px; font-weight: 500; color: var(--text); transition: all .15s; }
+    .mobile-drawer a:hover { background: var(--bg); color: var(--blue); }
+    .mobile-drawer-close { position: absolute; top: 16px; right: 16px; width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; color: var(--muted); }
+
+    .main { max-width: 720px; margin: 0 auto; padding: 32px 20px 60px; }
+    .page-header { margin-bottom: 32px; }
+    .page-header h1 { font-size: 28px; font-weight: 800; margin-bottom: 6px; letter-spacing: -.5px; }
+    .page-header .subtitle { font-size: 15px; color: var(--muted); }
+
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 28px; margin-bottom: 20px; box-shadow: var(--shadow); }
+    .card h2 { font-size: 17px; font-weight: 700; margin-bottom: 20px; }
+    .card .desc { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+    .field { margin-bottom: 16px; }
+    .field label { display: block; font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+    .field input, .field textarea { width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 15px; font-family: inherit; background: var(--bg); color: var(--text); transition: all .15s; }
+    .field input:focus, .field textarea:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
+    .field textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 560px) { .row { grid-template-columns: 1fr; } }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 24px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: all .2s; font-family: inherit; }
+    .btn-primary { background: var(--blue); color: #fff; box-shadow: 0 1px 2px rgba(37,99,235,.3); }
+    .btn-primary:hover { background: var(--blue-dark); box-shadow: 0 4px 12px rgba(37,99,235,.3); transform: translateY(-1px); }
+
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 14px 24px; border-radius: 12px; font-size: 14px; font-weight: 500; display: none; z-index: 300; box-shadow: 0 4px 12px rgba(0,0,0,.25); }
+
+    @media (max-width: 768px) {
+      .nav { display: none; }
+      .user-pill { display: none; }
+      .hamburger { display: flex; }
+      .main { padding: 24px 16px 48px; }
+      .page-header h1 { font-size: 24px; }
+      .card { padding: 20px; border-radius: 12px; }
     }
   </style>
 </head>
@@ -65,17 +89,30 @@
         <a href="/dashboard">Jobs</a>
         <a href="/profile" class="active">Profile</a>
       </div>
-      <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode" id="themeBtn">&#9789;</button>
-      <div class="user-menu">
+      <button class="theme-btn" onclick="toggleTheme()" title="Toggle dark mode" id="themeBtn">&#9789;</button>
+      <div class="user-pill">
         <span class="name">{{ username }}</span>
         <a href="/logout" class="logout">Sign out</a>
       </div>
+      <button class="hamburger" onclick="openDrawer()" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+
+  <div class="mobile-overlay" id="mobileDrawer" onclick="closeDrawer()">
+    <div class="mobile-drawer" onclick="event.stopPropagation()">
+      <button class="mobile-drawer-close" onclick="closeDrawer()">&times;</button>
+      <a href="/dashboard">Jobs</a>
+      <a href="/profile" style="color:var(--blue);font-weight:600">Profile</a>
     </div>
   </div>
 
   <div class="main">
-    <h1>Profile</h1>
-    <p class="subtitle">Your information is used to personalize Gmail application drafts.</p>
+    <div class="page-header">
+      <h1>Profile</h1>
+      <p class="subtitle">Your information is used to personalize Gmail application drafts for each job.</p>
+    </div>
 
     <div class="card">
       <h2>Personal information</h2>
@@ -95,12 +132,12 @@
 
     <div class="card">
       <h2>Professional details</h2>
-      <p>Used to personalize the Gmail compose body text for each job application.</p>
+      <p class="desc">Used to personalize the Gmail compose body text for each job application.</p>
       <div class="field"><label>Skills (comma-separated)</label><textarea id="skills" rows="2">{{ profile.skills|join(', ') }}</textarea></div>
-      <div class="field"><label>Summary</label><textarea id="summary">{{ profile.summary }}</textarea></div>
+      <div class="field"><label>Summary</label><textarea id="summary" rows="3">{{ profile.summary }}</textarea></div>
       <div class="row">
-        <div class="field"><label>Experience</label><textarea id="experience">{{ profile.experience }}</textarea></div>
-        <div class="field"><label>Education</label><textarea id="education">{{ profile.education }}</textarea></div>
+        <div class="field"><label>Experience</label><textarea id="experience" rows="4">{{ profile.experience }}</textarea></div>
+        <div class="field"><label>Education</label><textarea id="education" rows="4">{{ profile.education }}</textarea></div>
       </div>
     </div>
 
@@ -130,7 +167,16 @@
       const btn = document.getElementById('themeBtn');
       const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
       btn.innerHTML = isDark ? '&#9788;' : '&#9789;';
-      btn.title = isDark ? 'Switch to light mode' : 'Switch to dark mode';
+    }
+
+    function openDrawer() {
+      document.getElementById('mobileDrawer').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeDrawer() {
+      document.getElementById('mobileDrawer').classList.remove('open');
+      document.body.style.overflow = '';
     }
 
     function val(id) { return document.getElementById(id).value.trim(); }

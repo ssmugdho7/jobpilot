@@ -4,104 +4,144 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>JobPilot — Bangladesh IT Job Aggregator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root, [data-theme="light"] {
-      --blue: #2563eb; --blue-dark: #1d4ed8; --blue-bright: #3b82f6;
+      --blue: #2563eb; --blue-dark: #1d4ed8; --blue-light: #dbeafe;
       --indigo: #6366f1; --bg: #f8fafc; --card: #ffffff;
       --border: #e2e8f0; --text: #0f172a; --muted: #64748b;
-      --green: #16a34a; --green-bg: #f0fdf4;
+      --green: #16a34a; --green-bg: #f0fdf4; --green-light: #dcfce7;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,.05); --shadow: 0 1px 3px rgba(0,0,0,.1), 0 1px 2px rgba(0,0,0,.06);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,.1), 0 2px 4px -2px rgba(0,0,0,.1);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,.1), 0 4px 6px -4px rgba(0,0,0,.1);
+      --radius: 12px; --radius-lg: 16px;
     }
     [data-theme="dark"] {
-      --blue: #60a5fa; --blue-dark: #93bbfd; --blue-bright: #3b82f6;
+      --blue: #60a5fa; --blue-dark: #93bbfd; --blue-light: #1e3a5f;
       --indigo: #818cf8; --bg: #0f172a; --card: #1e293b;
       --border: #334155; --text: #f1f5f9; --muted: #94a3b8;
-      --green: #4ade80; --green-bg: #052e16;
+      --green: #4ade80; --green-bg: #052e16; --green-light: #14532d;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,.3); --shadow: 0 1px 3px rgba(0,0,0,.4);
+      --shadow-md: 0 4px 6px rgba(0,0,0,.4); --shadow-lg: 0 10px 15px rgba(0,0,0,.4);
     }
-    * { box-sizing: border-box; margin: 0; }
-    html { scroll-behavior: smooth; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
-    a { color: var(--blue); text-decoration: none; }
-    a:hover { text-decoration: underline; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; }
+    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+    a { color: var(--blue); text-decoration: none; transition: color .15s; }
+    a:hover { color: var(--blue-dark); }
 
-    .header { background: rgba(255,255,255,.85); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); padding: 0 32px; height: 64px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+    /* ── Header ── */
+    .header { background: rgba(255,255,255,.8); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 24px; height: 64px; display: flex; align-items: center; position: sticky; top: 0; z-index: 100; }
     [data-theme="dark"] .header { background: rgba(15,23,42,.85); }
-    .header-inner { max-width: 1120px; width: 100%; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
-    .logo { font-size: 20px; font-weight: 700; color: var(--blue); }
+    .header-inner { max-width: 1200px; width: 100%; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
+    .logo { font-size: 22px; font-weight: 800; color: var(--blue); letter-spacing: -.5px; }
     .logo span { color: var(--text); }
-    .header-right { display: flex; align-items: center; gap: 16px; }
-    .nav-links { display: flex; gap: 24px; }
-    .nav-links a { font-size: 14px; font-weight: 500; color: var(--muted); }
-    .nav-links a:hover { color: var(--blue); text-decoration: none; }
-    .theme-toggle { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; }
-    .theme-toggle:hover { color: var(--text); border-color: var(--muted); }
-    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: all .15s; }
-    .btn-primary { background: var(--blue); color: #fff; }
-    .btn-primary:hover { background: var(--blue-dark); }
+    .nav-desktop { display: flex; align-items: center; gap: 8px; }
+    .nav-desktop a { padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 500; color: var(--muted); transition: all .15s; }
+    .nav-desktop a:hover { color: var(--text); background: var(--bg); }
+    .header-actions { display: flex; align-items: center; gap: 10px; }
+    .theme-btn { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; transition: all .15s; }
+    .theme-btn:hover { color: var(--text); border-color: var(--muted); }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 20px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: all .2s; text-decoration: none; white-space: nowrap; }
+    .btn-primary { background: var(--blue); color: #fff; box-shadow: 0 1px 2px rgba(37,99,235,.3); }
+    .btn-primary:hover { background: var(--blue-dark); box-shadow: 0 4px 12px rgba(37,99,235,.3); transform: translateY(-1px); color: #fff; }
     .btn-ghost { background: transparent; color: var(--text); border: 1px solid var(--border); }
-    .btn-ghost:hover { background: var(--card); border-color: var(--blue); }
-    .btn-lg { padding: 14px 28px; font-size: 15px; }
+    .btn-ghost:hover { background: var(--card); border-color: var(--blue); color: var(--blue); }
+    .btn-lg { padding: 14px 28px; font-size: 15px; border-radius: 12px; }
 
-    .hero { max-width: 1120px; margin: 0 auto; padding: 96px 32px 64px; text-align: center; position: relative; }
-    .hero::before { content: ""; position: absolute; inset: 0; background: radial-gradient(600px circle at 50% 0%, rgba(37,99,235,.12), transparent 70%); pointer-events: none; }
-    .hero-badge { display: inline-flex; align-items: center; gap: 8px; background: var(--green-bg); color: var(--green); font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 999px; margin-bottom: 24px; }
-    .hero-badge .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); animation: blink 1.5s infinite; }
-    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
-    .hero h1 { font-size: 52px; font-weight: 800; letter-spacing: -1.5px; line-height: 1.1; max-width: 760px; margin: 0 auto 20px; }
-    .hero h1 .grad { background: linear-gradient(90deg, var(--blue), var(--indigo)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
-    .hero p.sub { font-size: 19px; color: var(--muted); max-width: 620px; margin: 0 auto 36px; }
+    /* ── Mobile hamburger ── */
+    .hamburger { display: none; width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); cursor: pointer; align-items: center; justify-content: center; flex-direction: column; gap: 5px; padding: 10px; }
+    .hamburger span { display: block; width: 18px; height: 2px; background: var(--text); border-radius: 2px; transition: all .2s; }
+    .mobile-nav { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 200; }
+    .mobile-nav.open { display: block; }
+    .mobile-nav-panel { position: absolute; right: 0; top: 0; bottom: 0; width: 280px; background: var(--card); box-shadow: var(--shadow-lg); padding: 80px 24px 24px; display: flex; flex-direction: column; gap: 8px; }
+    .mobile-nav-panel a { padding: 12px 16px; border-radius: 10px; font-size: 15px; font-weight: 500; color: var(--text); transition: all .15s; }
+    .mobile-nav-panel a:hover { background: var(--bg); color: var(--blue); }
+    .mobile-nav-close { position: absolute; top: 16px; right: 16px; width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; color: var(--muted); }
+
+    /* ── Hero ── */
+    .hero { max-width: 1200px; margin: 0 auto; padding: 100px 24px 72px; text-align: center; position: relative; }
+    .hero::before { content: ""; position: absolute; inset: 0; background: radial-gradient(700px circle at 50% 0%, rgba(37,99,235,.08), transparent 70%); pointer-events: none; }
+    .hero-badge { display: inline-flex; align-items: center; gap: 8px; background: var(--green-bg); color: var(--green); font-size: 13px; font-weight: 600; padding: 6px 16px; border-radius: 999px; margin-bottom: 28px; border: 1px solid var(--green-light); }
+    .hero-badge .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); animation: pulse-dot 2s infinite; }
+    @keyframes pulse-dot { 0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(22,163,74,.4); } 50% { opacity: .7; box-shadow: 0 0 0 6px rgba(22,163,74,0); } }
+    .hero h1 { font-size: clamp(36px, 5vw, 60px); font-weight: 800; letter-spacing: -1.5px; line-height: 1.1; max-width: 800px; margin: 0 auto 24px; }
+    .hero h1 .grad { background: linear-gradient(135deg, var(--blue), var(--indigo)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .hero .sub { font-size: clamp(16px, 2vw, 20px); color: var(--muted); max-width: 640px; margin: 0 auto 40px; line-height: 1.7; }
     .hero-cta { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
-    .hero-note { font-size: 13px; color: var(--muted); margin-top: 18px; }
+    .hero-note { font-size: 13px; color: var(--muted); margin-top: 20px; }
 
-    .hero-stats { max-width: 900px; margin: 56px auto 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-    .hero-stat { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
-    .hero-stat .num { font-size: 30px; font-weight: 800; color: var(--blue); }
-    .hero-stat .lbl { font-size: 13px; color: var(--muted); margin-top: 2px; }
+    /* ── Stats ── */
+    .hero-stats { max-width: 960px; margin: 64px auto 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .hero-stat { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow-sm); transition: all .2s; }
+    .hero-stat:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+    .hero-stat .num { font-size: 36px; font-weight: 800; color: var(--blue); line-height: 1; }
+    .hero-stat .lbl { font-size: 13px; color: var(--muted); margin-top: 6px; font-weight: 500; }
 
-    .section { max-width: 1120px; margin: 0 auto; padding: 72px 32px; }
-    .section-head { text-align: center; max-width: 640px; margin: 0 auto 48px; }
-    .section-head .eyebrow { font-size: 13px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
-    .section-head h2 { font-size: 34px; font-weight: 800; letter-spacing: -.5px; margin-bottom: 12px; }
-    .section-head p { font-size: 16px; color: var(--muted); }
+    /* ── Sections ── */
+    .section { max-width: 1200px; margin: 0 auto; padding: 80px 24px; }
+    .section-head { text-align: center; max-width: 640px; margin: 0 auto 56px; }
+    .section-head .eyebrow { font-size: 13px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px; }
+    .section-head h2 { font-size: clamp(28px, 3.5vw, 36px); font-weight: 800; letter-spacing: -.5px; margin-bottom: 12px; }
+    .section-head p { font-size: 16px; color: var(--muted); line-height: 1.7; }
 
+    /* ── Features ── */
     .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-    .feature { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 28px; transition: all .2s; }
-    .feature:hover { transform: translateY(-3px); border-color: var(--blue); box-shadow: 0 12px 30px rgba(37,99,235,.1); }
-    .feature .icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: rgba(37,99,235,.1); color: var(--blue); margin-bottom: 16px; }
+    .feature { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 32px; transition: all .25s; position: relative; overflow: hidden; }
+    .feature::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--blue), var(--indigo)); opacity: 0; transition: opacity .25s; }
+    .feature:hover { transform: translateY(-4px); border-color: var(--blue); box-shadow: var(--shadow-lg); }
+    .feature:hover::before { opacity: 1; }
+    .feature .icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: var(--blue-light); color: var(--blue); margin-bottom: 20px; }
     .feature h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
-    .feature p { font-size: 14px; color: var(--muted); }
+    .feature p { font-size: 14px; color: var(--muted); line-height: 1.6; }
 
-    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; counter-reset: step; }
-    .step { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 28px; position: relative; }
-    .step .num { width: 36px; height: 36px; border-radius: 50%; background: var(--blue); color: #fff; font-weight: 700; font-size: 15px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; }
+    /* ── Steps ── */
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .step { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 32px; position: relative; }
+    .step .num { width: 40px; height: 40px; border-radius: 12px; background: linear-gradient(135deg, var(--blue), var(--indigo)); color: #fff; font-weight: 700; font-size: 16px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; }
     .step h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
-    .step p { font-size: 14px; color: var(--muted); }
+    .step p { font-size: 14px; color: var(--muted); line-height: 1.6; }
 
-    .cta-band { background: linear-gradient(120deg, var(--blue), var(--indigo)); border-radius: 20px; padding: 56px 40px; text-align: center; color: #fff; }
-    .cta-band h2 { font-size: 30px; font-weight: 800; margin-bottom: 12px; }
-    .cta-band p { font-size: 16px; opacity: .9; margin-bottom: 28px; }
-    .cta-band .btn-white { background: #fff; color: var(--blue); }
-    .cta-band .btn-white:hover { background: #eef2ff; }
-    .cta-band .btn-outline-white { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.6); }
-    .cta-band .btn-outline-white:hover { background: rgba(255,255,255,.1); }
+    /* ── CTA ── */
+    .cta-band { background: linear-gradient(135deg, var(--blue), var(--indigo)); border-radius: 20px; padding: 64px 40px; text-align: center; color: #fff; position: relative; overflow: hidden; }
+    .cta-band::before { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at 30% 50%, rgba(255,255,255,.1), transparent 60%); }
+    .cta-band h2 { font-size: clamp(24px, 3vw, 32px); font-weight: 800; margin-bottom: 12px; position: relative; }
+    .cta-band p { font-size: 16px; opacity: .9; margin-bottom: 32px; position: relative; }
+    .btn-white { background: #fff; color: var(--blue); box-shadow: 0 2px 8px rgba(0,0,0,.15); }
+    .btn-white:hover { background: #f0f4ff; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,.2); color: var(--blue); }
+    .btn-outline-white { background: transparent; color: #fff; border: 1.5px solid rgba(255,255,255,.5); }
+    .btn-outline-white:hover { background: rgba(255,255,255,.1); border-color: #fff; color: #fff; }
 
-    .footer { border-top: 1px solid var(--border); padding: 40px 32px; }
-    .footer-inner { max-width: 1120px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+    /* ── Footer ── */
+    .footer { border-top: 1px solid var(--border); padding: 40px 24px; }
+    .footer-inner { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
     .footer .copyright { font-size: 13px; color: var(--muted); }
-    .footer .links { display: flex; gap: 20px; }
-    .footer .links a { font-size: 13px; color: var(--muted); }
-    .footer .links a:hover { color: var(--blue); text-decoration: none; }
+    .footer .links { display: flex; gap: 24px; }
+    .footer .links a { font-size: 13px; color: var(--muted); font-weight: 500; }
+    .footer .links a:hover { color: var(--blue); }
 
+    /* ── Responsive ── */
     @media (max-width: 900px) {
       .features { grid-template-columns: 1fr 1fr; }
       .steps { grid-template-columns: 1fr; }
       .hero-stats { grid-template-columns: repeat(2, 1fr); }
     }
+    @media (max-width: 768px) {
+      .nav-desktop { display: none; }
+      .hamburger { display: flex; }
+      .header-actions .btn { display: none; }
+    }
     @media (max-width: 640px) {
-      .hero { padding: 64px 20px 40px; }
-      .hero h1 { font-size: 36px; }
+      .hero { padding: 72px 20px 48px; }
+      .hero h1 { letter-spacing: -1px; }
       .features { grid-template-columns: 1fr; }
-      .nav-links { display: none; }
-      .section { padding: 48px 20px; }
+      .hero-stats { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+      .hero-stat { padding: 16px; }
+      .hero-stat .num { font-size: 28px; }
+      .section { padding: 56px 20px; }
+      .cta-band { padding: 48px 24px; border-radius: 16px; }
+      .footer-inner { flex-direction: column; text-align: center; }
     }
   </style>
 </head>
@@ -109,23 +149,35 @@
   <div class="header">
     <div class="header-inner">
       <a class="logo" href="/" style="text-decoration:none">Job<span>Pilot</span></a>
-      <div class="header-right">
-        <div class="nav-links">
-          <a href="#features">Features</a>
-          <a href="#how">How it works</a>
-          <a href="#stats">Why JobPilot</a>
-        </div>
-        <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode" id="themeBtn">&#9789;</button>
+      <div class="nav-desktop">
+        <a href="#features">Features</a>
+        <a href="#how">How it works</a>
+      </div>
+      <div class="header-actions">
+        <button class="theme-btn" onclick="toggleTheme()" title="Toggle dark mode" id="themeBtn">&#9789;</button>
         <a href="/login" class="btn btn-ghost">Sign in</a>
         <a href="/register" class="btn btn-primary">Get started</a>
+        <button class="hamburger" onclick="toggleMobileNav()" aria-label="Menu">
+          <span></span><span></span><span></span>
+        </button>
       </div>
+    </div>
+  </div>
+
+  <div class="mobile-nav" id="mobileNav" onclick="closeMobileNav()">
+    <div class="mobile-nav-panel" onclick="event.stopPropagation()">
+      <button class="mobile-nav-close" onclick="closeMobileNav()">&times;</button>
+      <a href="#features" onclick="closeMobileNav()">Features</a>
+      <a href="#how" onclick="closeMobileNav()">How it works</a>
+      <a href="/login">Sign in</a>
+      <a href="/register" style="color:var(--blue);font-weight:600">Get started</a>
     </div>
   </div>
 
   <div class="hero">
     <div class="hero-badge"><span class="dot"></span> 500+ live IT jobs scanned across Bangladesh</div>
     <h1>Never miss a CSE job in <span class="grad">Bangladesh</span> again</h1>
-    <p class="sub">JobPilot aggregates openings from Bdjobs, LinkedIn and top company career pages — then ranks each one against your skills so you can focus on the best matches first.</p>
+    <p class="sub">Aggregates openings from Bdjobs, LinkedIn and top company career pages — then ranks each one against your skills so you focus on the best matches first.</p>
     <div class="hero-cta">
       <a href="/register" class="btn btn-primary btn-lg">Get started free</a>
       <a href="/login" class="btn btn-ghost btn-lg">Sign in</a>
@@ -134,9 +186,9 @@
 
     <div class="hero-stats" id="stats">
       <div class="hero-stat"><div class="num">{{ stats.jobs }}</div><div class="lbl">Jobs tracked</div></div>
-      <div class="hero-stat"><div class="num">{{ stats.roles }}</div><div class="lbl">CSE roles covered</div></div>
-      <div class="hero-stat"><div class="num">{{ stats.sources }}</div><div class="lbl">Job sources</div></div>
-      <div class="hero-stat"><div class="num">{{ stats.users }}</div><div class="lbl">Active users</div></div>
+      <div class="hero-stat"><div class="num">{{ stats.roles }}</div><div class="lbl">CSE roles</div></div>
+      <div class="hero-stat"><div class="num">{{ stats.sources }}</div><div class="lbl">Sources</div></div>
+      <div class="hero-stat"><div class="num">{{ stats.users }}</div><div class="lbl">Users</div></div>
     </div>
   </div>
 
@@ -148,44 +200,44 @@
     </div>
     <div class="features">
       <div class="feature">
-        <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/><path d="M11 7v8"/><path d="M7 11h8"/></svg></div>
+        <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div>
         <h3>Live aggregation</h3>
-        <p>Continuous scans of Bdjobs, LinkedIn and 20+ Bangladeshi company career pages — new openings appear automatically, filtered to office/onsite roles.</p>
+        <p>Continuous scans of Bdjobs, LinkedIn and 20+ company career pages — new openings appear automatically.</p>
       </div>
       <div class="feature">
         <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 7l9 5 9-5-9-5z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/></svg></div>
         <h3>Smart relevance scoring</h3>
-        <p>Every job is scored against your profile skills and flagged a &quot;Perfect Match&quot; when it fits — so you always know where to focus first.</p>
+        <p>Every job scored against your profile skills — perfect matches are highlighted so you know where to focus.</p>
       </div>
       <div class="feature">
         <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6 4 9v6l5 3 6-3 5 3V9l-5-3-6 3z"/><path d="M9 6v6"/><path d="M14 9v6"/></svg></div>
         <h3>Skill gap analysis</h3>
-        <p>See which skills each job expects and which ones you're missing — a live checklist to close the gap between you and the role.</p>
+        <p>See which skills each job expects and which ones you're missing — a live checklist to close the gap.</p>
       </div>
       <div class="feature">
         <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
         <h3>Deadline &amp; follow-up radar</h3>
-        <p>Urgency badges when deadlines approach and reminders to follow up 5 days after you apply — you'll never let an opportunity slip.</p>
+        <p>Urgency badges when deadlines approach and reminders to follow up after you apply.</p>
       </div>
       <div class="feature">
         <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></div>
         <h3>Company insights</h3>
-        <p>One-click research — Glassdoor reviews and Deshimula company pages open right from each job card so you can vet employers before you apply.</p>
+        <p>One-click research — Glassdoor reviews and Deshimula company pages open right from each job card.</p>
       </div>
       <div class="feature">
         <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6l4 9 4-9h6L16.5 21h-9L2 3z"/></svg></div>
         <h3>Experience-aware</h3>
-        <p>Fresher, 2-yr, 3-yr and 3+ labels on every job. Filter by what fits your experience level, not a wall of irrelevant postings.</p>
+        <p>Fresher, 2-yr, 3-yr and 3+ labels on every job. Filter by what fits your level.</p>
       </div>
       <div class="feature">
         <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
         <h3>Learning hub</h3>
-        <p>A built-in study companion that rotates through REST APIs, Django, Git, Docker and Linux — upskill while you job-hunt.</p>
+        <p>A built-in study companion that rotates through REST APIs, Django, Git, Docker and Linux.</p>
       </div>
       <div class="feature">
         <div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
         <h3>Private personal board</h3>
-        <p>Track every job with New / Applied / Dismissed statuses. Your board, your data — protected by secure accounts and invite-only signups.</p>
+        <p>Track every job with New / Applied / Dismissed statuses. Your board, your data.</p>
       </div>
     </div>
   </div>
@@ -219,7 +271,7 @@
     <div class="cta-band">
       <h2>Start your job hunt the smart way</h2>
       <p>Join {{ stats.users }} other CSE job seekers already using JobPilot.</p>
-      <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
+      <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;position:relative">
         <a href="/register" class="btn btn-white btn-lg">Create free account</a>
         <a href="/login" class="btn btn-outline-white btn-lg">Sign in</a>
       </div>
@@ -257,6 +309,14 @@
       const btn = document.getElementById('themeBtn');
       const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
       btn.innerHTML = isDark ? '&#9788;' : '&#9789;';
+    }
+    function toggleMobileNav() {
+      document.getElementById('mobileNav').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeMobileNav() {
+      document.getElementById('mobileNav').classList.remove('open');
+      document.body.style.overflow = '';
     }
   </script>
 </body>

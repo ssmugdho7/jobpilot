@@ -333,6 +333,7 @@ def dashboard():
             counts=_status_counts(db_session, user_id, cutoff, role_filter, exp_filter),
             username=session.get("username"),
             onboarding_done=onboarding_done,
+            has_skills=bool(p_dict.get("skills")),
         )
     finally:
         db_session.close()

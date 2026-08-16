@@ -146,9 +146,22 @@
     .skill-gap .matched { color: var(--green); font-weight: 500; }
     .skill-gap .missing { color: var(--red); font-weight: 500; }
 
-    .company-links { display: flex; gap: 6px; margin-top: 10px; }
+    .company-links { display: flex; gap: 6px; margin-top: 10px; justify-content: center; }
     .company-links a { font-size: 12px; padding: 4px 10px; border-radius: 6px; background: var(--bg); color: var(--muted); border: 1px solid var(--border); font-weight: 500; transition: all .15s; }
     .company-links a:hover { color: var(--blue); border-color: var(--blue); }
+
+    /* ── Mark as applied ── */
+    .mark-applied { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 999px; font-size: 13px; font-weight: 600; background: transparent; color: var(--green); border: 1.5px solid var(--green); cursor: pointer; transition: all .2s; font-family: inherit; }
+    .mark-applied:hover { background: var(--green); color: #fff; transform: translateY(-1px); box-shadow: 0 2px 8px rgba(22,163,74,.25); }
+    .mark-applied.done { background: var(--green); color: #fff; border-color: var(--green); pointer-events: none; opacity: .8; }
+
+    /* ── Status chips (compact) ── */
+    .status-chips { display: none; gap: 4px; }
+    .status-chip { padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; border: 1.5px solid var(--border); background: var(--card); color: var(--muted); cursor: pointer; transition: all .15s; white-space: nowrap; }
+    .status-chip:hover { border-color: var(--muted); color: var(--text); }
+    .status-chip.active-new { background: var(--blue); color: #fff; border-color: var(--blue); }
+    .status-chip.active-applied { background: var(--green-bg); color: var(--green); border-color: var(--green); }
+    .status-chip.active-dismissed { background: var(--red-bg); color: var(--red); border-color: var(--red); }
 
     /* ── Empty state ── */
     .empty { text-align: center; padding: 80px 24px; color: var(--muted); }
@@ -188,23 +201,27 @@
       .stats { grid-template-columns: repeat(2, 1fr); gap: 8px; }
       .stat { padding: 12px; }
       .stat .num { font-size: 20px; }
-      .job { padding: 16px; border-radius: var(--radius); }
-      .job-header { flex-direction: column; gap: 8px; }
-      .job-title { font-size: 17px; font-weight: 700; }
-      .job-actions { flex-direction: column; align-items: stretch; }
-      .job-actions .btn, .job-actions .gmail-btn, .job-actions .apply-now, .job-actions .status-select { width: 100%; }
-      .job-actions .source-badge { align-self: flex-start; width: auto; }
+      .job { padding: 14px; border-radius: var(--radius); }
+      .job-header { flex-direction: column; gap: 6px; }
+      .job-title { font-size: 16px; font-weight: 700; }
+      .job-actions { gap: 6px; }
+      .job-actions .btn, .job-actions .gmail-btn, .job-actions .apply-now { flex: 1 1 auto; min-width: 0; font-size: 13px; padding: 8px 12px; }
+      .job-actions .status-select { display: none !important; }
+      .job-actions .status-chips { display: flex !important; }
+      .job-actions .source-badge { align-self: center; width: auto; font-size: 10px; }
       .toolbar { flex-direction: column; align-items: stretch; }
       .toolbar select { width: 100%; }
       .page-link { min-width: 44px; height: 44px; }
-      .company-links { flex-wrap: wrap; }
+      .company-links { flex-wrap: wrap; justify-content: center; }
+      .company-links a { font-size: 11px; padding: 3px 8px; }
       .skill-gap .labels { flex-direction: column; gap: 4px; }
       .modal { padding: 28px 20px; }
+      .mark-applied { font-size: 12px; padding: 6px 12px; }
     }
     @media (max-width: 480px) {
       .layout { padding: 12px 10px 48px; gap: 12px; }
-      .job { padding: 14px; }
-      .job-title { font-size: 16px; }
+      .job { padding: 12px; }
+      .job-title { font-size: 15px; }
       .stats { gap: 6px; }
       .stat { padding: 10px; min-width: 0; }
       .stat .num { font-size: 18px; }
@@ -214,6 +231,9 @@
       .toolbar .btn { font-size: 13px; padding: 8px 14px; }
       .pagination { gap: 6px; }
       .page-link { min-width: 40px; height: 40px; font-size: 13px; }
+      .job-actions { flex-wrap: wrap; }
+      .job-actions .btn, .job-actions .gmail-btn, .job-actions .apply-now { flex: 1 1 45%; }
+      .status-chip { font-size: 11px; padding: 5px 10px; }
     }
   </style>
 </head>
@@ -359,7 +379,7 @@
 
       {% if jobs %}
         {% for job in jobs %}
-          <div class="job {{ 'perfect-match' if job.user_relevance == 1 }} {{ 'fresher' if job.experience_level == 'fresher' }}" id="job-{{ job.id }}">
+          <div class="job {{ 'perfect-match' if job.user_relevance == 1 and has_skills }} {{ 'fresher' if job.experience_level == 'fresher' }}" id="job-{{ job.id }}">
             <div class="job-header">
               <div>
                 <div class="job-title">
@@ -370,7 +390,7 @@
                   {% if job.role %}<span>&middot;</span> <span>{{ job.role }}</span>{% endif %}
                   {% if job.location %}<span>&middot;</span> <span>{{ job.location }}</span>{% endif %}
                   {% if job.exp_label %}<span class="badge exp-badge">{{ job.exp_label }}</span>{% endif %}
-                  {% if job.user_relevance == 1 %}<span class="badge match-badge">Perfect Match</span>{% endif %}
+                  {% if job.user_relevance == 1 and has_skills %}<span class="badge match-badge">Perfect Match</span>{% endif %}
                   {% if job.deadline_urgency is not none %}<span class="badge deadline-badge">{{ job.deadline_urgency }}d left</span>{% endif %}
                   {% if job.follow_up_needed %}<span class="badge followup-badge">Follow up</span>{% endif %}
                   {% if job.early_applicant %}<span class="badge early-badge">{{ job.early_applicant }}</span>{% endif %}
@@ -392,7 +412,18 @@
             {% endif %}
 
             <div class="job-actions">
-              {% if job.user_relevance == 1 and job.gmail_link %}
+              {% if job.status == 'new' %}
+                <button class="mark-applied" onclick="markApplied({{ job.id }}, this)">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
+                  Did you apply?
+                </button>
+              {% elif job.status == 'applied' %}
+                <button class="mark-applied done">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
+                  Applied
+                </button>
+              {% endif %}
+              {% if job.user_relevance == 1 and has_skills and job.gmail_link %}
                 <a class="apply-now" href="{{ job.gmail_link }}" target="_blank" rel="noopener">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M2 4h20v16H2V4zm0 2v.01L12 13 22 6.01V6L12 13 2 6zm0 2.5L12 15l10-6.5V18H2V8.5z"/></svg>
                   Apply Now
@@ -406,6 +437,11 @@
               {% if job.posting_url %}
                 <a class="btn btn-ghost" href="{{ job.posting_url }}" target="_blank" rel="noopener" style="font-size:13px">View posting</a>
               {% endif %}
+              <div class="status-chips">
+                <button class="status-chip {{ 'active-new' if job.status == 'new' }}" onclick="setStatus({{ job.id }}, 'new')">New</button>
+                <button class="status-chip {{ 'active-applied' if job.status == 'applied' }}" onclick="setStatus({{ job.id }}, 'applied')">Applied</button>
+                <button class="status-chip {{ 'active-dismissed' if job.status == 'dismissed' }}" onclick="setStatus({{ job.id }}, 'dismissed')">Dismissed</button>
+              </div>
               <select class="status-select" onchange="setStatus({{ job.id }}, this.value)">
                 <option value="new" {{ 'selected' if job.status == 'new' }}>New</option>
                 <option value="applied" {{ 'selected' if job.status == 'applied' }}>Applied</option>
@@ -534,6 +570,18 @@
         });
         location.reload();
       } catch (e) {}
+    }
+
+    async function markApplied(id, btn) {
+      btn.classList.add('done');
+      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg> Applied';
+      try {
+        await fetch('/api/jobs/' + id + '/status', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'applied' })
+        });
+        showToast('Marked as applied');
+      } catch (e) { showToast('Error marking applied'); }
     }
 
     function showToast(msg) {

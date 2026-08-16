@@ -1,22 +1,12 @@
 # Deployment Guide — JobPilot
 
-## Best free hosts for this project
-
-| Host | Free tier | Notes |
-|---|---|---|
-| **Render** | 512 MB RAM, web service + cron jobs | Best balance; sleeps after inactivity |
-| **PythonAnywhere** | 512 MB, always-on | Easy; web app only (no cron) |
-| **Railway** | $5/mo credit | Quick deploy from GitHub |
-
----
-
-## Option A: Render (Recommended)
+## Deploy on Render (free tier)
 
 ### 1. Prepare production files
 
 **`Procfile`** (project root):
 ```
-web: gunicorn app.web.app:app --bind 0.0.0.0:$PORT --timeout 120
+web: gunicorn app.web.app:app --bind 0.0.0.0:$PORT --timeout 120 --workers 1
 ```
 
 **`render.yaml`** (project root):
@@ -26,7 +16,7 @@ services:
     name: jobpilot
     runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app.web.app:app --bind 0.0.0.0:$PORT --timeout 120
+    startCommand: gunicorn app.web.app:app --bind 0.0.0.0:$PORT --timeout 120 --workers 1
     envVars:
       - key: GEMINI_MODEL
         value: gemini-3-flash-preview
@@ -43,30 +33,29 @@ Add to `requirements.txt`:
 gunicorn>=21.0
 ```
 
-### 2. Fix port binding for cloud
+### 2. Production-ready code checks already in place
 
-Edit `app/web/app.py` — update `start_web`:
+**Port binding** — `app/web/app.py`:
 ```python
 def start_web(host="0.0.0.0", port=None):
     port = port or int(os.environ.get("PORT", 5001))
-    print(f"  [web] JobPilot dashboard at http://localhost:{port}")
     app.run(host=host, port=port, debug=False, use_reloader=False, threaded=True)
 ```
 
-### 3. Handle Word COM on Linux
-
-`app/cv/render.py` uses `winreg` and Word COM — this fails on Linux. The code already has a reportlab fallback. Add a guard:
+**Word COM guard** — `app/cv/render.py`:
 ```python
-import platform
-IS_WINDOWS = platform.system() == "Windows"
+if os.name != "nt":
+    _WORD_AVAILABLE = False
+    return False
 ```
-Skip Word COM calls when `not IS_WINDOWS`.
+PDF generation falls back to reportlab when Word is unavailable.
 
-### 4. Ensure persistent data directory
+**Data directory** — `app/paths.py`:
+- Creates `data/`, `data/uploads/`, `data/cv/` on startup
+- DB path: `data/jobs.db`
+- Render disk mount: `/opt/render/project/src/data`
 
-Render mounts `/opt/render/project/src/data` with the `disk` config above. Make sure your DB init uses an absolute or correctly relative path.
-
-### 5. Push to GitHub
+### 3. Push to GitHub
 
 ```bash
 git add .
@@ -74,81 +63,41 @@ git commit -m "prepare for render deploy"
 git push origin main
 ```
 
-### 6. Deploy on Render
+### 4. Deploy on Render
 
 1. Go to **https://dashboard.render.com** → **New +** → **Build and deploy from a Git repo**
 2. Connect your GitHub repo
-3. Select the repo
+3. Select `ssmugdho7/jobpilot`
 4. Render auto-detects `render.yaml` — verify settings
 5. Add **Environment Variables**:
    - `GEMINI_API_KEY` — your key(s)
-   - `FACEBOOK_ACCESS_TOKEN` — (optional)
+   - `GEMINI_API_KEYS` — comma-separated keys (optional, for quota rotation)
    - `GEMINI_MODEL` = `gemini-3-flash-preview`
+   - `FACEBOOK_ACCESS_TOKEN` — optional
+   - `SECRET_KEY` — random long string for Flask sessions
 6. Click **Create Web Service**
 7. Wait for build (2-5 min)
 
 Your app will be live at `https://jobpilot.onrender.com`.
 
----
+### 5. Set up cron job for scans
 
-## Option B: PythonAnywhere
+Render free tier sleeps after 15 minutes of inactivity. Use a Render Cron Job to keep scans running:
 
-### 1. Create a free account at https://www.pythonanywhere.com
-
-### 2. Upload files
-
-Use the **Files** tab or `git clone` in a Bash console.
-
-### 3. Set up virtualenv
-
-```bash
-mkvirtualenv --python=/usr/bin/python3.11 jobpilot-env
-pip install -r requirements.txt gunicorn
-```
-
-### 4. Create WSGI config
-
-Go to **Web** tab → **WSGI configuration file** and replace contents with:
-```python
-import sys
-path = '/home/yourusername/jobpilot'
-if path not in sys.path:
-    sys.path.insert(0, path)
-
-from app.web.app import app as application
-```
-
-### 5. Set env vars
-
-In the **Web** tab → **Environment**:
-- `GEMINI_API_KEY` = your key
-- `GEMINI_MODEL` = `gemini-3-flash-preview`
-- `PORT` = `8080`
-
-### 6. Set static files
-
-Map `/static/` → `/home/yourusername/jobpilot/static/`
-
-### 7. Reload
-
-Click **Reload** in the Web tab.
-
----
-
-## Option C: Railway
-
-1. Go to https://railway.app → **New Project** → **Deploy from GitHub repo**
-2. Select your repo
-3. Railway auto-detects Python and deploys
-4. Add **Variables** tab → add `GEMINI_API_KEY`, `GEMINI_MODEL`
-5. Add a **Volume** (1 GB) mounted at `/app/data` for persistent SQLite DB
+1. In Render dashboard → **Cron Jobs** → **New Cron Job**
+2. Settings:
+   - **Name:** `scan-jobs`
+   - **Schedule:** `0 */3 * * *` (every 3 hours)
+   - **URL:** `/api/scan`
+   - **Method:** `POST`
+   - **Service:** `jobpilot`
 
 ---
 
 ## Important notes
 
-- **Background scans**: Render free tier sleeps after 15 min of inactivity. Use Render **Cron Jobs** (free tier allows them) to trigger `/api/scan` every few hours instead of in-process threads.
+- **Background scans**: Do not rely on in-process background threads on Render free tier. Use the cron job above.
 - **Word COM**: On Linux hosts, only the reportlab fallback works. It produces clean PDFs without Word formatting.
-- **SQLite**: On Render/Railway, attach a disk/volume so `data/jobs.db` persists across deploys.
-- **Free tier limits**: All hosts above are suitable for personal use. For heavier traffic, upgrade to paid tiers.
-- **Security**: Change `SECRET_KEY` in production via environment variable.
+- **SQLite persistence**: The `render.yaml` disk config ensures `data/jobs.db` survives redeploys.
+- **Free tier limits**: Render free tier gives 512 MB RAM. Suitable for personal use. For heavier traffic, upgrade to paid tiers.
+- **Security**: Always set `SECRET_KEY` in production via environment variable.

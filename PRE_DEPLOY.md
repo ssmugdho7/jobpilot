@@ -1,6 +1,6 @@
 # Pre-Deployment Checklist — JobPilot
 
-Use this checklist before deploying to production. It covers branch state, required files, Railway-specific configuration, environment variables, and post-deploy verification.
+Use this checklist before deploying to production on Render. It covers branch state, required files, environment variables, and post-deploy verification.
 
 ---
 
@@ -12,7 +12,7 @@ Use this checklist before deploying to production. It covers branch state, requi
 - [ ] `git remote -v` points to `https://github.com/ssmugdho7/jobpilot.git`
 - [ ] Latest commit is pushed: `git push origin main`
 
-**Current staging → main delta:**
+**Staging → main delta:**
 ```bash
 git log --oneline main..staging
 # Should show the commits you want to deploy
@@ -25,14 +25,14 @@ git log --oneline main..staging
 These files must exist at the project root:
 
 - [ ] **`Procfile`** — web process command
-- [ ] **`railway.toml`** — Railway deploy + volume config
+- [ ] **`render.yaml`** — Render service + disk config
 - [ ] **`requirements.txt`** — includes `gunicorn>=21.0`
 - [ ] **`.env.example`** — documents required env vars (do NOT commit real `.env`)
 
 Verify:
 ```bash
 cat Procfile
-cat railway.toml
+cat render.yaml
 grep gunicorn requirements.txt
 ```
 
@@ -59,7 +59,7 @@ if os.name != "nt":
 ### Data directory
 - [ ] `app/paths.py` creates `data/`, `data/uploads/`, `data/cv/` on startup
 - [ ] DB path uses relative path from project root: `data/jobs.db`
-- [ ] On Railway, volume is mounted at `/app/data`
+- [ ] Render disk is mounted at `/opt/render/project/src/data`
 
 ### Static files
 - [ ] Flask serves templates from `app/web/templates/`
@@ -69,7 +69,7 @@ if os.name != "nt":
 
 ## 4. Environment variables
 
-Set these in the Railway dashboard (**Variables** tab):
+Set these in the Render dashboard (**Environment** tab):
 
 | Variable | Required | Example / Notes |
 |---|---|---|
@@ -83,50 +83,41 @@ Set these in the Railway dashboard (**Variables** tab):
 
 ---
 
-## 5. Railway-specific configuration
+## 5. Render-specific configuration
 
 ### Deploy from GitHub
 
-- [ ] Go to **https://railway.app** → **New Project** → **Deploy from GitHub repo**
-- [ ] Select `ssmugdho7/jobpilot`
-- [ ] Railway auto-detects `railway.toml` and starts building
+- [ ] Go to **https://dashboard.render.com** → **New +** → **Build and deploy from a Git repo**
+- [ ] Connect your GitHub account and select `ssmugdho7/jobpilot`
+- [ ] Render auto-detects `render.yaml` — verify settings:
+  - **Name:** `jobpilot`
+  - **Runtime:** `python`
+  - **Build command:** `pip install -r requirements.txt`
+  - **Start command:** `gunicorn app.web.app:app --bind 0.0.0.0:$PORT --timeout 120 --workers 1`
+  - **Disk:** `jobpilot-data` mounted at `/opt/render/project/src/data`, size `1 GB`
 
-### Volume (persistent SQLite DB)
+### Environment variables
 
-- [ ] In Railway dashboard → **Volumes** → **New Volume**
-- [ ] **Name:** `jobpilot-data`
-- [ ] **Mount path:** `/app/data`
-- [ ] **Size:** `1 GB`
+- [ ] Add all variables from section 4 in the Render dashboard
+- [ ] `PYTHON_VERSION` is already set in `render.yaml` (`3.11.9`)
 
-### Variables
+### Cron job for scans
 
-- [ ] Add all environment variables from section 4 in the **Variables** tab
-- [ ] Railway automatically sets `PORT` — no need to set it manually
+Render free tier sleeps after 15 minutes of inactivity. Set up a cron job to trigger scans:
 
-### Start command
-
-- [ ] `railway.toml` sets:
-  ```toml
-  startCommand = "gunicorn app.web.app:app --bind 0.0.0.0:$PORT --timeout 120 --workers 1"
-  ```
-- [ ] Railway uses this automatically; no need to override in dashboard
-
-### Scheduler (cron for scans)
-
-Railway free tier includes a scheduler. Set it up to trigger scans:
-
-- [ ] In Railway dashboard → **Scheduler** → **New Job**
+- [ ] In Render dashboard → **Cron Jobs** → **New Cron Job**
 - [ ] **Name:** `scan-jobs`
 - [ ] **Schedule:** `0 */3 * * *` (every 3 hours)
-- [ ] **Command:** `curl -X POST https://your-app.up.railway.app/api/scan -H "Content-Type: application/json" -d "{}"`
-- [ ] Or use Railway's built-in HTTP trigger if available
+- [ ] **URL:** `/api/scan`
+- [ ] **Method:** `POST`
+- [ ] **Service:** `jobpilot`
 
 ---
 
 ## 6. Database migration and persistence
 
 - [ ] `data/jobs.db` will be created on first run (`init_db()` in `app/db.py`)
-- [ ] SQLite file is on persistent volume (`/app/data`)
+- [ ] SQLite file is on persistent disk (`/opt/render/project/src/data`)
 - [ ] `init_db()` runs lightweight migrations for new columns:
   - `jobs.status`, `jobs.posted_date`, `jobs.deadline`, `jobs.hr_email`, `jobs.experience_level`
   - `user_jobs.follow_up_at`
@@ -141,7 +132,7 @@ After deploying, verify these endpoints and features:
 
 ### Health check
 ```bash
-curl https://your-app.up.railway.app/
+curl https://your-app.onrender.com/
 ```
 - [ ] Returns 200 with `JobPilot` in HTML
 
@@ -154,10 +145,10 @@ curl https://your-app.up.railway.app/
 
 ### API
 ```bash
-curl -X POST https://your-app.up.railway.app/api/scan -H "Content-Type: application/json" -d "{}"
+curl -X POST https://your-app.onrender.com/api/scan -H "Content-Type: application/json" -d "{}"
 ```
 - [ ] Returns `{"ok": true, "started": true}`
-- [ ] Scan completes without errors (check Railway logs)
+- [ ] Scan completes without errors (check Render logs)
 
 ### Auth
 - [ ] Register new user works
@@ -211,12 +202,12 @@ Confirm these features are present in the deployed build:
 
 ## 10. Performance and limits
 
-- [ ] Railway free tier limits understood:
-  - **$5/month credit** included with free account
-  - App sleeps after period of inactivity if credit is exhausted
-  - 512 MB RAM, shared CPU
-- [ ] Scans are triggered via scheduler, not background threads
-- [ ] SQLite DB is on persistent volume to survive redeploys
+- [ ] Render free tier limits understood:
+  - **512 MB RAM**
+  - Sleeps after 15 minutes of inactivity
+  - Free cron jobs available
+- [ ] Scans are triggered via cron job, not background threads
+- [ ] SQLite DB is on persistent disk to survive redeploys
 - [ ] `gunicorn --workers 1` is used to stay within memory limits
 
 ---
@@ -237,4 +228,4 @@ git log --oneline -5
 git push origin main
 ```
 
-Then follow the Railway steps in section 5 to complete deployment.
+Then follow the Render steps in section 5 to complete deployment.

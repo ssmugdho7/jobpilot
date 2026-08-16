@@ -106,7 +106,7 @@
 
     /* ── Job card ── */
     .job { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 12px; transition: all .2s; box-shadow: var(--shadow-sm); }
-    .job:hover { border-color: var(--muted); box-shadow: var(--shadow); }
+    .job:hover { border-color: var(--blue); box-shadow: 0 4px 16px rgba(37,99,235,.1); transform: translateY(-1px); }
     .job.fresher { border-left: 4px solid var(--blue); }
     .job.perfect-match { border-left: 4px solid var(--green); }
     .job.fresher.perfect-match { border-left: 4px solid var(--green); border-top: 2px solid var(--blue); }
@@ -174,18 +174,25 @@
     .apply-prompt .no-btn:hover { border-color: var(--muted); color: var(--text); }
 
     /* ── News ticker ── */
-    .ticker-wrap { background: var(--blue-light); border-bottom: 1px solid var(--border); overflow: hidden; white-space: nowrap; height: 36px; display: flex; align-items: center; }
+    .ticker-wrap { background: var(--blue-light); border-bottom: 1px solid var(--border); overflow: hidden; white-space: nowrap; height: 36px; display: flex; align-items: center; position: relative; }
     [data-theme="dark"] .ticker-wrap { background: rgba(96,165,250,.1); }
+    .ticker-wrap.dismissed { display: none; }
     .ticker-label { background: var(--blue); color: #fff; font-size: 11px; font-weight: 700; padding: 4px 12px; text-transform: uppercase; letter-spacing: .5px; flex-shrink: 0; z-index: 1; }
     .ticker-content { display: inline-block; animation: ticker-scroll 30s linear infinite; padding-left: 20px; font-size: 13px; font-weight: 500; color: var(--text); }
     .ticker-content a { color: var(--blue); text-decoration: underline; }
     @keyframes ticker-scroll { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+    .ticker-close { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; border-radius: 50%; border: none; background: rgba(0,0,0,.15); color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; line-height: 1; z-index: 2; transition: background .15s; }
+    .ticker-close:hover { background: rgba(0,0,0,.3); }
 
     /* ── Empty state ── */
-    .empty { text-align: center; padding: 80px 24px; color: var(--muted); }
-    .empty .icon { font-size: 56px; margin-bottom: 16px; }
-    .empty h3 { font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
-    .empty p { font-size: 15px; max-width: 400px; margin: 0 auto; line-height: 1.6; }
+    .empty { text-align: center; padding: 60px 24px; color: var(--muted); }
+    .empty-icon { width: 64px; height: 64px; border-radius: 16px; background: var(--blue-light); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }
+    [data-theme="dark"] .empty-icon { background: rgba(96,165,250,.12); }
+    .empty h3 { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+    .empty p { font-size: 14px; max-width: 380px; margin: 0 auto 20px; line-height: 1.6; }
+    .empty-suggestions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 16px; }
+    .empty-suggestions a { padding: 6px 14px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--card); border: 1px solid var(--border); color: var(--muted); text-decoration: none; transition: all .15s; }
+    .empty-suggestions a:hover { border-color: var(--blue); color: var(--blue); }
 
     /* ── Pagination ── */
     .pagination { display: flex; align-items: center; gap: 8px; justify-content: center; margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border); flex-wrap: wrap; }
@@ -208,6 +215,28 @@
     .radio-item:hover { border-color: var(--blue); background: var(--bg); }
     .radio-item input { accent-color: var(--blue); width: 18px; height: 18px; }
     .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+    /* ── Skeleton loading ── */
+    .skeleton { display: none; }
+    .skeleton.show { display: block; }
+    .skeleton-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 12px; }
+    .sk-line { height: 14px; border-radius: 7px; background: linear-gradient(90deg, var(--border) 25%, var(--bg) 50%, var(--border) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; margin-bottom: 10px; }
+    .sk-line.w60 { width: 60%; }
+    .sk-line.w40 { width: 40%; height: 12px; }
+    .sk-line.w80 { width: 80%; }
+    .sk-line.w30 { width: 30%; height: 10px; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    /* ── Sort pills ── */
+    .sort-pills { display: flex; gap: 4px; background: var(--bg); border-radius: var(--radius-sm); padding: 3px; border: 1px solid var(--border); }
+    .sort-pill { padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; color: var(--muted); cursor: pointer; border: none; background: transparent; transition: all .15s; font-family: inherit; white-space: nowrap; }
+    .sort-pill:hover { color: var(--text); }
+    .sort-pill.active { background: var(--card); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+
+    /* ── Back to top ── */
+    .back-to-top { position: fixed; bottom: 24px; right: 24px; width: 44px; height: 44px; border-radius: 50%; background: var(--blue); color: #fff; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(37,99,235,.3); z-index: 50; opacity: 0; pointer-events: none; transform: translateY(12px); transition: all .25s; }
+    .back-to-top.visible { opacity: 1; pointer-events: auto; transform: translateY(0); }
+    .back-to-top:hover { background: var(--blue-dark); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(37,99,235,.4); }
 
     /* ── Responsive ── */
     @media (max-width: 768px) {
@@ -234,6 +263,10 @@
       .date-filters::-webkit-scrollbar { display: none; }
       .date-pill { font-size: 12px; padding: 6px 12px; min-height: 32px; }
       .page-link { min-width: 44px; height: 44px; }
+      .pagination .page-num { display: none; }
+      .pagination .page-current { display: inline-flex; }
+      .sort-pills { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+      .sort-pills::-webkit-scrollbar { display: none; }
       .company-row { justify-content: space-between; align-items: center; }
       .company-links { flex-wrap: wrap; justify-content: flex-start; }
       .company-links a { font-size: 11px; padding: 3px 8px; }
@@ -260,6 +293,7 @@
       .page-link { min-width: 40px; height: 40px; font-size: 13px; }
       .job-actions { flex-wrap: wrap; }
       .job-actions .btn, .job-actions .gmail-btn, .job-actions .apply-now { flex: 1 1 45%; }
+      .back-to-top { bottom: 16px; right: 16px; width: 40px; height: 40px; }
     }
   </style>
 </head>
@@ -283,13 +317,14 @@
     </div>
   </div>
 
-  <div class="ticker-wrap">
+  <div class="ticker-wrap" id="ticker">
     <span class="ticker-label">Jobs</span>
     <span class="ticker-content">
       <strong>NextJobz Career Summit &amp; Job Fest</strong> — Aug 18, KIB Bhaban, Farmgate, Dhaka | 100+ employers, on-the-spot interviews &amp; offers.
       Register via NextJobz app. &nbsp;&nbsp;&bull;&nbsp;&nbsp;
       <strong>VoB Job Fair 2026</strong> — Aug 16-17, Faculty of Business Studies, Dhaka University | Pubali Bank, bKash, MetLife, City Bank &amp; more.
     </span>
+    <button class="ticker-close" onclick="dismissTicker()" title="Dismiss">&times;</button>
   </div>
 
   <!-- Mobile filter drawer -->
@@ -415,15 +450,25 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
             Scan now
           </button>
-          <select class="status-select" id="sortSelect" onchange="setSort(this.value)" style="margin-left:auto">
-            <option value="latest" {{ 'selected' if active_sort == 'latest' }}>Latest posted</option>
-            <option value="relevant" {{ 'selected' if active_sort == 'relevant' }}>Most relevant</option>
-            <option value="deadline" {{ 'selected' if active_sort == 'deadline' }}>Deadline soon</option>
-          </select>
+          <div class="sort-pills" style="margin-left:auto">
+            <button class="sort-pill {{ 'active' if active_sort == 'latest' }}" onclick="setSort('latest')">Latest</button>
+            <button class="sort-pill {{ 'active' if active_sort == 'relevant' }}" onclick="setSort('relevant')">Relevant</button>
+            <button class="sort-pill {{ 'active' if active_sort == 'deadline' }}" onclick="setSort('deadline')">Deadline</button>
+          </div>
         </div>
       </div>
 
       {% if jobs %}
+        <div class="skeleton" id="skeleton">
+          {% for _ in range(3) %}
+          <div class="skeleton-card">
+            <div class="sk-line w60"></div>
+            <div class="sk-line w40"></div>
+            <div class="sk-line w80"></div>
+            <div class="sk-line w30"></div>
+          </div>
+          {% endfor %}
+        </div>
         {% for job in jobs %}
           <div class="job {{ 'perfect-match' if job.user_relevance == 1 and has_skills }} {{ 'fresher' if job.experience_level == 'fresher' }}" id="job-{{ job.id }}">
             <div class="job-header">
@@ -517,13 +562,14 @@
           {% if active_page > 1 %}
             <a class="page-link" href="/dashboard?status={{ active_status }}&days={{ active_days }}&role={{ active_role }}&exp={{ active_exp }}&sort={{ active_sort }}&page={{ active_page - 1 }}">&laquo;</a>
           {% endif %}
+          <span class="page-link page-current current">{{ active_page }}</span>
           {% for p in range(1, total_pages + 1) %}
-            {% if p == active_page %}
-              <span class="page-link current">{{ p }}</span>
-            {% elif p == 1 or p == total_pages or (p >= active_page - 1 and p <= active_page + 1) %}
-              <a class="page-link" href="/dashboard?status={{ active_status }}&days={{ active_days }}&role={{ active_role }}&exp={{ active_exp }}&sort={{ active_sort }}&page={{ p }}">{{ p }}</a>
-            {% elif p == active_page - 2 or p == active_page + 2 %}
-              <span class="page-link ellipsis">&hellip;</span>
+            {% if p != active_page %}
+              {% if p == 1 or p == total_pages or (p >= active_page - 1 and p <= active_page + 1) %}
+                <a class="page-link page-num" href="/dashboard?status={{ active_status }}&days={{ active_days }}&role={{ active_role }}&exp={{ active_exp }}&sort={{ active_sort }}&page={{ p }}">{{ p }}</a>
+              {% elif p == active_page - 2 or p == active_page + 2 %}
+                <span class="page-link ellipsis page-num">&hellip;</span>
+              {% endif %}
             {% endif %}
           {% endfor %}
           {% if active_page < total_pages %}
@@ -533,13 +579,28 @@
         {% endif %}
       {% else %}
         <div class="empty">
-          <div class="icon">&#128269;</div>
-          <h3>No jobs found</h3>
-          <p>Try scanning now or widening the date filter to see more results.</p>
+          <div class="empty-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/><path d="M8 11h6"/></svg>
+          </div>
+          <h3>No jobs match your filters</h3>
+          <p>Try widening the date range, switching role, or scanning now for fresh postings.</p>
+          <div class="empty-suggestions">
+            <a href="/dashboard?days=30&sort={{ active_sort }}">Last 30 days</a>
+            <a href="/dashboard?status=&days={{ active_days }}&sort={{ active_sort }}">All statuses</a>
+            <a href="/dashboard?days={{ active_days }}&role=&sort={{ active_sort }}">All roles</a>
+          </div>
+          <button class="btn btn-primary" onclick="runScan()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            Scan now
+          </button>
         </div>
       {% endif %}
     </div>
   </div>
+
+  <button class="back-to-top" id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+  </button>
 
   <div class="toast" id="toast"></div>
 
@@ -552,6 +613,8 @@
         document.documentElement.setAttribute('data-theme', 'dark');
       }
       updateThemeBtn();
+      initTicker();
+      initBackToTop();
     })();
 
     function toggleTheme() {
@@ -566,6 +629,28 @@
       const btn = document.getElementById('themeBtn');
       const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
       btn.innerHTML = isDark ? '&#9788;' : '&#9789;';
+    }
+
+    function initTicker() {
+      if (localStorage.getItem('ticker_dismissed') === '1') {
+        var t = document.getElementById('ticker');
+        if (t) t.classList.add('dismissed');
+      }
+    }
+
+    function dismissTicker() {
+      var t = document.getElementById('ticker');
+      if (t) t.classList.add('dismissed');
+      localStorage.setItem('ticker_dismissed', '1');
+    }
+
+    function initBackToTop() {
+      var btn = document.getElementById('backToTop');
+      if (!btn) return;
+      window.addEventListener('scroll', function() {
+        if (window.scrollY > 400) { btn.classList.add('visible'); }
+        else { btn.classList.remove('visible'); }
+      }, { passive: true });
     }
 
     function openDrawer() {
@@ -599,7 +684,9 @@
 
     async function runScan() {
       const btn = document.getElementById('scanBtn');
+      const sk = document.getElementById('skeleton');
       btn.disabled = true;
+      if (sk) sk.classList.add('show');
       showToast('Scanning sources...');
       try {
         const r = await fetch('/api/scan', { method: 'POST' });
@@ -609,10 +696,12 @@
         } else {
           showToast('Scan already running');
           btn.disabled = false;
+          if (sk) sk.classList.remove('show');
         }
       } catch (e) {
         showToast('Scan failed');
         btn.disabled = false;
+        if (sk) sk.classList.remove('show');
       }
     }
 

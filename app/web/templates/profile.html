@@ -194,8 +194,8 @@
     </div>
 
     <!-- CV Upload dropzone -->
-    <div class="card dropzone-card" id="dropzone" onclick="document.getElementById('cvFile').click()">
-      <input type="file" id="cvFile" accept=".pdf,.docx,.doc" onchange="handleCvUpload(this.files)">
+    <div class="card dropzone-card" id="dropzone">
+      <input type="file" id="cvFile" accept=".pdf,.docx,.doc" onchange="handleCvUpload(this.files); this.value='';">
       <div class="dropzone-icon" id="dzIcon">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
       </div>
@@ -387,16 +387,45 @@
 
     /* ── CV Upload / Drag-and-Drop ── */
     const dz = document.getElementById('dropzone');
+    const dzFile = document.getElementById('cvFile');
     const dzTitle = document.getElementById('dzTitle');
     const dzSub = document.getElementById('dzSub');
     const dzProgress = document.getElementById('dzProgress');
     const dzBar = document.getElementById('dzBar');
     const dzStatus = document.getElementById('dzStatus');
     const dzIcon = document.getElementById('dzIcon');
+    let dragCounter = 0;
 
-    ['dragenter','dragover'].forEach(evt => dz.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); dz.classList.add('dragover'); }));
-    ['dragleave','drop'].forEach(evt => dz.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); dz.classList.remove('dragover'); }));
-    dz.addEventListener('drop', e => { if (e.dataTransfer.files.length) handleCvUpload(e.dataTransfer.files); });
+    dz.addEventListener('click', function(e) {
+      if (e.target === dzFile || dz.classList.contains('uploading')) return;
+      dzFile.click();
+    });
+
+    ['dragenter', 'dragover'].forEach(function(evt) {
+      document.addEventListener(evt, function(e) { e.preventDefault(); e.stopPropagation(); });
+    });
+
+    dz.addEventListener('dragenter', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      dragCounter++;
+      if (!dz.classList.contains('uploading')) dz.classList.add('dragover');
+    });
+
+    dz.addEventListener('dragleave', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      dragCounter--;
+      if (dragCounter === 0) dz.classList.remove('dragover');
+    });
+
+    dz.addEventListener('drop', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      dragCounter = 0;
+      dz.classList.remove('dragover');
+      if (e.dataTransfer.files.length) handleCvUpload(e.dataTransfer.files);
+    });
 
     function handleCvUpload(files) {
       if (!files || !files.length) return;

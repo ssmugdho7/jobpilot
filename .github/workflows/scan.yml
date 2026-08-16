@@ -9,26 +9,23 @@ jobs:
   scan:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger scan
+      - name: Wake Render + trigger scan
         run: |
-          echo "Triggering scan on Render..."
-          RESP=$(curl -s -w "\n%{http_code}" \
-            -X POST "${{ secrets.RENDER_URL }}/api/cron/scan" \
-            -H "X-Cron-Secret: ${{ secrets.CRON_SECRET }}" \
-            --max-time 60)
-          HTTP_CODE=$(echo "$RESP" | tail -1)
-          BODY=$(echo "$RESP" | head -1)
-          echo "HTTP $HTTP_CODE: $BODY"
-          if [ "$HTTP_CODE" != "200" ] && [ "$HTTP_CODE" != "202" ]; then
-            echo "Scan trigger failed"
-            exit 1
-          fi
-
-      - name: Wait and verify
-        run: |
-          echo "Waiting 30s for scan to start..."
-          sleep 30
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-            "${{ secrets.RENDER_URL }}/" \
-            --max-time 30)
-          echo "Dashboard status: HTTP $STATUS"
+          echo "Waking Render (cold start may take 60-90s)..."
+          for i in 1 2 3; do
+            RESP=$(curl -s -w "\n%{http_code}" \
+              -X POST "${{ secrets.RENDER_URL }}/api/cron/scan" \
+              -H "X-Cron-Secret: ${{ secrets.CRON_SECRET }}" \
+              --max-time 180 --retry 2 --retry-delay 10)
+            HTTP_CODE=$(echo "$RESP" | tail -1)
+            BODY=$(echo "$RESP" | head -1)
+            echo "Attempt $i: HTTP $HTTP_CODE — $BODY"
+            if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "202" ]; then
+              echo "Scan triggered successfully"
+              exit 0
+            fi
+            echo "Retrying in 15s..."
+            sleep 15
+          done
+          echo "Failed after 3 attempts"
+          exit 1

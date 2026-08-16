@@ -386,105 +386,104 @@
     }
 
     /* ── CV Upload / Drag-and-Drop ── */
-    const dz = document.getElementById('dropzone');
-    const dzFile = document.getElementById('cvFile');
-    const dzTitle = document.getElementById('dzTitle');
-    const dzSub = document.getElementById('dzSub');
-    const dzProgress = document.getElementById('dzProgress');
-    const dzBar = document.getElementById('dzBar');
-    const dzStatus = document.getElementById('dzStatus');
-    const dzIcon = document.getElementById('dzIcon');
-    let dragCounter = 0;
+    document.addEventListener('DOMContentLoaded', function() {
+      var dz = document.getElementById('dropzone');
+      var dzFile = document.getElementById('cvFile');
+      var dzTitle = document.getElementById('dzTitle');
+      var dzSub = document.getElementById('dzSub');
+      var dzProgress = document.getElementById('dzProgress');
+      var dzBar = document.getElementById('dzBar');
+      var dzStatus = document.getElementById('dzStatus');
+      var dragOver = 0;
 
-    dz.addEventListener('click', function(e) {
-      if (e.target === dzFile || dz.classList.contains('uploading')) return;
-      dzFile.click();
+      function prevent(e) { e.preventDefault(); e.stopPropagation(); }
+
+      ['dragenter', 'dragover', 'drop'].forEach(function(evt) {
+        document.addEventListener(evt, prevent, false);
+      });
+
+      dz.addEventListener('dragenter', function(e) {
+        e.preventDefault();
+        dragOver++;
+        dz.classList.add('dragover');
+      }, false);
+
+      dz.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        dragOver--;
+        if (dragOver <= 0) { dragOver = 0; dz.classList.remove('dragover'); }
+      }, false);
+
+      dz.addEventListener('drop', function(e) {
+        e.preventDefault();
+        dragOver = 0;
+        dz.classList.remove('dragover');
+        var files = e.dataTransfer && e.dataTransfer.files;
+        if (files && files.length) window.handleCvUpload(files);
+      }, false);
+
+      dz.addEventListener('click', function(e) {
+        if (e.target === dzFile || dz.classList.contains('uploading')) return;
+        dzFile.click();
+      }, false);
+
+      window.handleCvUpload = function(files) {
+        if (!files || !files.length) return;
+        var file = files[0];
+        var ext = file.name.split('.').pop().toLowerCase();
+        if (['pdf','docx','doc'].indexOf(ext) === -1) { showToast('Please upload a PDF or DOCX file'); return; }
+
+        dz.classList.add('uploading');
+        dz.classList.remove('success','error');
+        dzTitle.textContent = file.name;
+        dzSub.textContent = 'Uploading...';
+        dzProgress.classList.add('show');
+        dzBar.style.width = '30%';
+        dzStatus.className = 'dropzone-status parsing';
+        dzStatus.innerHTML = '<span class="dropzone-spinner"></span> Parsing CV...';
+
+        var fd = new FormData();
+        fd.append('file', file);
+
+        fetch('/api/profile/parse-cv', { method: 'POST', body: fd })
+          .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
+          .then(function(result) {
+            var ok = result.ok, data = result.data;
+            dzBar.style.width = '100%';
+            if (!ok || !data.ok) throw new Error(data.error || 'Parse failed');
+            var p = data.profile;
+            if (p.name) document.getElementById('name').value = p.name;
+            if (p.email) document.getElementById('email').value = p.email;
+            if (p.phone) document.getElementById('phone').value = p.phone;
+            if (p.linkedin) document.getElementById('linkedin').value = p.linkedin;
+            if (p.github) document.getElementById('github').value = p.github;
+            if (p.portfolio) document.getElementById('portfolio').value = p.portfolio;
+            if (p.summary) document.getElementById('summary').value = p.summary;
+            if (p.experience) document.getElementById('experience').value = p.experience;
+            if (p.education) document.getElementById('education').value = p.education;
+            if (p.skills && Array.isArray(p.skills)) document.getElementById('skills').value = p.skills.join(', ');
+            checkProgress();
+
+            dz.classList.remove('uploading');
+            dz.classList.add('success');
+            dzStatus.className = 'dropzone-status done';
+            dzStatus.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg> Profile auto-filled from CV \u2014 review and save below';
+            dzTitle.textContent = 'CV uploaded successfully';
+            dzSub.innerHTML = '<strong>Click to upload a different CV</strong>';
+            showToast('Profile auto-filled from CV');
+          })
+          .catch(function(err) {
+            dzBar.style.width = '100%';
+            dz.classList.remove('uploading');
+            dz.classList.add('error');
+            dzStatus.className = 'dropzone-status fail';
+            dzStatus.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> ' + (err.message || 'Failed to parse CV');
+            dzTitle.textContent = 'Upload failed';
+            dzSub.innerHTML = '<strong>Click to try again</strong>';
+            showToast('CV parse failed: ' + (err.message || 'unknown error'));
+          });
+      };
     });
-
-    ['dragenter', 'dragover'].forEach(function(evt) {
-      document.addEventListener(evt, function(e) { e.preventDefault(); e.stopPropagation(); });
-    });
-
-    dz.addEventListener('dragenter', function(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      dragCounter++;
-      if (!dz.classList.contains('uploading')) dz.classList.add('dragover');
-    });
-
-    dz.addEventListener('dragleave', function(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      dragCounter--;
-      if (dragCounter === 0) dz.classList.remove('dragover');
-    });
-
-    dz.addEventListener('drop', function(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      dragCounter = 0;
-      dz.classList.remove('dragover');
-      if (e.dataTransfer.files.length) handleCvUpload(e.dataTransfer.files);
-    });
-
-    function handleCvUpload(files) {
-      if (!files || !files.length) return;
-      const file = files[0];
-      const ext = file.name.split('.').pop().toLowerCase();
-      if (!['pdf','docx','doc'].includes(ext)) { showToast('Please upload a PDF or DOCX file'); return; }
-
-      dz.classList.add('uploading');
-      dz.classList.remove('success','error');
-      dzTitle.textContent = file.name;
-      dzSub.textContent = 'Uploading...';
-      dzProgress.classList.add('show');
-      dzBar.style.width = '30%';
-      dzStatus.className = 'dropzone-status parsing';
-      dzStatus.innerHTML = '<span class="dropzone-spinner"></span> Parsing CV...';
-
-      const fd = new FormData();
-      fd.append('file', file);
-
-      fetch('/api/profile/parse-cv', { method: 'POST', body: fd })
-        .then(r => r.json().then(d => ({ ok: r.ok, data: d })))
-        .then(({ ok, data }) => {
-          dzBar.style.width = '100%';
-          if (!ok || !data.ok) {
-            throw new Error(data.error || 'Parse failed');
-          }
-          const p = data.profile;
-          if (p.name) document.getElementById('name').value = p.name;
-          if (p.email) document.getElementById('email').value = p.email;
-          if (p.phone) document.getElementById('phone').value = p.phone;
-          if (p.linkedin) document.getElementById('linkedin').value = p.linkedin;
-          if (p.github) document.getElementById('github').value = p.github;
-          if (p.portfolio) document.getElementById('portfolio').value = p.portfolio;
-          if (p.summary) document.getElementById('summary').value = p.summary;
-          if (p.experience) document.getElementById('experience').value = p.experience;
-          if (p.education) document.getElementById('education').value = p.education;
-          if (p.skills && Array.isArray(p.skills)) document.getElementById('skills').value = p.skills.join(', ');
-          checkProgress();
-
-          dz.classList.remove('uploading');
-          dz.classList.add('success');
-          dzStatus.className = 'dropzone-status done';
-          dzStatus.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg> Profile auto-filled from CV — review and save below';
-          dzTitle.textContent = 'CV uploaded successfully';
-          dzSub.textContent = '<strong>Click to upload a different CV</strong>';
-          dzSub.innerHTML = '<strong>Click to upload a different CV</strong>';
-          showToast('Profile auto-filled from CV');
-        })
-        .catch(err => {
-          dzBar.style.width = '100%';
-          dz.classList.remove('uploading');
-          dz.classList.add('error');
-          dzStatus.className = 'dropzone-status fail';
-          dzStatus.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> ' + (err.message || 'Failed to parse CV');
-          dzTitle.textContent = 'Upload failed';
-          dzSub.innerHTML = '<strong>Click to try again</strong>';
-          showToast('CV parse failed: ' + (err.message || 'unknown error'));
-        });
-    }
   </script>
 </body>
 </html>

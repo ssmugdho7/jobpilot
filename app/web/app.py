@@ -318,7 +318,7 @@ def dashboard():
             "index.html",
             jobs=jobs,
             active_status=status,
-            active_days=days,
+            active_days=str(days),
             active_role=role_filter,
             active_exp=exp_filter,
             active_sort=sort,

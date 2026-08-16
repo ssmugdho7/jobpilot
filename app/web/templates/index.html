@@ -91,7 +91,7 @@
     .stat.red .num { color: var(--red); }
 
     /* ── Toolbar ── */
-    .toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+    .toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; }
     .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 18px; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: all .15s; min-height: 44px; font-family: inherit; }
     .btn-primary { background: var(--blue); color: #fff; box-shadow: 0 1px 2px rgba(37,99,235,.3); }
     .btn-primary:hover { background: var(--blue-dark); box-shadow: 0 4px 12px rgba(37,99,235,.3); transform: translateY(-1px); }
@@ -224,7 +224,7 @@
     @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
     /* ── Sort pills ── */
-    .sort-pills { display: flex; gap: 4px; background: var(--bg); border-radius: var(--radius-sm); padding: 3px; border: 1px solid var(--border); }
+    .sort-pills { display: flex; gap: 4px; background: var(--bg); border-radius: var(--radius-sm); padding: 3px; border: 1px solid var(--border); flex-shrink: 1; min-width: 0; }
     .sort-pill { padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; color: var(--muted); cursor: pointer; border: none; background: transparent; transition: all .15s; font-family: inherit; white-space: nowrap; }
     .sort-pill:hover { color: var(--text); }
     .sort-pill.active { background: var(--card); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.1); }
@@ -250,11 +250,10 @@
       .job-actions { gap: 6px; }
       .job-actions .btn, .job-actions .gmail-btn, .job-actions .apply-now { flex: 1 1 auto; min-width: 0; font-size: 13px; padding: 8px 12px; }
       .job-actions .status-select { display: none !important; }
-      .toolbar { flex-direction: column; align-items: stretch; gap: 8px; }
+      .toolbar { gap: 8px; }
       .toolbar-row { display: flex; gap: 8px; align-items: center; }
       .toolbar-row .btn { flex-shrink: 0; }
-      .toolbar-row .status-select { flex: 1; margin-left: 0; }
-      .toolbar select { width: 100%; }
+      .sort-pills { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; flex-shrink: 1; min-width: 0; }
       .page-link { min-width: 44px; height: 44px; }
       .pagination .page-num { display: none; }
       .pagination .page-current { display: inline-flex; }

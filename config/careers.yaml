@@ -385,3 +385,76 @@ companies:
     careers_url: "https://jobsyo.com/jobs"
     type: html
     location: "Bangladesh"
+
+  # ---- Large corporations / MNCs / Banks / FMCG (management trainee + IT roles) ----
+  - name: "Unilever Bangladesh"
+    site: "unilever.com.bd"
+    careers_url: "https://careers.unilever.com/bangladesh/en-gb/"
+    type: html
+    location: "Bangladesh"
+
+  - name: "British American Tobacco Bangladesh"
+    site: "bat-bangladesh.com"
+    careers_url: "https://www.bat-bangladesh.com/careers"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Marico Bangladesh"
+    site: "marico.com.bd"
+    careers_url: "https://www.marico.com/bangladesh/careers"
+    type: html
+    location: "Bangladesh"
+
+  - name: "PRAN-RFL Group"
+    site: "pranrflgroup.com"
+    careers_url: "https://pranrflgroup.com/career"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Akij Resources"
+    site: "akij.net"
+    careers_url: "https://akij.net/career/"
+    type: html
+    location: "Bangladesh"
+
+  - name: "ACI Limited"
+    site: "aci-bd.com"
+    careers_url: "https://aci-bd.com/career"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Meghna Group of Industries"
+    site: "meghnagroup.net"
+    careers_url: "https://meghnagroup.net/career/"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Sheba Platform"
+    site: "sheba.xyz"
+    careers_url: "https://www.sheba.xyz/careers"
+    type: html
+    location: "Bangladesh"
+
+  - name: "City Bank"
+    site: "citybankbd.com"
+    careers_url: "https://citybankbd.com/career"
+    type: html
+    location: "Bangladesh"
+
+  - name: "BRAC Bank"
+    site: "bracbank.com"
+    careers_url: "https://www.bracbank.com/career"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Dutch-Bangla Bank"
+    site: "dutch-bangla.com"
+    careers_url: "https://www.dutch-bangla.com/career"
+    type: html
+    location: "Bangladesh"
+
+  - name: "Prime Bank"
+    site: "primebank.com.bd"
+    careers_url: "https://www.primebank.com.bd/career"
+    type: html
+    location: "Bangladesh"

@@ -28,13 +28,24 @@ app.secret_key = os.getenv("SECRET_KEY", "jobpilot-super-secret-key-change-in-pr
 
 
 def _startup_scan():
-    """Trigger an initial job scan in a background thread on server startup."""
+    """Trigger an initial job scan + periodic rescan every 6 hours."""
     import threading
+
     def _scan():
         from app.db import init_db
         init_db()
         run_scan_async()
+
+    def _periodic():
+        while True:
+            threading.Event().wait(6 * 3600)
+            try:
+                run_scan_async()
+            except Exception:
+                pass
+
     threading.Thread(target=_scan, daemon=True).start()
+    threading.Thread(target=_periodic, daemon=True).start()
 
 
 try:

@@ -1,10 +1,11 @@
 import os
-from sqlalchemy import create_engine, Column, Integer, String, Float, Text, DateTime, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, String, Float, Text, DateTime, ForeignKey, inspect, UniqueConstraint
 from sqlalchemy.orm import sessionmaker, declarative_base
 from datetime import datetime
-from app.paths import DATABASE_URL
+from app.paths import DATABASE_URL, IS_POSTGRES
 
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+_connect_args = {} if IS_POSTGRES else {"check_same_thread": False}
+engine = create_engine(DATABASE_URL, connect_args=_connect_args)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False)
 Base = declarative_base()
 
@@ -54,9 +55,7 @@ class Job(Base):
     created_at = Column(DateTime)
 
     __table_args__ = (
-        __import__("sqlalchemy").UniqueConstraint(
-            "source_site", "posting_url", name="uq_job_source_url"
-        ),
+        UniqueConstraint("source_site", "posting_url", name="uq_job_source_url"),
     )
 
 
@@ -80,38 +79,65 @@ class Profile(Base):
 
 def init_db():
     Base.metadata.create_all(engine)
-    # Lightweight migration for older DBs missing newer columns
+
+    if IS_POSTGRES:
+        _migrate_pg()
+    else:
+        _migrate_sqlite()
+
+
+def _col_names(table: str) -> list[str]:
+    return [col["name"] for col in inspect(engine).get_columns(table)]
+
+
+def _add_col_sqlite(table: str, col: str, typedef: str):
+    cols = _col_names(table)
+    if col not in cols:
+        with engine.connect() as conn:
+            conn.exec_driver_sql(f"ALTER TABLE {table} ADD COLUMN {col} {typedef}")
+            conn.commit()
+
+
+def _migrate_sqlite():
+    for table, col, typedef in [
+        ("jobs", "status", "VARCHAR(20) DEFAULT 'new'"),
+        ("jobs", "posted_date", "DATETIME"),
+        ("jobs", "deadline", "DATETIME"),
+        ("jobs", "is_fresher", "INTEGER DEFAULT 0"),
+        ("jobs", "hr_email", "VARCHAR(300) DEFAULT ''"),
+        ("jobs", "experience_level", "VARCHAR(20) DEFAULT ''"),
+        ("user_jobs", "follow_up_at", "DATETIME"),
+        ("users", "onboarding_done", "INTEGER DEFAULT 0"),
+        ("users", "pref_roles", "TEXT DEFAULT ''"),
+        ("users", "pref_days", "INTEGER DEFAULT 30"),
+        ("profile", "user_id", "INTEGER REFERENCES users(id)"),
+    ]:
+        _add_col_sqlite(table, col, typedef)
+
+
+def _add_col_pg(conn, table: str, col: str, typedef: str):
+    try:
+        conn.exec_driver_sql(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col} {typedef}")
+    except Exception:
+        pass  # column already exists or other non-fatal issue
+
+
+def _migrate_pg():
     with engine.connect() as conn:
-        cols_jobs = [row[1] for row in conn.exec_driver_sql("PRAGMA table_info(jobs)")]
-        if "status" not in cols_jobs:
-            conn.exec_driver_sql("ALTER TABLE jobs ADD COLUMN status VARCHAR(20) DEFAULT 'new'")
-        if "posted_date" not in cols_jobs:
-            conn.exec_driver_sql("ALTER TABLE jobs ADD COLUMN posted_date DATETIME")
-        if "deadline" not in cols_jobs:
-            conn.exec_driver_sql("ALTER TABLE jobs ADD COLUMN deadline DATETIME")
-        if "is_fresher" not in cols_jobs:
-            conn.exec_driver_sql("ALTER TABLE jobs ADD COLUMN is_fresher INTEGER DEFAULT 0")
-        if "hr_email" not in cols_jobs:
-            conn.exec_driver_sql("ALTER TABLE jobs ADD COLUMN hr_email VARCHAR(300) DEFAULT ''")
-        if "experience_level" not in cols_jobs:
-            conn.exec_driver_sql("ALTER TABLE jobs ADD COLUMN experience_level VARCHAR(20) DEFAULT ''")
-
-        cols_uj = [row[1] for row in conn.exec_driver_sql("PRAGMA table_info(user_jobs)")]
-        if "follow_up_at" not in cols_uj:
-            conn.exec_driver_sql("ALTER TABLE user_jobs ADD COLUMN follow_up_at DATETIME")
-
-        cols_user = [row[1] for row in conn.exec_driver_sql("PRAGMA table_info(users)")]
-        if "onboarding_done" not in cols_user:
-            conn.exec_driver_sql("ALTER TABLE users ADD COLUMN onboarding_done INTEGER DEFAULT 0")
-        if "pref_roles" not in cols_user:
-            conn.exec_driver_sql("ALTER TABLE users ADD COLUMN pref_roles TEXT DEFAULT ''")
-        if "pref_days" not in cols_user:
-            conn.exec_driver_sql("ALTER TABLE users ADD COLUMN pref_days INTEGER DEFAULT 30")
-
-        cols_profile = [row[1] for row in conn.exec_driver_sql("PRAGMA table_info(profile)")]
-        if "user_id" not in cols_profile:
-            conn.exec_driver_sql("ALTER TABLE profile ADD COLUMN user_id INTEGER REFERENCES users(id)")
-
+        for table, col, typedef in [
+            ("jobs", "status", "VARCHAR(20) DEFAULT 'new'"),
+            ("jobs", "posted_date", "TIMESTAMP"),
+            ("jobs", "deadline", "TIMESTAMP"),
+            ("jobs", "is_fresher", "INTEGER DEFAULT 0"),
+            ("jobs", "hr_email", "VARCHAR(300) DEFAULT ''"),
+            ("jobs", "experience_level", "VARCHAR(20) DEFAULT ''"),
+            ("user_jobs", "follow_up_at", "TIMESTAMP"),
+            ("users", "onboarding_done", "INTEGER DEFAULT 0"),
+            ("users", "pref_roles", "TEXT DEFAULT ''"),
+            ("users", "pref_days", "INTEGER DEFAULT 30"),
+            ("profile", "user_id", "INTEGER REFERENCES users(id)"),
+        ]:
+            _add_col_pg(conn, table, col, typedef)
         conn.commit()
 
 

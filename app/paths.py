@@ -9,5 +9,11 @@ CONFIG_DIR = os.path.join(BASE_DIR, "config")
 for _d in (DATA_DIR, UPLOAD_DIR, CV_DIR):
     os.makedirs(_d, exist_ok=True)
 
-DB_PATH = os.path.join(DATA_DIR, "jobs.db")
-DATABASE_URL = f"sqlite:///{DB_PATH}"
+IS_POSTGRES = bool(os.environ.get("DATABASE_URL", "").startswith("postgres"))
+
+if IS_POSTGRES:
+    DATABASE_URL = os.environ["DATABASE_URL"]
+    DB_PATH = None
+else:
+    DB_PATH = os.path.join(DATA_DIR, "jobs.db")
+    DATABASE_URL = f"sqlite:///{DB_PATH}"

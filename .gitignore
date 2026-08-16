@@ -1,7 +1,5 @@
 .env
-data/*.db
-data/uploads/*
-data/cv/*
+data/
 __pycache__/
 *.pyc
 .venv/

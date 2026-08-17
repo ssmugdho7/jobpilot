@@ -108,8 +108,8 @@
     .dropzone-status.fail { color: var(--red); }
     .dropzone-spinner { width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin .6s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    #cvFile { display: none; }
-    .dropzone-label { display: block; cursor: pointer; }
+    #cvFile { position: absolute; width: 0; height: 0; opacity: 0; pointer-events: none; }
+    .dropzone-label { display: block; cursor: pointer; position: relative; }
 
     /* ── Compose link card ── */
     .compose-card { border: 1.5px solid var(--border); transition: all .3s; position: relative; overflow: hidden; }
@@ -196,7 +196,8 @@
 
     <!-- CV Upload dropzone -->
     <div class="card dropzone-card" id="dropzone">
-      <label for="cvFile" class="dropzone-label">
+      <label class="dropzone-label" id="dzLabel">
+        <input type="file" id="cvFile" accept=".pdf,.docx,.doc">
         <div class="dropzone-icon" id="dzIcon">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         </div>
@@ -204,7 +205,6 @@
         <div class="dropzone-sub" id="dzSub">or <strong>browse files</strong> to upload</div>
         <div class="dropzone-formats">Accepts PDF or DOCX</div>
       </label>
-      <input type="file" id="cvFile" accept=".pdf,.docx,.doc">
       <div class="dropzone-progress" id="dzProgress">
         <div class="bar-outer"><div class="bar-fill" id="dzBar" style="width:0%"></div></div>
         <div class="dropzone-status parsing" id="dzStatus"><span class="dropzone-spinner"></span> Parsing CV...</div>
@@ -391,16 +391,20 @@
     /* ── CV Upload / Drag-and-Drop ── */
     var dz = document.getElementById('dropzone');
     var dzFile = document.getElementById('cvFile');
+    var dzLabel = document.getElementById('dzLabel');
     var dzTitle = document.getElementById('dzTitle');
     var dzSub = document.getElementById('dzSub');
     var dzProgress = document.getElementById('dzProgress');
     var dzBar = document.getElementById('dzBar');
     var dzStatus = document.getElementById('dzStatus');
 
-    dzFile.onchange = function() {
-      if (this.files && this.files.length) handleCvUpload(this.files);
-      this.value = '';
-    };
+    dzFile.addEventListener('change', function() {
+      if (this.files && this.files.length) {
+        var file = this.files[0];
+        this.value = '';
+        handleCvUpload(file);
+      }
+    });
 
     dz.ondragover = function(e) { e.preventDefault(); dz.classList.add('dragover'); };
     dz.ondragleave = function() { dz.classList.remove('dragover'); };
@@ -408,13 +412,12 @@
       e.preventDefault();
       dz.classList.remove('dragover');
       if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length)
-        handleCvUpload(e.dataTransfer.files);
+        handleCvUpload(e.dataTransfer.files[0]);
     };
 
-    function handleCvUpload(files) {
-      if (!files || !files.length) return;
+    function handleCvUpload(file) {
+      if (!file) return;
       if (dz.classList.contains('uploading')) return;
-      var file = files[0];
       var ext = file.name.split('.').pop().toLowerCase();
       if (['pdf','docx','doc'].indexOf(ext) === -1) { showToast('Please upload a PDF or DOCX file'); return; }
 

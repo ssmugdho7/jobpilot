@@ -109,6 +109,7 @@
     .dropzone-spinner { width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin .6s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
     #cvFile { display: none; }
+    .dropzone-label { display: block; cursor: pointer; }
 
     /* ── Compose link card ── */
     .compose-card { border: 1.5px solid var(--border); transition: all .3s; position: relative; overflow: hidden; }
@@ -195,13 +196,15 @@
 
     <!-- CV Upload dropzone -->
     <div class="card dropzone-card" id="dropzone">
+      <label for="cvFile" class="dropzone-label">
+        <div class="dropzone-icon" id="dzIcon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </div>
+        <div class="dropzone-title" id="dzTitle">Drop your CV here to auto-fill your profile</div>
+        <div class="dropzone-sub" id="dzSub">or <strong>browse files</strong> to upload</div>
+        <div class="dropzone-formats">Accepts PDF or DOCX</div>
+      </label>
       <input type="file" id="cvFile" accept=".pdf,.docx,.doc">
-      <div class="dropzone-icon" id="dzIcon">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-      </div>
-      <div class="dropzone-title" id="dzTitle">Drop your CV here to auto-fill your profile</div>
-      <div class="dropzone-sub" id="dzSub">or <strong>browse files</strong> to upload</div>
-      <div class="dropzone-formats">Accepts PDF or DOCX</div>
       <div class="dropzone-progress" id="dzProgress">
         <div class="bar-outer"><div class="bar-fill" id="dzBar" style="width:0%"></div></div>
         <div class="dropzone-status parsing" id="dzStatus"><span class="dropzone-spinner"></span> Parsing CV...</div>
@@ -394,11 +397,6 @@
     var dzBar = document.getElementById('dzBar');
     var dzStatus = document.getElementById('dzStatus');
 
-    dz.onclick = function(e) {
-      if (dz.classList.contains('uploading')) return;
-      dzFile.click();
-    };
-
     dzFile.onchange = function() {
       if (this.files && this.files.length) handleCvUpload(this.files);
       this.value = '';
@@ -415,6 +413,7 @@
 
     function handleCvUpload(files) {
       if (!files || !files.length) return;
+      if (dz.classList.contains('uploading')) return;
       var file = files[0];
       var ext = file.name.split('.').pop().toLowerCase();
       if (['pdf','docx','doc'].indexOf(ext) === -1) { showToast('Please upload a PDF or DOCX file'); return; }

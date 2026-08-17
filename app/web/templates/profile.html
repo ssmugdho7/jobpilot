@@ -433,8 +433,11 @@
       var fd = new FormData();
       fd.append('file', file);
 
-      fetch('/api/profile/parse-cv', { method: 'POST', body: fd })
-        .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
+      fetch('/api/profile/parse-cv', { method: 'POST', body: fd, credentials: 'same-origin' })
+        .then(function(r) {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.json();
+        })
         .then(function(result) {
           var ok = result.ok, data = result.data;
           dzBar.style.width = '100%';
@@ -464,11 +467,13 @@
           dzBar.style.width = '100%';
           dz.classList.remove('uploading');
           dz.classList.add('error');
+          var msg = err && err.message ? err.message : 'Failed to parse CV';
           dzStatus.className = 'dropzone-status fail';
-          dzStatus.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> ' + (err.message || 'Failed to parse CV');
+          dzStatus.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> ' + msg;
           dzTitle.textContent = 'Upload failed';
           dzSub.innerHTML = '<strong>Click to try again</strong>';
-          showToast('CV parse failed: ' + (err.message || 'unknown error'));
+          showToast('CV parse failed: ' + msg);
+          console.error('CV upload error:', err);
         });
     }
   </script>

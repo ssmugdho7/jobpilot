@@ -121,6 +121,14 @@
     .footer .links a { font-size: 13px; color: var(--muted); font-weight: 500; }
     .footer .links a:hover { color: var(--blue); }
 
+    /* ── Contact strip ── */
+    .contact-strip { max-width: 1200px; margin: 0 auto 8px; text-align: center; }
+    .contact-strip h3 { font-size: 18px; font-weight: 700; margin-bottom: 14px; }
+    .footer-contact { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+    .footer-item { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: var(--radius-sm); background: var(--bg); border: 1px solid var(--border); color: var(--text); text-decoration: none; font-size: 13px; font-weight: 500; transition: all .15s; }
+    .footer-item:hover { border-color: var(--blue); color: var(--blue); }
+    .footer-item svg { flex-shrink: 0; }
+
     /* ── Responsive ── */
     @media (max-width: 900px) {
       .features { grid-template-columns: 1fr 1fr; }
@@ -152,6 +160,7 @@
       <div class="nav-desktop">
         <a href="#features">Features</a>
         <a href="#how">How it works</a>
+        <a href="#contact">Contact</a>
       </div>
       <div class="header-actions">
         <button class="theme-btn" onclick="toggleTheme()" title="Toggle dark mode" id="themeBtn">&#9789;</button>
@@ -169,6 +178,7 @@
       <button class="mobile-nav-close" onclick="closeMobileNav()">&times;</button>
       <a href="#features" onclick="closeMobileNav()">Features</a>
       <a href="#how" onclick="closeMobileNav()">How it works</a>
+      <a href="#contact" onclick="closeMobileNav()">Contact</a>
       <a href="/login">Sign in</a>
       <a href="/register" style="color:var(--blue);font-weight:600">Get started</a>
     </div>
@@ -278,12 +288,33 @@
     </div>
   </div>
 
+  <div class="section">
+    <div class="contact-strip" id="contact">
+      <h3>Get in touch</h3>
+      <div class="footer-contact">
+        <a class="footer-item" href="mailto:shahmarufsiraj@gmail.com">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          <span>shahmarufsiraj@gmail.com</span>
+        </a>
+        <a class="footer-item" href="https://www.linkedin.com/in/shahmarufsiraj360/" target="_blank" rel="noopener">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+          <span>LinkedIn</span>
+        </a>
+        <a class="footer-item" href="https://www.facebook.com/shahmarufsirajdeveloper" target="_blank" rel="noopener">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+          <span>Facebook</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
   <div class="footer">
     <div class="footer-inner">
       <div class="copyright">&copy; 2026 JobPilot &middot; Made for CSE job seekers in Bangladesh</div>
       <div class="links">
         <a href="#features">Features</a>
         <a href="#how">How it works</a>
+        <a href="#contact">Contact</a>
         <a href="/login">Sign in</a>
         <a href="/register">Register</a>
       </div>

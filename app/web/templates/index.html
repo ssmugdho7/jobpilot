@@ -454,12 +454,10 @@
           <div class="sort-wrap" style="margin-left:auto">
             <div class="sort-pills">
               <button class="sort-pill {{ 'active' if active_sort == 'latest' }}" onclick="setSort('latest')">Latest</button>
-              <button class="sort-pill {{ 'active' if active_sort == 'relevant' }}" onclick="setSort('relevant')">Relevant</button>
               <button class="sort-pill {{ 'active' if active_sort == 'deadline' }}" onclick="setSort('deadline')">Deadline</button>
             </div>
             <select class="sort-select" onchange="setSort(this.value)">
               <option value="latest" {{ 'selected' if active_sort == 'latest' }}>Latest</option>
-              <option value="relevant" {{ 'selected' if active_sort == 'relevant' }}>Relevant</option>
               <option value="deadline" {{ 'selected' if active_sort == 'deadline' }}>Deadline</option>
             </select>
           </div>

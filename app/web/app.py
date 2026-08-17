@@ -205,7 +205,7 @@ def dashboard():
     role_filter = request.args.get("role", "").strip().lower()
     exp_filter = request.args.get("exp", "").strip()
     sort = (request.args.get("sort", "latest") or "latest").strip().lower()
-    if sort not in ("latest", "relevant", "deadline"):
+    if sort not in ("latest", "deadline"):
         sort = "latest"
 
     # Use user preferences as defaults if no filter specified
@@ -303,9 +303,7 @@ def dashboard():
 
         # Apply Python-side sort
         _EPOCH = datetime.min
-        if sort == "relevant":
-            all_jobs.sort(key=lambda j: (j.user_relevance or 0, j.posted_date or _EPOCH), reverse=True)
-        elif sort == "deadline":
+        if sort == "deadline":
             all_jobs.sort(key=lambda j: (j.deadline or datetime.max, j.posted_date or _EPOCH))
         else:
             all_jobs.sort(key=lambda j: j.posted_date or _EPOCH, reverse=True)

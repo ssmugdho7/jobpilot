@@ -276,6 +276,8 @@
   <div class="toast" id="toast"></div>
 
   <script>
+    const REQUIRED_FIELDS = ['name', 'email', 'phone', 'skills', 'summary', 'experience', 'education'];
+
     (function() {
       const saved = localStorage.getItem('theme');
       if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -310,8 +312,6 @@
     }
 
     function val(id) { return document.getElementById(id).value.trim(); }
-
-    const REQUIRED_FIELDS = ['name', 'email', 'phone', 'skills', 'summary', 'experience', 'education'];
 
     function checkProgress() {
       let filled = 0;

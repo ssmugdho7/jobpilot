@@ -343,23 +343,42 @@
       const experience = val('experience');
       const education = val('education');
 
-      const subject = 'Application for the position of Software Engineer';
-      const skillsFirst = skills.split(',').slice(0, 8).join(', ');
+      const skillsArr = skills.split(',').map(s => s.trim()).filter(Boolean);
+      const skillMatches = skillsArr.slice(0, 6).join(', ');
+      const skillStr = skillMatches || 'Python, JavaScript, cloud platforms';
 
+      // Extract top 2 relevant experience lines
+      const expLines = experience.split('\n').map(l => l.trim()).filter(l => l.length > 20);
+      const topExp = expLines.slice(0, 2).join(' | ');
+
+      // Professional subject
+      const subject = 'Application for Software Engineer position';
+
+      // Para 1: Greeting + role + interest
       let body = 'Dear Hiring Manager,\n\n';
-      body += 'I am writing to express my interest in the Software Engineer position at your esteemed organization.\n\n';
-      if (summary) body += summary + '\n\n';
-      if (skillsFirst) body += 'My key skills include: ' + skillsFirst + '.\n\n';
-      if (experience) body += 'Experience:\n' + experience + '\n\n';
-      if (education) body += 'Education:\n' + education + '\n\n';
-      body += 'I would welcome the opportunity to discuss how my background aligns with your needs. Please find my resume attached.\n\n';
-      body += 'Thank you for your consideration.\n\n';
-      body += 'Best regards,\n' + name + '\n';
-      if (phone) body += phone + '\n';
-      if (email) body += email + '\n';
-      if (linkedin) body += 'LinkedIn: ' + linkedin + '\n';
-      if (github) body += 'GitHub: ' + github + '\n';
-      if (portfolio) body += 'Portfolio: ' + portfolio + '\n';
+      body += "I'm applying for the Software Engineer position. ";
+      body += 'The opportunity to build scalable backend systems and modern cloud infrastructure aligns well with my background.\n\n';
+
+      // Para 2: Qualifications + achievements
+      body += `I bring hands-on experience with ${skillStr}. `;
+      if (topExp) {
+        body += topExp + '. ';
+      } else if (summary) {
+        body += summary.slice(0, 180) + '. ';
+      }
+      body += 'My focus is on writing maintainable code, reducing deployment friction, and collaborating closely with product teams.\n\n';
+
+      // Para 3: Enthusiasm + attached + request discussion
+      body += "I'd welcome the chance to discuss how I can contribute. ";
+      body += 'My resume is attached — thank you for your time.\n\n';
+      body += 'Best regards,\n' + name;
+
+      // Contact links
+      if (phone) body += '\n' + phone;
+      if (email) body += '\n' + email;
+      if (linkedin) body += '\nLinkedIn: ' + linkedin;
+      if (github) body += '\nGitHub: ' + github;
+      if (portfolio) body += '\nPortfolio: ' + portfolio;
 
       const params = new URLSearchParams({ view: 'cm', su: subject, body: body });
       document.getElementById('composeLink').href = 'https://mail.google.com/mail/?' + params.toString();

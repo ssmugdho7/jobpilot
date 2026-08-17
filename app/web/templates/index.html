@@ -660,18 +660,9 @@
     }
 
     // ── Hide missing points toggle ──
-    function jobHasMissingPoints(jobEl) {
-      const missing = jobEl.dataset.missing;
-      return missing === 'true';
-    }
-
     function applyHideMissing(hide) {
-      document.querySelectorAll('.job').forEach(jobEl => {
-        if (hide && jobHasMissingPoints(jobEl)) {
-          jobEl.style.display = 'none';
-        } else {
-          jobEl.style.display = '';
-        }
+      document.querySelectorAll('.job .skill-gap .missing').forEach(el => {
+        el.style.display = hide ? 'none' : '';
       });
     }
 

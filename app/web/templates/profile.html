@@ -108,7 +108,7 @@
     .dropzone-status.fail { color: var(--red); }
     .dropzone-spinner { width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin .6s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    #cvFile { position: absolute; width: 0; height: 0; opacity: 0; pointer-events: none; }
+    #cvFile { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
     .dropzone-label { display: block; cursor: pointer; position: relative; }
 
     /* ── Compose link card ── */
@@ -399,6 +399,7 @@
     var dzStatus = document.getElementById('dzStatus');
 
     dzFile.addEventListener('change', function() {
+      console.log('[CV] change event fired, files:', this.files ? this.files.length : 0);
       if (this.files && this.files.length) {
         var file = this.files[0];
         this.value = '';
@@ -416,6 +417,7 @@
     };
 
     function handleCvUpload(file) {
+      console.log('[CV] handleCvUpload called with:', file ? file.name : 'none');
       if (!file) return;
       if (dz.classList.contains('uploading')) return;
       var ext = file.name.split('.').pop().toLowerCase();

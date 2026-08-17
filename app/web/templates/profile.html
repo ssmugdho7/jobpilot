@@ -108,7 +108,7 @@
     .dropzone-status.fail { color: var(--red); }
     .dropzone-spinner { width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin .6s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    #cvFile { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; pointer-events: none; z-index: 2; }
+    #cvFile { display: none; }
 
     /* ── Compose link card ── */
     .compose-card { border: 1.5px solid var(--border); transition: all .3s; position: relative; overflow: hidden; }
@@ -195,7 +195,7 @@
 
     <!-- CV Upload dropzone -->
     <div class="card dropzone-card" id="dropzone">
-      <input type="file" id="cvFile" accept=".pdf,.docx,.doc" onchange="handleCvUpload(this.files); this.value='';">
+      <input type="file" id="cvFile" accept=".pdf,.docx,.doc">
       <div class="dropzone-icon" id="dzIcon">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
       </div>
@@ -393,38 +393,25 @@
     var dzProgress = document.getElementById('dzProgress');
     var dzBar = document.getElementById('dzBar');
     var dzStatus = document.getElementById('dzStatus');
-    var dragOver = 0;
 
-    function prevent(e) { e.preventDefault(); e.stopPropagation(); }
-
-    ['dragenter', 'dragover', 'drop'].forEach(function(evt) {
-      document.addEventListener(evt, prevent, false);
-    });
-
-    dz.addEventListener('dragenter', function(e) {
-      e.preventDefault();
-      dragOver++;
-      dz.classList.add('dragover');
-    }, false);
-
-    dz.addEventListener('dragleave', function(e) {
-      e.preventDefault();
-      dragOver--;
-      if (dragOver <= 0) { dragOver = 0; dz.classList.remove('dragover'); }
-    }, false);
-
-    dz.addEventListener('drop', function(e) {
-      e.preventDefault();
-      dragOver = 0;
-      dz.classList.remove('dragover');
-      var files = e.dataTransfer && e.dataTransfer.files;
-      if (files && files.length) handleCvUpload(files);
-    }, false);
-
-    dz.addEventListener('click', function(e) {
-      if (e.target === dzFile || dz.classList.contains('uploading')) return;
+    dz.onclick = function(e) {
+      if (dz.classList.contains('uploading')) return;
       dzFile.click();
-    }, false);
+    };
+
+    dzFile.onchange = function() {
+      if (this.files && this.files.length) handleCvUpload(this.files);
+      this.value = '';
+    };
+
+    dz.ondragover = function(e) { e.preventDefault(); dz.classList.add('dragover'); };
+    dz.ondragleave = function() { dz.classList.remove('dragover'); };
+    dz.ondrop = function(e) {
+      e.preventDefault();
+      dz.classList.remove('dragover');
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length)
+        handleCvUpload(e.dataTransfer.files);
+    };
 
     function handleCvUpload(files) {
       if (!files || !files.length) return;

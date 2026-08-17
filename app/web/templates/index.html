@@ -230,6 +230,16 @@
     .sort-pill:hover { color: var(--text); }
     .sort-pill.active { background: var(--card); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.1); }
 
+    /* ── Toolbar toggle ── */
+    .toolbar-toggle { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 12px; border-radius: var(--radius-sm); background: var(--bg); border: 1px solid var(--border); font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; }
+    .toolbar-toggle:hover { background: var(--border); }
+    .toolbar-toggle input { display: none; }
+    .toggle-slider { width: 36px; height: 20px; background: var(--border); border-radius: 10px; position: relative; transition: background .2s; }
+    .toggle-slider::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; background: #fff; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,.2); transition: transform .2s; }
+    .toolbar-toggle input:checked + .toggle-slider { background: var(--blue); }
+    .toolbar-toggle input:checked + .toggle-slider::after { transform: translateX(16px); }
+    .toolbar-toggle input:focus-visible + .toggle-slider { outline: 2px solid var(--blue); outline-offset: 2px; }
+
     /* ── Back to top ── */
     .back-to-top { position: fixed; bottom: 24px; right: 24px; width: 44px; height: 44px; border-radius: 50%; background: var(--blue); color: #fff; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(37,99,235,.3); z-index: 50; opacity: 0; pointer-events: none; transform: translateY(12px); transition: all .25s; }
     .back-to-top.visible { opacity: 1; pointer-events: auto; transform: translateY(0); }
@@ -434,6 +444,11 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
             Scan now
           </button>
+          <label class="toolbar-toggle" title="Hide jobs missing key details">
+            <input type="checkbox" id="hideMissingToggle" onchange="toggleHideMissing()">
+            <span class="toggle-slider"></span>
+            <span class="toggle-label">Hide missing points</span>
+          </label>
           <div class="sort-pills" style="margin-left:auto">
             <button class="sort-pill {{ 'active' if active_sort == 'latest' }}" onclick="setSort('latest')">Latest</button>
             <button class="sort-pill {{ 'active' if active_sort == 'relevant' }}" onclick="setSort('relevant')">Relevant</button>
@@ -454,7 +469,13 @@
           {% endfor %}
         </div>
         {% for job in jobs %}
-          <div class="job {{ 'perfect-match' if job.user_relevance == 1 and has_skills }} {{ 'fresher' if job.experience_level == 'fresher' }}" id="job-{{ job.id }}">
+          {% set missing_salary = not job.salary %}
+          {% set missing_deadline = not job.deadline %}
+          {% set missing_company = not job.company %}
+          {% set missing_location = not job.location %}
+          {% set missing_description = not job.description %}
+          {% set has_missing = missing_salary or missing_deadline or missing_company or missing_location or missing_description %}
+          <div class="job {{ 'perfect-match' if job.user_relevance == 1 and has_skills }} {{ 'fresher' if job.experience_level == 'fresher' }}" id="job-{{ job.id }}" data-missing="{{ 'true' if has_missing else 'false' }}">
             <div class="job-header">
               <div>
                 <div class="job-title">
@@ -599,6 +620,7 @@
       updateThemeBtn();
       initTicker();
       initBackToTop();
+      initHideMissing();
     })();
 
     function toggleTheme() {
@@ -635,6 +657,36 @@
         if (window.scrollY > 400) { btn.classList.add('visible'); }
         else { btn.classList.remove('visible'); }
       }, { passive: true });
+    }
+
+    // ── Hide missing points toggle ──
+    function jobHasMissingPoints(jobEl) {
+      const missing = jobEl.dataset.missing;
+      return missing === 'true';
+    }
+
+    function applyHideMissing(hide) {
+      document.querySelectorAll('.job').forEach(jobEl => {
+        if (hide && jobHasMissingPoints(jobEl)) {
+          jobEl.style.display = 'none';
+        } else {
+          jobEl.style.display = '';
+        }
+      });
+    }
+
+    function toggleHideMissing() {
+      const hide = document.getElementById('hideMissingToggle').checked;
+      localStorage.setItem('hideMissingPoints', hide ? '1' : '0');
+      applyHideMissing(hide);
+    }
+
+    function initHideMissing() {
+      const toggle = document.getElementById('hideMissingToggle');
+      if (!toggle) return;
+      const saved = localStorage.getItem('hideMissingPoints') === '1';
+      toggle.checked = saved;
+      applyHideMissing(saved);
     }
 
     function openDrawer() {

@@ -217,7 +217,7 @@
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
         Gmail Compose Link
       </h2>
-      <p class="compose-hint">Complete all fields below to unlock a <strong>universal Gmail compose link</strong>. It opens Gmail with a pre-filled application email you can send to any HR &mdash; just add the recipient and attach your CV.</p>
+      <p class="compose-hint">This feature is currently locked. <strong>Contact admin for this service</strong> to enable Gmail compose link generation.</p>
 
       <div class="compose-progress">
         <div class="bar-outer"><div class="bar-fill" id="progressBar" style="width:0%"></div></div>
@@ -229,15 +229,9 @@
         <div>Dear Hiring Manager, ... your skills, experience, and contact info will be auto-filled from your profile.</div>
       </div>
 
-      <div class="compose-unlock" id="composeUnlock">
-        <a class="btn btn-gmail" id="composeLink" href="#" target="_blank" rel="noopener">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M2 4h20v16H2V4zm0 2v.01L12 13 22 6.01V6L12 13 2 6zm0 2.5L12 15l10-6.5V18H2V8.5z"/></svg>
-          Open Gmail Compose
-        </a>
-      </div>
-      <div class="compose-locked" id="composeLocked">
+      <div class="compose-locked" id="composeLocked" style="display:flex;">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        Fill all required fields to unlock
+        Contact admin for this service
       </div>
     </div>
 
@@ -324,64 +318,6 @@
       const pct = Math.round((filled / REQUIRED_FIELDS.length) * 100);
       document.getElementById('progressBar').style.width = pct + '%';
       document.getElementById('progressText').innerHTML = '<strong>' + filled + '</strong> of ' + REQUIRED_FIELDS.length + ' fields completed';
-      const allDone = filled === REQUIRED_FIELDS.length;
-      document.getElementById('composeUnlock').classList.toggle('show', allDone);
-      document.getElementById('composeLocked').style.display = allDone ? 'none' : 'flex';
-      document.getElementById('composeCard').classList.toggle('unlocked', allDone);
-      if (allDone) buildComposeLink();
-    }
-
-    function buildComposeLink() {
-      const name = val('name');
-      const phone = val('phone');
-      const email = val('email');
-      const linkedin = val('linkedin');
-      const github = val('github');
-      const portfolio = val('portfolio');
-      const skills = val('skills');
-      const summary = val('summary');
-      const experience = val('experience');
-      const education = val('education');
-
-      const skillsArr = skills.split(',').map(s => s.trim()).filter(Boolean);
-      const skillMatches = skillsArr.slice(0, 6).join(', ');
-      const skillStr = skillMatches || 'Python, JavaScript, cloud platforms';
-
-      // Extract top 2 relevant experience lines
-      const expLines = experience.split('\n').map(l => l.trim()).filter(l => l.length > 20);
-      const topExp = expLines.slice(0, 2).join(' | ');
-
-      // Professional subject
-      const subject = 'Application for Software Engineer position';
-
-      // Para 1: Greeting + role + interest
-      let body = 'Dear Hiring Manager,\n\n';
-      body += "I'm applying for the Software Engineer position. ";
-      body += 'The opportunity to build scalable backend systems and modern cloud infrastructure aligns well with my background.\n\n';
-
-      // Para 2: Qualifications + achievements
-      body += `I bring hands-on experience with ${skillStr}. `;
-      if (topExp) {
-        body += topExp + '. ';
-      } else if (summary) {
-        body += summary.slice(0, 180) + '. ';
-      }
-      body += 'My focus is on writing maintainable code, reducing deployment friction, and collaborating closely with product teams.\n\n';
-
-      // Para 3: Enthusiasm + attached + request discussion
-      body += "I'd welcome the chance to discuss how I can contribute. ";
-      body += 'My resume is attached — thank you for your time.\n\n';
-      body += 'Best regards,\n' + name;
-
-      // Contact links
-      if (phone) body += '\n' + phone;
-      if (email) body += '\n' + email;
-      if (linkedin) body += '\nLinkedIn: ' + linkedin;
-      if (github) body += '\nGitHub: ' + github;
-      if (portfolio) body += '\nPortfolio: ' + portfolio;
-
-      const params = new URLSearchParams({ view: 'cm', su: subject, body: body });
-      document.getElementById('composeLink').href = 'https://mail.google.com/mail/?' + params.toString();
     }
 
     async function saveProfile() {

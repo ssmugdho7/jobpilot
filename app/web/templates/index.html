@@ -229,6 +229,7 @@
     .sort-pill { padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; color: var(--muted); cursor: pointer; border: none; background: transparent; transition: all .15s; font-family: inherit; white-space: nowrap; }
     .sort-pill:hover { color: var(--text); }
     .sort-pill.active { background: var(--card); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+    .sort-select { display: none; padding: 6px 12px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 600; color: var(--text); background: var(--bg); border: 1px solid var(--border); font-family: inherit; cursor: pointer; }
 
     /* ── Toolbar toggle ── */
     .toolbar-toggle { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 12px; border-radius: var(--radius-sm); background: var(--bg); border: 1px solid var(--border); font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; }
@@ -261,8 +262,9 @@
       .job-actions { gap: 6px; }
       .job-actions .btn, .job-actions .gmail-btn, .job-actions .apply-now { flex: 1 1 auto; min-width: 0; font-size: 13px; padding: 8px 12px; }
       .job-actions .status-select { display: none !important; }
-      .sort-pills { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
-      .sort-pills::-webkit-scrollbar { display: none; }
+      .toolbar-toggle .toggle-label { font-size: 11px; }
+      .sort-pills { display: none; }
+      .sort-select { display: inline-block; }
       .page-link { min-width: 44px; height: 44px; }
       .pagination .page-num { display: none; }
       .pagination .page-current { display: inline-flex; }
@@ -449,10 +451,17 @@
             <span class="toggle-slider"></span>
             <span class="toggle-label">Hide missing points</span>
           </label>
-          <div class="sort-pills" style="margin-left:auto">
-            <button class="sort-pill {{ 'active' if active_sort == 'latest' }}" onclick="setSort('latest')">Latest</button>
-            <button class="sort-pill {{ 'active' if active_sort == 'relevant' }}" onclick="setSort('relevant')">Relevant</button>
-            <button class="sort-pill {{ 'active' if active_sort == 'deadline' }}" onclick="setSort('deadline')">Deadline</button>
+          <div class="sort-wrap" style="margin-left:auto">
+            <div class="sort-pills">
+              <button class="sort-pill {{ 'active' if active_sort == 'latest' }}" onclick="setSort('latest')">Latest</button>
+              <button class="sort-pill {{ 'active' if active_sort == 'relevant' }}" onclick="setSort('relevant')">Relevant</button>
+              <button class="sort-pill {{ 'active' if active_sort == 'deadline' }}" onclick="setSort('deadline')">Deadline</button>
+            </div>
+            <select class="sort-select" onchange="setSort(this.value)">
+              <option value="latest" {{ 'selected' if active_sort == 'latest' }}>Latest</option>
+              <option value="relevant" {{ 'selected' if active_sort == 'relevant' }}>Relevant</option>
+              <option value="deadline" {{ 'selected' if active_sort == 'deadline' }}>Deadline</option>
+            </select>
           </div>
         </div>
       </div>

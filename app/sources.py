@@ -1,6 +1,6 @@
-"""Bangladesh job sources — BDJobs (SSR page) + LinkedIn (jobs in Bangladesh).
+"""Bangladesh job sources — BDJobs (SSR page) + LinkedIn (jobs in Bangladesh) + NextJobz + company careers.
 
-Both sources are reachable without a key and return recent Bangladesh postings
+All sources are reachable without a key and return recent Bangladesh postings
 with a publish date, which drives the "posted within 1d/3d/1w/1m" filter.
 """
 
@@ -23,6 +23,8 @@ BDJOBS_GATEWAY = "https://gateway.bdjobs.com/joblist/jobs"
 BDJOBS_JOB_URL = "https://jobs.bdjobs.com/jobdetails/?id={job_id}"
 
 LINKEDIN_SEARCH_URL = "https://www.linkedin.com/jobs/search/"
+
+NEXTJOZ_JOBS_URL = "https://nextjobz.com.bd/jobs"
 
 FACEBOOK_GRAPH = "https://graph.facebook.com/v21.0"
 
@@ -481,6 +483,141 @@ def fetch_facebook() -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
+# NextJobz (nextjobz.com.bd) — JSON-LD JobPosting schema
+# ---------------------------------------------------------------------------
+
+def _nextjobz_list_urls(html: str) -> list[str]:
+    """Extract job URLs from the ItemList JSON-LD on the jobs list page."""
+    try:
+        for match in re.finditer(r'<script type="application/ld\+json">(.*?)</script>', html, re.S):
+            data = json.loads(match.group(1))
+            if data.get("@type") == "ItemList":
+                items = data.get("itemListElement") or []
+                return [item.get("url") for item in items if item.get("url")]
+    except Exception:
+        pass
+    return []
+
+
+def _nextjobz_parse_job(html: str, url: str) -> dict | None:
+    """Extract JobPosting JSON-LD from a job detail page."""
+    try:
+        for match in re.finditer(r'<script type="application/ld\+json">(.*?)</script>', html, re.S):
+            data = json.loads(match.group(1))
+            if data.get("@type") == "JobPosting":
+                return data
+    except Exception:
+        pass
+    return None
+
+
+def _nextjobz_to_job(job_ld: dict, url: str) -> dict | None:
+    """Convert JobPosting JSON-LD to our internal job format."""
+    try:
+        title = _norm(job_ld.get("title"))
+        company_obj = job_ld.get("hiringOrganization") or {}
+        company = _norm(company_obj.get("name") if isinstance(company_obj, dict) else company_obj)
+        location_obj = job_ld.get("jobLocation") or {}
+        address = location_obj.get("address") if isinstance(location_obj, dict) else {}
+        city = address.get("addressLocality") if isinstance(address, dict) else ""
+        country = address.get("addressCountry") if isinstance(address, dict) else ""
+        location = _norm(", ".join(filter(None, [city, country])))
+        if not _is_bangladesh_location(location):
+            return None
+        posted = _parse_iso(job_ld.get("datePosted"))
+        deadline = _parse_iso(job_ld.get("validThrough"))
+        salary = _norm(job_ld.get("baseSalary") or job_ld.get("salaryDescription") or job_ld.get("strSalaryDescription") or "")
+        description = _clean_html(job_ld.get("description") or "")
+        skills = _norm(job_ld.get("skills") or "")
+        employment_type = job_ld.get("employmentType") or ""
+        experience = job_ld.get("experienceRequirements") or {}
+        exp_months = experience.get("monthsOfExperience") if isinstance(experience, dict) else None
+        exp_str = f"{exp_months} months" if exp_months else ""
+
+        snippet = " | ".join(filter(None, [
+            description[:400] if description else "",
+            f"Skills: {skills}" if skills else "",
+            f"Experience: {exp_str}" if exp_str else "",
+            f"Type: {employment_type}" if employment_type else "",
+        ])) or title
+
+        return {
+            "title": title,
+            "company": company or "Unknown",
+            "location": location or "Bangladesh",
+            "source_site": "nextjobz.com.bd",
+            "posting_url": url,
+            "snippet": snippet[:1000],
+            "posted_date": posted,
+            "deadline": deadline,
+            "salary": salary,
+        }
+    except Exception:
+        return None
+
+
+def fetch_nextjobz(max_pages: int = 5) -> list[dict]:
+    """Fetch jobs from NextJobz (nextjobz.com.bd) using JSON-LD schema."""
+    results: list[dict] = []
+    seen = set()
+
+    # Fetch first page to get job URLs
+    try:
+        resp = requests.get(NEXTJOZ_JOBS_URL, headers=HEADERS, timeout=20)
+        if resp.status_code != 200:
+            print(f"  [nextjobz] list page failed: HTTP {resp.status_code}")
+            return []
+    except Exception as e:
+        print(f"  [nextjobz] list page failed: {e}")
+        return []
+
+    job_urls = _nextjobz_list_urls(resp.text)
+    if not job_urls:
+        print("  [nextjobz] no job URLs found in ItemList JSON-LD")
+        return []
+
+    # Also fetch additional pages
+    for page in range(2, max_pages + 1):
+        try:
+            page_resp = requests.get(f"{NEXTJOZ_JOBS_URL}?page={page}", headers=HEADERS, timeout=20)
+            if page_resp.status_code == 200:
+                more_urls = _nextjobz_list_urls(page_resp.text)
+                for u in more_urls:
+                    if u not in job_urls:
+                        job_urls.append(u)
+            else:
+                break
+        except Exception:
+            break
+
+    # Fetch each job detail
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        futures = {pool.submit(requests.get, u, headers=HEADERS, timeout=15): u for u in job_urls[:100]}
+        for fut in futures:
+            url = futures[fut]
+            try:
+                resp = fut.result()
+                if resp.status_code != 200:
+                    continue
+                job_ld = _nextjobz_parse_job(resp.text, url)
+                if not job_ld:
+                    continue
+                job = _nextjobz_to_job(job_ld, url)
+                if not job:
+                    continue
+                if job["posting_url"] in seen:
+                    continue
+                seen.add(job["posting_url"])
+                results.append(job)
+            except Exception as e:
+                print(f"  [nextjobz] {url} failed: {e}")
+
+    if results:
+        print(f"  [nextjobz] collected {len(results)} jobs")
+    return results
+
+
+# ---------------------------------------------------------------------------
 # Company career pages (software / telecom / IT — startup, MNC, private, gov)
 # ---------------------------------------------------------------------------
 
@@ -749,12 +886,13 @@ def fetch_careers() -> list[dict]:
 # ---------------------------------------------------------------------------
 
 def fetch_bangladesh_jobs(max_age_days: int | None = None) -> list[dict]:
-    """Collect Bangladesh IT jobs from BDJobs + LinkedIn (BD) + company career pages."""
+    """Collect Bangladesh IT jobs from BDJobs + LinkedIn (BD) + NextJobz + company career pages + Facebook."""
     if max_age_days is None:
         cfg = load_search_config()
         max_age_days = int(cfg.get("max_age_days", 30))
     jobs = fetch_bdjobs()
     jobs.extend(fetch_linkedin(max_age_days))
+    jobs.extend(fetch_nextjobz())
     jobs.extend(fetch_careers())
     jobs.extend(fetch_facebook())
     return jobs

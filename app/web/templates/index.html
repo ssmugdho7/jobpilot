@@ -324,6 +324,11 @@
       <strong>NextJobz Career Summit &amp; Job Fest</strong> — Aug 18, KIB Bhaban, Farmgate, Dhaka | 100+ employers, on-the-spot interviews &amp; offers.
       Register via NextJobz app. &nbsp;&nbsp;&bull;&nbsp;&nbsp;
       <strong>VoB Job Fair 2026</strong> — Aug 16-17, Faculty of Business Studies, Dhaka University | Pubali Bank, bKash, MetLife, City Bank &amp; more.
+      {% for jf in bdjobs_jobfairs %}
+        &nbsp;&nbsp;&bull;&nbsp;&nbsp;
+        <strong>BDJobs {{ jf.title }}</strong> — {{ jf.date }}{% if jf.venue %}, {{ jf.venue }}{% endif %}{% if jf.time %} | {{ jf.time }}{% endif %}.
+        <a href="{{ jf.url }}" target="_blank" rel="noopener">Register</a>
+      {% endfor %}
     </span>
     <button class="ticker-close" onclick="dismissTicker()" title="Dismiss">&times;</button>
   </div>

@@ -112,25 +112,52 @@
     .dropzone-label { display: block; cursor: pointer; position: relative; }
 
     /* ── Compose link card ── */
-    .compose-card { border: 1.5px solid var(--border); transition: all .3s; position: relative; overflow: hidden; }
-    .compose-card.unlocked { border-color: var(--green); }
-    .compose-progress { margin-bottom: 20px; }
-    .compose-progress .bar-outer { height: 8px; border-radius: 4px; background: var(--border); overflow: hidden; margin-bottom: 8px; }
-    .compose-progress .bar-fill { height: 100%; border-radius: 4px; background: var(--green); transition: width .4s ease; }
-    .compose-progress .bar-text { font-size: 13px; color: var(--muted); font-weight: 500; }
-    .compose-progress .bar-text strong { color: var(--text); }
-    .compose-hint { font-size: 13px; color: var(--muted); margin-bottom: 16px; line-height: 1.6; }
-    .compose-hint code { background: var(--bg); padding: 2px 6px; border-radius: 4px; font-size: 12px; font-weight: 600; color: var(--text); }
-    .compose-preview { background: var(--bg); border-radius: 10px; padding: 14px 16px; margin-bottom: 16px; font-size: 13px; color: var(--muted); line-height: 1.6; }
-    .compose-preview .subject { font-weight: 700; color: var(--text); margin-bottom: 4px; }
-    .compose-unlock { display: none; margin-top: 16px; }
-    .compose-unlock.show { display: block; }
-    .compose-unlock .btn { width: 100%; }
-    .btn-gmail { background: #1a73e8; color: #fff; box-shadow: 0 2px 8px rgba(26,115,232,.3); }
-    .btn-gmail:hover { background: #1557b0; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(26,115,232,.35); }
-    .btn-gmail svg { flex-shrink: 0; }
+<style>
+  .compose-card.unlocked { border-color: var(--green); }
+  .compose-textarea { 
+      width: 100%; 
+      min-height: 120px; 
+      resize: vertical; 
+      border: 1.5px solid var(--border); 
+      border-radius: 10px; 
+      padding: 12px 16px; 
+      font-size: 13px; 
+      font-family: inherit; 
+      background: var(--bg); 
+      color: var(--text); 
+      line-height: 1.6; 
+      margin-bottom: 12px; 
+      box-sizing: border-box; 
+  }
+  .compose-actions {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      padding: 8px 0;
+  }
+  .compose-actions button {
+      width: auto;
+  }
+  .compose-preview {
+      background: var(--bg);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.6;
+  }
     .compose-locked { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: var(--bg); border-radius: 10px; font-size: 13px; color: var(--muted); font-weight: 500; margin-top: 16px; }
     .compose-locked svg { color: var(--muted); flex-shrink: 0; }
+    .compose-textarea { width: 100%; min-height: 120px; resize: vertical; border: 1.5px solid var(--border); border-radius: 10px; padding: 12px 14px; font-size: 13px; font-family: inherit; background: var(--bg); color: var(--text); line-height: 1.6; margin-bottom: 12px; }
+    .compose-textarea:focus { outline: none; border-color: var(--blue); }
+    .compose-actions { display: flex; gap: 10px; margin-bottom: 8px; }
+    .compose-msg { font-size: 13px; color: var(--muted); margin-top: 10px; line-height: 1.6; }
+    .compose-result { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; margin-top: 14px; }
+    .compose-result .res-row { font-size: 13px; line-height: 1.6; margin-bottom: 6px; word-break: break-word; }
+    .compose-result .res-label { font-weight: 700; color: var(--text); }
+    .compose-result .res-body { white-space: pre-wrap; color: var(--muted); }
+    .compose-result .btn-gmail { display: inline-flex; align-items: center; gap: 8px; margin-top: 12px; text-decoration: none; padding: 10px 18px; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; }
 
     .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 14px 24px; border-radius: 12px; font-size: 14px; font-weight: 500; display: none; z-index: 300; box-shadow: 0 4px 12px rgba(0,0,0,.25); }
 
@@ -212,26 +239,32 @@
     </div>
 
     <!-- Gmail compose link card -->
-    <div class="card compose-card" id="composeCard">
+    <div class="card compose-card unlocked" id="composeCard">
       <h2 style="display:flex;align-items:center;gap:8px">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
         Gmail Compose Link
       </h2>
-      <p class="compose-hint">This feature is currently locked. <strong>Contact admin for this service</strong> to enable Gmail compose link generation.</p>
+      <p class="compose-hint">Paste a job posting below. JobPilot finds the HR email and builds a ready-to-send Gmail draft using your CV profile.</p>
 
       <div class="compose-progress">
         <div class="bar-outer"><div class="bar-fill" id="progressBar" style="width:0%"></div></div>
         <div class="bar-text" id="progressText"><strong>0</strong> of 7 fields completed</div>
       </div>
 
-      <div class="compose-preview">
-        <div class="subject">Subject: Application for the position of Software Engineer</div>
-        <div>Dear Hiring Manager, ... your skills, experience, and contact info will be auto-filled from your profile.</div>
+      <textarea id="pasteJob" class="compose-textarea" placeholder="Paste the job posting / description here (the HR email will be detected automatically)..."></textarea>
+      <div class="compose-actions">
+        <button class="btn btn-primary" id="genGmailBtn" onclick="generateGmail()">Generate Gmail link</button>
       </div>
+      <div class="compose-msg" id="composeMsg"></div>
 
-      <div class="compose-locked" id="composeLocked" style="display:flex;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        Contact admin for this service
+      <div class="compose-result" id="composeResult" style="display:none;">
+        <div class="res-row"><span class="res-label">To:</span> <span id="resTo"></span></div>
+        <div class="res-row"><span class="res-label">Subject:</span> <span id="resSubject"></span></div>
+        <div class="res-row res-body" id="resBody"></div>
+        <a class="btn-gmail" id="resLink" target="_blank" rel="noopener">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M2 4h20v16H2V4zm0 2v.01L12 13 22 6.01V6L12 13 2 6zm0 2.5L12 15l10-6.5V18H2V8.5z"/></svg>
+          Open Gmail draft
+        </a>
       </div>
     </div>
 
@@ -431,6 +464,40 @@
           showToast('CV parse failed: ' + msg);
           console.error('CV upload error:', err);
         });
+    }
+
+    /* ── Gmail compose from pasted job posting ── */
+    async function generateGmail() {
+      const text = (document.getElementById('pasteJob').value || '').trim();
+      if (!text) { showToast('Paste a job posting first'); return; }
+      const btn = document.getElementById('genGmailBtn');
+      btn.disabled = true; btn.textContent = 'Generating...';
+      document.getElementById('composeMsg').textContent = '';
+      try {
+        const r = await fetch('/api/gmail/from-text', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: text })
+        });
+        const d = await r.json();
+        if (d.ok && d.found) {
+          document.getElementById('resTo').textContent = d.to;
+          document.getElementById('resSubject').textContent = d.subject;
+          document.getElementById('resBody').textContent = d.body;
+          document.getElementById('resLink').href = d.gmail_link;
+          document.getElementById('composeResult').style.display = 'block';
+        } else if (d.message) {
+          document.getElementById('composeResult').style.display = 'none';
+          document.getElementById('composeMsg').textContent = d.message;
+        } else {
+          document.getElementById('composeResult').style.display = 'none';
+          document.getElementById('composeMsg').textContent = 'Could not build a Gmail link (HTTP ' + r.status + ').';
+        }
+      } catch (e) {
+        document.getElementById('composeResult').style.display = 'none';
+        document.getElementById('composeMsg').textContent = 'Error generating link (server not reachable?).';
+      } finally {
+        btn.disabled = false; btn.textContent = 'Generate Gmail link';
+      }
     }
   </script>
 </body>

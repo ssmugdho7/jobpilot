@@ -9,11 +9,16 @@ from sqlalchemy import func, and_, or_
 
 from app.db import SessionLocal, Job, Profile, User, UserJob, get_user_job, profile_to_dict, get_or_create_profile
 from app.pipeline import run_scan_async
-from app.gmail_link import build_job_gmail_link
+from app.gmail_link import (
+    build_job_gmail_link, build_subject, build_body, build_gmail_link,
+    _infer_job_from_text,
+)
+from app.cv.parse import extract_email
 from app.paths import CONFIG_DIR
 from app.config import load_search_config
 from app.filter import skill_gap_analysis, company_links
 from app.learning_topics import TOPICS
+from app.sources import get_bdjobs_jobfairs
 
 DAYS_OPTIONS = [("1", "1 day"), ("3", "3 days"), ("7", "1 week"), ("30", "1 month")]
 EXPERIENCE_OPTIONS = [
@@ -332,6 +337,7 @@ def dashboard():
             username=session.get("username"),
             onboarding_done=onboarding_done,
             has_skills=bool(p_dict.get("skills")),
+            bdjobs_jobfairs=get_bdjobs_jobfairs(),
         )
     finally:
         db_session.close()
@@ -511,6 +517,40 @@ def api_parse_cv():
             os.unlink(tmp.name)
         except OSError:
             pass
+
+
+@app.route("/api/gmail/from-text", methods=["POST"])
+@login_required
+def api_gmail_from_text():
+    """Paste a job posting; extract the HR email and build a Gmail compose link."""
+    data = request.get_json(silent=True) or {}
+    text = (data.get("text") or "").strip()
+    if not text:
+        return jsonify({"error": "paste a job posting first"}), 400
+
+    db_session = SessionLocal()
+    try:
+        profile = get_or_create_profile(session["user_id"], db_session)
+        p_dict = profile_to_dict(profile)
+    finally:
+        db_session.close()
+
+    hr_email = extract_email(text)
+    if not hr_email:
+        return jsonify({
+            "ok": False, "found": False,
+            "message": "No email address found in the pasted text.",
+        })
+
+    job = _infer_job_from_text(text, hr_email)
+    job["hr_email"] = hr_email
+    subject = build_subject(job)
+    body = build_body(job, p_dict)
+    link = build_gmail_link(hr_email, subject, body)
+    return jsonify({
+        "ok": True, "found": True,
+        "to": hr_email, "subject": subject, "body": body, "gmail_link": link,
+    })
 
 
 def start_web(host="0.0.0.0", port=None):

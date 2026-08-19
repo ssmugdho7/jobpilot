@@ -21,12 +21,17 @@ load_dotenv()
 
 BDJOBS_GATEWAY = "https://gateway.bdjobs.com/joblist/jobs"
 BDJOBS_JOB_URL = "https://jobs.bdjobs.com/jobdetails/?id={job_id}"
+BDJOBS_JOBFAIR_URL = "https://www.bdjobs.com/jobfair/"
 
 LINKEDIN_SEARCH_URL = "https://www.linkedin.com/jobs/search/"
 
 NEXTJOZ_JOBS_URL = "https://nextjobz.com.bd/jobs"
 
 FACEBOOK_GRAPH = "https://graph.facebook.com/v21.0"
+
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+JOBFAIRS_CACHE = os.path.join(PROJECT_ROOT, "data", "jobfairs.json")
+JOBFAIRS_TTL = 6 * 3600  # seconds
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -615,6 +620,132 @@ def fetch_nextjobz(max_pages: int = 5) -> list[dict]:
     if results:
         print(f"  [nextjobz] collected {len(results)} jobs")
     return results
+
+
+# ---------------------------------------------------------------------------
+# BDJobs job fairs (https://www.bdjobs.com/jobfair/ — "Chakri Mela")
+# ---------------------------------------------------------------------------
+
+_FAIR_ID_RE = re.compile(r"Fair_Id=(\d+)")
+
+
+def _parse_fair_date(text: str):
+    """Parse an English fair date like '22 Aug 2026 (Saturday)'. Returns None if unparseable."""
+    if not text:
+        return None
+    m = re.search(r"(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})", text)
+    if not m:
+        return None
+    day, mon, year = m.group(1), m.group(2), m.group(3)
+    for fmt in ("%d %b %Y", "%d %B %Y"):
+        try:
+            return datetime.strptime(f"{day} {mon} {year}", fmt)
+        except ValueError:
+            continue
+    return None
+
+
+def _parse_bdjobs_jobfair(html: str) -> list[dict]:
+    """Extract current/upcoming BDJobs job fairs from the jobfair page HTML."""
+    soup = BeautifulSoup(html, "html.parser")
+    results: list[dict] = []
+    seen = set()
+
+    blocks = soup.select("header.default .lnjn-wrap") or soup.select(".lnjn-wrap")
+    for block in blocks:
+        title_el = block.select_one(".vjfcomnme")
+        if not title_el:
+            continue
+        title = _norm(title_el.get_text())
+        if not title or title in seen:
+            continue
+        seen.add(title)
+
+        venue_el = block.select_one(".fvnu")
+        if venue_el:
+            map_link = venue_el.select_one(".maplnk")
+            if map_link:
+                map_link.decompose()
+        venue = _norm(venue_el.get_text().replace("Venue:", "")) if venue_el else ""
+
+        date_el = block.select_one(".fdte.fdtinfo")
+        date_txt = _norm(date_el.get_text().replace("Date:", "")) if date_el else ""
+
+        fair_date = _parse_fair_date(date_txt)
+        if fair_date and fair_date.date() < datetime.now().date():
+            continue
+
+        time_el = block.select_one(".ftime.fdtinfo")
+        time_txt = _norm(time_el.get_text().replace("Time:", "")) if time_el else ""
+
+        reg_url = BDJOBS_JOBFAIR_URL
+        anchor = block.find("a", href=_FAIR_ID_RE)
+        if anchor and anchor.get("href"):
+            reg_url = urljoin(BDJOBS_JOBFAIR_URL, anchor["href"])
+
+        detail = " — ".join(p for p in [title, date_txt, venue] if p)
+        if time_txt:
+            detail = f"{detail} | {time_txt}"
+
+        results.append({
+            "source": "BDJobs",
+            "title": title,
+            "date": date_txt,
+            "venue": venue,
+            "time": time_txt,
+            "url": reg_url,
+            "text": detail,
+        })
+    return results
+
+
+def fetch_bdjobs_jobfairs() -> list[dict]:
+    """Scrape the live BDJobs job fair listing page."""
+    try:
+        resp = requests.get(BDJOBS_JOBFAIR_URL, headers=HEADERS, timeout=25)
+        if resp.status_code != 200:
+            print(f"  [bdjobs-jobfair] failed: HTTP {resp.status_code}")
+            return []
+    except Exception as e:
+        print(f"  [bdjobs-jobfair] failed: {e}")
+        return []
+
+    items = _parse_bdjobs_jobfair(resp.text)
+    if items:
+        print(f"  [bdjobs-jobfair] collected {len(items)} fair(s)")
+    return items
+
+
+def get_bdjobs_jobfairs(force: bool = False) -> list[dict]:
+    """Return BDJobs job fairs, cached to data/jobfairs.json for JOBFAIRS_TTL seconds.
+
+    Falls back to the last good cache when a fresh fetch fails or returns nothing.
+    """
+    import time
+
+    cached: dict = {}
+    if os.path.exists(JOBFAIRS_CACHE):
+        try:
+            with open(JOBFAIRS_CACHE) as f:
+                cached = json.load(f)
+        except Exception:
+            cached = {}
+
+    fresh = force or (time.time() - cached.get("ts", 0) >= JOBFAIRS_TTL)
+    if not fresh:
+        return cached.get("data", [])
+
+    items = fetch_bdjobs_jobfairs()
+    if not items and cached.get("data"):
+        return cached["data"]
+
+    try:
+        os.makedirs(os.path.dirname(JOBFAIRS_CACHE), exist_ok=True)
+        with open(JOBFAIRS_CACHE, "w") as f:
+            json.dump({"ts": time.time(), "data": items}, f)
+    except Exception:
+        pass
+    return items
 
 
 # ---------------------------------------------------------------------------

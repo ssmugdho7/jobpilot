@@ -465,7 +465,7 @@
               <button class="sort-pill {{ 'active' if active_sort == 'all' }}" onclick="setSort('all')">All</button>
             </div>
             <select class="sort-select" onchange="setSort(this.value)">
-              <option value="newonly" {{ 'selected' if active_sort == 'newonly' }}>Haven't applied yet</option>
+              <option value="newonly" {{ 'selected' if active_sort == 'newonly' }}>New</option>
               <option value="applied" {{ 'selected' if active_sort == 'applied' }}>Applied</option>
               <option value="deadline" {{ 'selected' if active_sort == 'deadline' }}>Deadline</option>
               <option value="all" {{ 'selected' if active_sort == 'all' }}>All</option>
@@ -692,9 +692,10 @@
     function initHideMissing() {
       const toggle = document.getElementById('hideMissingToggle');
       if (!toggle) return;
-      const saved = localStorage.getItem('hideMissingPoints') === '1';
-      toggle.checked = saved;
-      applyHideMissing(saved);
+      const raw = localStorage.getItem('hideMissingPoints');
+      const hide = raw === null ? true : raw === '1';
+      toggle.checked = hide;
+      applyHideMissing(hide);
     }
 
     function openDrawer() {

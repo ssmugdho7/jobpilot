@@ -209,9 +209,9 @@ def dashboard():
     page = request.args.get("page", "1")
     role_filter = request.args.get("role", "").strip().lower()
     exp_filter = request.args.get("exp", "").strip()
-    sort = (request.args.get("sort", "latest") or "latest").strip().lower()
-    if sort not in ("latest", "deadline"):
-        sort = "latest"
+    sort = (request.args.get("sort", "newonly") or "newonly").strip().lower()
+    if sort not in ("newonly", "applied", "deadline", "all"):
+        sort = "newonly"
 
     # Use user preferences as defaults if no filter specified
     if not days and onboarding_done:
@@ -245,6 +245,11 @@ def dashboard():
         if status in ("applied", "dismissed"):
             q = q.join(UserJob, and_(UserJob.job_id == Job.id, UserJob.user_id == user_id, UserJob.status == status))
         elif status == "new":
+            q = q.outerjoin(UserJob, and_(UserJob.job_id == Job.id, UserJob.user_id == user_id))
+            q = q.filter(or_(UserJob.status == "new", UserJob.status.is_(None)))
+        elif sort == "applied":
+            q = q.join(UserJob, and_(UserJob.job_id == Job.id, UserJob.user_id == user_id, UserJob.status == "applied"))
+        elif sort == "newonly":
             q = q.outerjoin(UserJob, and_(UserJob.job_id == Job.id, UserJob.user_id == user_id))
             q = q.filter(or_(UserJob.status == "new", UserJob.status.is_(None)))
 

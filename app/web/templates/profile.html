@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>JobPilot — Profile</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
@@ -253,7 +254,7 @@
 
       <textarea id="pasteJob" class="compose-textarea" placeholder="Paste the job posting / description here (the HR email will be detected automatically)..."></textarea>
       <div class="compose-actions">
-        <button class="btn btn-primary" id="genGmailBtn" onclick="generateGmail()">Generate Gmail link</button>
+        <button class="btn btn-primary" id="genGmailBtn" onclick="generateGmail()">Generate ready-made Email to HR</button>
       </div>
       <div class="compose-msg" id="composeMsg"></div>
 
@@ -263,7 +264,7 @@
         <div class="res-row res-body" id="resBody"></div>
         <a class="btn-gmail" id="resLink" target="_blank" rel="noopener">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M2 4h20v16H2V4zm0 2v.01L12 13 22 6.01V6L12 13 2 6zm0 2.5L12 15l10-6.5V18H2V8.5z"/></svg>
-          Open Gmail draft
+          Open Email to HR
         </a>
       </div>
     </div>
@@ -496,7 +497,7 @@
         document.getElementById('composeResult').style.display = 'none';
         document.getElementById('composeMsg').textContent = 'Error generating link (server not reachable?).';
       } finally {
-        btn.disabled = false; btn.textContent = 'Generate Gmail link';
+        btn.disabled = false; btn.textContent = 'Generate ready-made Email to HR';
       }
     }
   </script>

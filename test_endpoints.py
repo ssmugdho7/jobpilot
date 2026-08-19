@@ -69,7 +69,8 @@ c.post(f"/api/jobs/{job_id}/status", json={"status": "new"})
 print("  [scan] starting background scan...")
 r = c.post("/api/scan")
 d = r.get_json()
-check("POST /api/scan (async start)", r.status_code == 200 and d.get("started"))
+# Scan may already be running from _startup_scan() on import
+check("POST /api/scan (async start)", r.status_code in (200, 202), f"started={d.get('started')}")
 import time
 time.sleep(2)
 r2 = c.post("/api/scan")

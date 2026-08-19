@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>JobPilot</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
@@ -458,12 +459,16 @@
           </label>
           <div class="sort-wrap" style="margin-left:auto">
             <div class="sort-pills">
-              <button class="sort-pill {{ 'active' if active_sort == 'latest' }}" onclick="setSort('latest')">Latest</button>
+              <button class="sort-pill {{ 'active' if active_sort == 'newonly' }}" onclick="setSort('newonly')">Haven't applied yet</button>
+              <button class="sort-pill {{ 'active' if active_sort == 'applied' }}" onclick="setSort('applied')">Applied</button>
               <button class="sort-pill {{ 'active' if active_sort == 'deadline' }}" onclick="setSort('deadline')">Deadline</button>
+              <button class="sort-pill {{ 'active' if active_sort == 'all' }}" onclick="setSort('all')">All</button>
             </div>
             <select class="sort-select" onchange="setSort(this.value)">
-              <option value="latest" {{ 'selected' if active_sort == 'latest' }}>Latest</option>
+              <option value="newonly" {{ 'selected' if active_sort == 'newonly' }}>Haven't applied yet</option>
+              <option value="applied" {{ 'selected' if active_sort == 'applied' }}>Applied</option>
               <option value="deadline" {{ 'selected' if active_sort == 'deadline' }}>Deadline</option>
+              <option value="all" {{ 'selected' if active_sort == 'all' }}>All</option>
             </select>
           </div>
         </div>
@@ -542,7 +547,7 @@
               {% elif job.gmail_link %}
                 <a class="gmail-btn" href="{{ job.gmail_link }}" target="_blank" rel="noopener">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M2 4h20v16H2V4zm0 2v.01L12 13 22 6.01V6L12 13 2 6zm0 2.5L12 15l10-6.5V18H2V8.5z"/></svg>
-                  Gmail draft
+                  Email to HR
                 </a>
               {% endif %}
               {% if job.posting_url %}

@@ -596,5 +596,116 @@ def learning():
     return render_template("learning.html", topic=topic, all_topics=TOPICS, username=session.get("username"))
 
 
+FB_DAYS_OPTIONS = [("0", "Any time"), ("1", "Last 1 day"), ("3", "Last 3 days"), ("7", "1 week")]
+
+
+@app.route("/fb_posts")
+@login_required
+def fb_posts():
+    """Dedicated page for Facebook post search jobs."""
+    user_id = session["user_id"]
+
+    days = request.args.get("days", "0")
+    role_filter = request.args.get("role", "").strip().lower()
+    try:
+        days_int = int(days)
+    except ValueError:
+        days_int = 0
+    if days_int not in (0, 1, 3, 7):
+        days_int = 0
+    cutoff = datetime.utcnow() - timedelta(days=days_int) if days_int else None
+
+    db_session = SessionLocal()
+    try:
+        from app.db import is_fb_post_search_enabled, get_setting, set_setting
+
+        # Toggle handling
+        toggle = request.args.get("toggle")
+        if toggle in ("on", "off"):
+            set_setting("fb_post_search_enabled", "true" if toggle == "on" else "false")
+            return redirect(url_for("fb_posts", days=days_int or "", role=role_filter))
+
+        fb_enabled = is_fb_post_search_enabled()
+
+        # Build query
+        q = db_session.query(Job).filter(func.lower(Job.source_site) == "facebook_post_search")
+        if role_filter:
+            q = q.filter(Job.role == role_filter)
+        if cutoff is not None:
+            q = q.filter(Job.posted_date >= cutoff)
+
+        total = q.count()
+        jobs = q.order_by(Job.posted_date.desc()).limit(50).all()
+
+        # Enrich jobs
+        profile = get_or_create_profile(user_id, db_session)
+        p_dict = profile_to_dict(profile)
+        for job in jobs:
+            job.user_relevance = _user_relevance_score(p_dict.get("skills", []), job)
+            cleaned_snippet, early_text = _extract_early_applicant(job)
+            job.snippet = cleaned_snippet
+            job.early_applicant = early_text
+
+        search_cfg = load_search_config()
+        all_roles = search_cfg.get("roles", []) + search_cfg.get("custom_roles", [])
+
+        return render_template(
+            "fb_jobs.html",
+            jobs=jobs,
+            total=total,
+            active_days=str(days_int),
+            active_role=role_filter,
+            fb_enabled=fb_enabled,
+            fb_days_options=FB_DAYS_OPTIONS,
+            all_roles=all_roles,
+            username=session.get("username"),
+        )
+    finally:
+        db_session.close()
+
+
+@app.route("/api/fb_posts/scan", methods=["POST"])
+@login_required
+def api_fb_scan():
+    """Trigger a Facebook post search scan."""
+    from app.pipeline import run_scan_async
+    started = run_scan_async()
+    if not started:
+        return jsonify({"ok": True, "started": False, "error": "scan already running"}), 202
+    return jsonify({"ok": True, "started": True})
+
+
+@app.route("/api/settings/fb_post_search", methods=["GET"])
+@login_required
+def api_get_fb_post_search():
+    try:
+        from app.db import is_fb_post_search_enabled
+        from app.config import load_fb_post_search_config
+        cfg = load_fb_post_search_config()
+        return jsonify({
+            "enabled": is_fb_post_search_enabled(),
+            "queries": cfg.get("queries") or [],
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/settings/fb_post_search", methods=["POST"])
+@login_required
+def api_set_fb_post_search():
+    data = request.get_json(silent=True) or {}
+    enabled_raw = data.get("enabled")
+    if isinstance(enabled_raw, bool):
+        enabled = enabled_raw
+    else:
+        enabled = str(enabled_raw).strip().lower() in ("1", "true", "yes", "on")
+    try:
+        from app.db import set_setting
+        set_setting("fb_post_search_enabled", "true" if enabled else "false")
+        return jsonify({"ok": True, "enabled": enabled})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 if __name__ == "__main__":
     start_web()

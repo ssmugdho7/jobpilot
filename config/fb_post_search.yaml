@@ -1,0 +1,75 @@
+# Facebook Post Search — Serper.dev text search for recent FB job posts.
+# Toggle persisted in DB via FB_POST_SEARCH_ENABLED env var.
+# Serper free tier: 2,500 queries/month.
+
+enabled: true
+
+# Serper.dev API key — primary source is SERPER_API_KEY env var.
+serper_api_key: "693bef8f4bf4a86b25cfb30fde0ccb03c459b697"
+
+# Google time-based search: qdr:d = past day only.
+# This is the primary recency control — Serper returns only results
+# Google considers recent. We set posted_date = now() since we know
+# the result is recent from tbs, even though Serper doesn't return
+# exact dates for Facebook posts.
+tbs: "qdr:d"
+
+# Max age for FB posts in DB (days). Posts older than this are
+# deleted on each scan. Should match tbs window.
+max_age_days: 3
+
+# Search queries — combine site:facebook.com with role + location.
+# Each query is sent separately to Serper; results are merged.
+queries:
+  - "site:facebook.com software engineer job Dhaka hiring"
+  - "site:facebook.com developer vacancy Bangladesh"
+  - "site:facebook.com we are hiring software developer Dhaka"
+  - "site:facebook.com full stack developer job Bangladesh"
+  - "site:facebook.com python developer hiring Dhaka"
+  - "site:facebook.com backend developer vacancy Bangladesh"
+  - "site:facebook.com frontend developer job Dhaka"
+  - "site:facebook.com data analyst job Bangladesh"
+  - "site:facebook.com devops engineer hiring Dhaka"
+  - "site:facebook.com mobile app developer Bangladesh"
+
+# Domain allowlist — only Facebook results pass.
+allowed_domains:
+  - "facebook.com"
+  - "m.facebook.com"
+  - "web.facebook.com"
+  - "fb.watch"
+  - "*.facebook.com"
+
+# Role/hiring signal keywords — title+snippet must contain at least one.
+title_filter_keywords:
+  - "hiring"
+  - "we're hiring"
+  - "we are hiring"
+  - "job circular"
+  - "vacancy"
+  - "software engineer"
+  - "developer"
+  - "full stack"
+  - "backend"
+  - "frontend"
+  - "ai engineer"
+  - "ml engineer"
+  - "devops engineer"
+  - "sqa"
+  - "qa engineer"
+  - "project manager"
+  - "laravel"
+  - "web developer"
+  - "data analyst"
+  - "mobile developer"
+
+# Location keywords — title+snippet must contain at least one.
+location_keywords:
+  - "dhaka"
+  - "bangladesh"
+
+# Rate limiting
+max_queries_per_run: 5
+results_per_query: 10
+delay_between_queries: 1.5
+request_timeout: 15

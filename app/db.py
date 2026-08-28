@@ -77,13 +77,6 @@ class Profile(Base):
     cv_file = Column(String(300), default="")  # stored filename under data/uploads
 
 
-class AppSetting(Base):
-    __tablename__ = "app_settings"
-
-    key = Column(String(100), primary_key=True)
-    value = Column(String(500), default="")
-
-
 def init_db():
     Base.metadata.create_all(engine)
 
@@ -190,44 +183,3 @@ def profile_to_dict(profile: Profile) -> dict:
         "skills": [s.strip() for s in (profile.skills or "").split(",") if s.strip()],
         "cv_file": profile.cv_file or "",
     }
-
-
-def get_setting(key: str, default: str = "") -> str:
-    session = SessionLocal()
-    try:
-        row = session.query(AppSetting).filter_by(key=key).first()
-        return row.value if row else default
-    finally:
-        session.close()
-
-
-def set_setting(key: str, value: str):
-    session = SessionLocal()
-    try:
-        row = session.query(AppSetting).filter_by(key=key).first()
-        if row:
-            row.value = value
-        else:
-            session.add(AppSetting(key=key, value=value))
-        session.commit()
-    finally:
-        session.close()
-
-
-def is_fb_post_search_enabled() -> bool:
-    """Check if FB post search is enabled. DB > env > yaml."""
-    # 1. Check DB setting
-    db_val = get_setting("fb_post_search_enabled")
-    if db_val:
-        return db_val.lower() in ("true", "1", "yes", "on")
-    # 2. Check env var
-    env_val = os.getenv("FB_POST_SEARCH_ENABLED")
-    if env_val is not None:
-        return env_val.strip().lower() in ("true", "1", "yes", "on")
-    # 3. Check yaml config
-    try:
-        from app.config import load_fb_post_search_config
-        cfg = load_fb_post_search_config()
-        return bool(cfg.get("enabled", True))
-    except Exception:
-        return False

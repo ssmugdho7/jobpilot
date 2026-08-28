@@ -2,7 +2,6 @@ import re
 import threading
 from datetime import datetime, timedelta
 
-from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 
 from app.db import SessionLocal, Job, init_db
@@ -11,11 +10,6 @@ from app.filter import detect_role, score_job, is_relevant, detect_experience_le
 from app.gmail_link import build_job_gmail_link
 from app.cv.parse import extract_email
 from app.config import load_search_config
-
-try:
-    from app.scrapers.fb_post_search import fetch_fb_posts
-except Exception:
-    fetch_fb_posts = None  # type: ignore
 
 _scan_lock = threading.Lock()
 _scan_running = False
@@ -105,44 +99,9 @@ def run_scan(verbose: bool = True) -> int:
         if verbose:
             print(f"  [sources] fetch failed: {e}")
 
-    # Facebook Post Search (opt-in, disabled by default)
-    if fetch_fb_posts is not None:
-        try:
-            from app.db import is_fb_post_search_enabled
-            if is_fb_post_search_enabled():
-                fb_jobs = fetch_fb_posts(verbose=verbose)
-                if fb_jobs:
-                    if verbose:
-                        print(f"  [fb_post_search] collected {len(fb_jobs)} jobs")
-                    raw_jobs.extend(fb_jobs)
-            else:
-                if verbose:
-                    print("  [fb_post_search] disabled — skipping")
-        except Exception as e:
-            if verbose:
-                print(f"  [fb_post_search] fetch failed: {e}")
-
     cutoff = datetime.utcnow() - timedelta(days=max_age_days)
 
     session = SessionLocal()
-
-    # Cleanup: delete stale FB posts older than max_age_days
-    try:
-        from app.config import load_fb_post_search_config
-        fb_cfg = load_fb_post_search_config()
-        fb_max_age = int(fb_cfg.get("max_age_days", 3))
-        fb_cutoff = datetime.utcnow() - timedelta(days=fb_max_age)
-        deleted = session.query(Job).filter(
-            func.lower(Job.source_site) == "facebook_post_search",
-            func.coalesce(Job.posted_date, Job.created_at) < fb_cutoff,
-        ).delete(synchronize_session="fetch")
-        if deleted and verbose:
-            print(f"  [fb_post_search] cleaned up {deleted} stale posts (older than {fb_max_age} days)")
-        session.flush()
-    except Exception as e:
-        if verbose:
-            print(f"  [fb_post_search] cleanup failed: {e}")
-
     p_dict = {"skills": []}
 
     inserted = 0

@@ -37,12 +37,14 @@ def load_fb_post_search_config() -> dict:
     # Defaults
     cfg.setdefault("enabled", True)
     cfg.setdefault("max_age_days", 3)
-    cfg.setdefault("search_queries", [
-        "jobs bangladesh",
-        "hiring bangladesh",
-        "vacancy dhaka",
-        "career bangladesh",
+    cfg.setdefault("pages", [])
+    cfg.setdefault("job_keywords", [
+        "hiring", "vacancy", "job", "career", "apply", "opening",
+        "we are hiring", "join our team", "position", "recruitment",
+        "software engineer", "developer", "web developer", "data analyst",
+        "devops", "frontend", "backend", "full stack", "mobile developer",
+        "ai engineer", "ml engineer", "qa engineer", "it executive",
     ])
-    cfg.setdefault("max_pages_per_run", 10)
-    cfg.setdefault("posts_per_page", 20)
+    cfg.setdefault("location_keywords", ["dhaka", "chittagong", "chattogram", "sylhet", "rajshahi", "khulna", "bangladesh", "bd"])
+    cfg.setdefault("posts_per_page", 25)
     return cfg

@@ -10,7 +10,6 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from app.config import load_fb_post_search_config
 from app.scrapers.fb_graph_api import (
     _get_access_token,
-    _search_pages,
     _get_page_posts,
     _is_job_post,
     _has_bd_location,
@@ -29,14 +28,19 @@ class TestConfigLoading(unittest.TestCase):
     def test_config_has_expected_keys(self):
         cfg = load_fb_post_search_config()
         self.assertIn("enabled", cfg)
-        self.assertIn("search_queries", cfg)
-        self.assertIsInstance(cfg["search_queries"], list)
+        self.assertIn("pages", cfg)
+        self.assertIsInstance(cfg["pages"], list)
 
-    def test_config_search_queries_are_strings(self):
+    def test_config_has_pages(self):
         cfg = load_fb_post_search_config()
-        for query in cfg.get("search_queries", []):
-            self.assertIsInstance(query, str)
-            self.assertTrue(len(query) > 0)
+        self.assertTrue(len(cfg["pages"]) > 0)
+
+    def test_config_pages_have_required_fields(self):
+        cfg = load_fb_post_search_config()
+        for page in cfg.get("pages", []):
+            self.assertIn("id", page)
+            self.assertIn("name", page)
+            self.assertIn("type", page)
 
 
 class TestAccessToken(unittest.TestCase):
@@ -62,33 +66,34 @@ class TestAccessToken(unittest.TestCase):
 
 class TestJobPostDetection(unittest.TestCase):
     def test_is_job_post_with_hiring(self):
-        self.assertTrue(_is_job_post("We are hiring a web developer in Dhaka"))
+        job_keywords = ["hiring", "vacancy", "job", "developer", "software engineer"]
+        self.assertTrue(_is_job_post("We are hiring a web developer in Dhaka", job_keywords))
 
     def test_is_job_post_with_vacancy(self):
-        self.assertTrue(_is_job_post("Vacancy for software engineer"))
-
-    def test_is_job_post_with_job_keyword(self):
-        self.assertTrue(_is_job_post("Job opening at our Dhaka office"))
+        job_keywords = ["hiring", "vacancy", "job", "developer"]
+        self.assertTrue(_is_job_post("Vacancy for software engineer", job_keywords))
 
     def test_is_not_job_post(self):
-        self.assertFalse(_is_job_post("Happy birthday to our team!"))
+        job_keywords = ["hiring", "vacancy", "job", "developer"]
+        self.assertFalse(_is_job_post("Happy birthday to our team!", job_keywords))
 
     def test_is_not_job_post_empty(self):
-        self.assertFalse(_is_job_post(""))
+        job_keywords = ["hiring", "vacancy", "job", "developer"]
+        self.assertFalse(_is_job_post("", job_keywords))
 
 
 class TestLocationDetection(unittest.TestCase):
     def test_has_bd_location_dhaka(self):
-        self.assertTrue(_has_bd_location("Position in Dhaka, Bangladesh"))
-
-    def test_has_bd_location_chittagong(self):
-        self.assertTrue(_has_bd_location("Office located in Chittagong"))
+        location_keywords = ["dhaka", "bangladesh", "chittagong"]
+        self.assertTrue(_has_bd_location("Position in Dhaka, Bangladesh", location_keywords))
 
     def test_has_bd_location_bangladesh(self):
-        self.assertTrue(_has_bd_location("Remote position in Bangladesh"))
+        location_keywords = ["dhaka", "bangladesh", "chittagong"]
+        self.assertTrue(_has_bd_location("Remote job in Bangladesh", location_keywords))
 
     def test_no_bd_location(self):
-        self.assertFalse(_has_bd_location("Office in Mumbai, India"))
+        location_keywords = ["dhaka", "bangladesh", "chittagong"]
+        self.assertFalse(_has_bd_location("Office in Mumbai, India", location_keywords))
 
 
 class TestTitleExtraction(unittest.TestCase):
@@ -108,41 +113,19 @@ class TestTitleExtraction(unittest.TestCase):
 
 class TestLocationExtraction(unittest.TestCase):
     def test_location_dhaka(self):
-        loc = _extract_location("Position in Dhaka")
+        location_keywords = ["dhaka", "bangladesh", "chittagong"]
+        loc = _extract_location("Position in Dhaka", location_keywords)
         self.assertIn("Dhaka", loc)
 
     def test_location_bangladesh(self):
-        loc = _extract_location("Remote job in Bangladesh")
+        location_keywords = ["dhaka", "bangladesh", "chittagong"]
+        loc = _extract_location("Remote job in Bangladesh", location_keywords)
         self.assertIn("Bangladesh", loc)
 
     def test_location_default(self):
-        loc = _extract_location("Some post without location")
+        location_keywords = ["dhaka", "bangladesh", "chittagong"]
+        loc = _extract_location("Some post without location", location_keywords)
         self.assertEqual(loc, "Bangladesh")
-
-
-class TestSearchPages(unittest.TestCase):
-    @patch("app.scrapers.fb_graph_api.requests.get")
-    def test_search_returns_pages(self, mock_get):
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.json.return_value = {
-            "data": [
-                {"id": "123", "name": "Tech Jobs BD", "about": "Job posts"}
-            ]
-        }
-        mock_resp.raise_for_status = MagicMock()
-        mock_get.return_value = mock_resp
-
-        pages = _search_pages("jobs bangladesh", "test-token")
-        self.assertIsInstance(pages, list)
-        self.assertTrue(len(pages) > 0)
-        self.assertEqual(pages[0]["id"], "123")
-
-    @patch("app.scrapers.fb_graph_api.requests.get")
-    def test_search_returns_empty_on_error(self, mock_get):
-        mock_get.side_effect = Exception("API error")
-        pages = _search_pages("test", "token")
-        self.assertEqual(pages, [])
 
 
 class TestGetPagePosts(unittest.TestCase):
@@ -158,14 +141,25 @@ class TestGetPagePosts(unittest.TestCase):
         mock_resp.raise_for_status = MagicMock()
         mock_get.return_value = mock_resp
 
-        posts = _get_page_posts("page_123", "token")
+        posts = _get_page_posts("page_123", "token", "page")
         self.assertIsInstance(posts, list)
         self.assertTrue(len(posts) > 0)
 
     @patch("app.scrapers.fb_graph_api.requests.get")
+    def test_get_posts_group_uses_feed(self, mock_get):
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {"data": []}
+        mock_resp.raise_for_status = MagicMock()
+        mock_get.return_value = mock_resp
+
+        _get_page_posts("group_123", "token", "group")
+        call_url = mock_get.call_args[0][0]
+        self.assertIn("/feed", call_url)
+
+    @patch("app.scrapers.fb_graph_api.requests.get")
     def test_get_posts_returns_empty_on_error(self, mock_get):
         mock_get.side_effect = Exception("API error")
-        posts = _get_page_posts("page_123", "token")
+        posts = _get_page_posts("page_123", "token", "page")
         self.assertEqual(posts, [])
 
 
@@ -196,16 +190,15 @@ class TestFetchFbPosts(unittest.TestCase):
     @patch("app.scrapers.fb_graph_api.is_fb_post_search_enabled", return_value=True)
     @patch("app.scrapers.fb_graph_api._get_access_token", return_value="test-token")
     @patch("app.scrapers.fb_graph_api.load_fb_post_search_config")
-    @patch("app.scrapers.fb_graph_api._search_pages")
     @patch("app.scrapers.fb_graph_api._get_page_posts")
-    def test_returns_job_dicts(self, mock_posts, mock_search, mock_cfg, _mock_token, _mock_enabled):
+    def test_returns_job_dicts(self, mock_posts, mock_cfg, _mock_token, _mock_enabled):
         mock_cfg.return_value = {
-            "search_queries": ["jobs bangladesh"],
-            "max_pages_per_run": 1,
-            "posts_per_page": 5,
+            "pages": [{"id": "page1", "name": "Tech Jobs BD", "type": "page"}],
+            "job_keywords": ["hiring", "developer"],
+            "location_keywords": ["dhaka", "bangladesh"],
             "max_age_days": 3,
+            "posts_per_page": 5,
         }
-        mock_search.return_value = [{"id": "page1", "name": "Tech Jobs BD"}]
         mock_posts.return_value = [
             {"id": "post1", "message": "Hiring web developer in Dhaka", "created_time": "2026-08-28T10:00:00+0000", "link": ""}
         ]
@@ -221,19 +214,18 @@ class TestFetchFbPosts(unittest.TestCase):
     @patch("app.scrapers.fb_graph_api.is_fb_post_search_enabled", return_value=True)
     @patch("app.scrapers.fb_graph_api._get_access_token", return_value="test-token")
     @patch("app.scrapers.fb_graph_api.load_fb_post_search_config")
-    @patch("app.scrapers.fb_graph_api._search_pages")
     @patch("app.scrapers.fb_graph_api._get_page_posts")
-    def test_deduplicates_by_post_id(self, mock_posts, mock_search, mock_cfg, _mock_token, _mock_enabled):
+    def test_deduplicates_by_post_id(self, mock_posts, mock_cfg, _mock_token, _mock_enabled):
         mock_cfg.return_value = {
-            "search_queries": ["q1", "q2"],
-            "max_pages_per_run": 2,
-            "posts_per_page": 5,
+            "pages": [
+                {"id": "page1", "name": "Jobs BD", "type": "page"},
+                {"id": "page2", "name": "Hiring BD", "type": "page"},
+            ],
+            "job_keywords": ["hiring", "developer"],
+            "location_keywords": ["bangladesh"],
             "max_age_days": 3,
+            "posts_per_page": 5,
         }
-        mock_search.return_value = [
-            {"id": "page1", "name": "Jobs BD"},
-            {"id": "page2", "name": "Hiring BD"},
-        ]
         # Same post from both pages
         mock_posts.return_value = [
             {"id": "post1", "message": "Hiring developer in Bangladesh", "created_time": "2026-08-28T10:00:00+0000", "link": ""}
@@ -243,6 +235,27 @@ class TestFetchFbPosts(unittest.TestCase):
         # Should deduplicate
         post_ids = [r.get("posting_url") for r in results]
         self.assertEqual(len(post_ids), len(set(post_ids)))
+
+    @patch("app.scrapers.fb_graph_api.is_fb_post_search_enabled", return_value=True)
+    @patch("app.scrapers.fb_graph_api._get_access_token", return_value="test-token")
+    @patch("app.scrapers.fb_graph_api.load_fb_post_search_config")
+    @patch("app.scrapers.fb_graph_api._get_page_posts")
+    def test_filters_non_job_posts(self, mock_posts, mock_cfg, _mock_token, _mock_enabled):
+        mock_cfg.return_value = {
+            "pages": [{"id": "page1", "name": "Tech Jobs BD", "type": "page"}],
+            "job_keywords": ["hiring", "developer"],
+            "location_keywords": ["bangladesh"],
+            "max_age_days": 3,
+            "posts_per_page": 5,
+        }
+        mock_posts.return_value = [
+            {"id": "post1", "message": "Happy birthday team!", "created_time": "2026-08-28T10:00:00+0000", "link": ""},
+            {"id": "post2", "message": "Hiring developer in Bangladesh", "created_time": "2026-08-28T11:00:00+0000", "link": ""},
+        ]
+
+        results = fetch_fb_posts(verbose=False)
+        # Should only keep the job post
+        self.assertEqual(len(results), 1)
 
 
 if __name__ == "__main__":

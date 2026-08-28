@@ -1,0 +1,23 @@
+# Facebook Graph API — fetch job posts from FB pages in Bangladesh.
+# Toggle persisted in DB via fb_post_search_enabled setting.
+# Token: FACEBOOK_ACCESS_TOKEN env var (Page or User token with pages_read_engagement).
+
+enabled: true
+
+# Max age for FB posts in DB (days). Posts older than this are
+# deleted on each scan.
+max_age_days: 3
+
+# Search queries to find job-related Facebook pages.
+# Each query is sent to Graph API /pages/search.
+search_queries:
+  - "jobs bangladesh"
+  - "hiring bangladesh"
+  - "vacancy dhaka"
+  - "career bangladesh"
+  - "software engineer bangladesh"
+  - "developer job bd"
+
+# Limits
+max_pages_per_run: 10
+posts_per_page: 20

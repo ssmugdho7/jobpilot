@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FB Posts — JobPilot</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root, [data-theme="light"] {
+      --blue: #2563eb; --blue-dark: #1d4ed8; --blue-light: #dbeafe;
+      --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0;
+      --text: #0f172a; --muted: #64748b; --snippet: #475569;
+      --green: #16a34a; --green-bg: #f0fdf4;
+      --red: #dc2626; --red-bg: #fef2f2;
+      --orange: #ea580c; --orange-bg: #fff7ed;
+      --radius: 12px; --radius-sm: 8px;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,.05);
+      --shadow: 0 1px 3px rgba(0,0,0,.1), 0 1px 2px rgba(0,0,0,.06);
+    }
+    [data-theme="dark"] {
+      --blue: #60a5fa; --blue-dark: #93bbfd; --blue-light: #1e3a5f;
+      --bg: #0f172a; --card: #1e293b; --border: #334155;
+      --text: #f1f5f9; --muted: #94a3b8; --snippet: #cbd5e1;
+      --green: #4ade80; --green-bg: #052e16;
+      --red: #f87171; --red-bg: #450a0a;
+      --orange: #fb923c; --orange-bg: #431407;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; }
+    body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
+    a { color: var(--blue); text-decoration: none; }
+    .header { background: rgba(255,255,255,.85); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 20px; height: 60px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+    [data-theme="dark"] .header { background: rgba(15,23,42,.85); }
+    .logo { font-size: 20px; font-weight: 800; color: var(--blue); }
+    .logo span { color: var(--text); }
+    .nav { display: flex; gap: 2px; align-items: center; }
+    .nav a { padding: 8px 14px; border-radius: var(--radius-sm); font-size: 14px; color: var(--muted); font-weight: 500; }
+    .nav a:hover { background: var(--bg); color: var(--text); }
+    .nav a.active { color: var(--blue); background: var(--blue-light); }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: all .15s; }
+    .btn-primary { background: var(--blue); color: #fff; }
+    .btn-primary:hover { background: var(--blue-dark); }
+    .btn-ghost { background: transparent; color: var(--muted); border: 1.5px solid var(--border); }
+    .btn-ghost:hover { border-color: var(--muted); color: var(--text); }
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; }
+    .filter-list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .filter-pill { padding: 8px 12px; border-radius: var(--radius-sm); font-size: 13px; color: var(--muted); border: 1px solid var(--border); background: var(--card); text-decoration: none; transition: all .15s; }
+    .filter-pill:hover { border-color: var(--blue); color: var(--blue); }
+    .filter-pill.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+    .badge { padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+    .badge-blue { background: var(--blue-light); color: var(--blue-dark); }
+    .badge-green { background: var(--green-bg); color: var(--green); }
+    .toggle-wrap { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: var(--radius-sm); background: var(--bg); border: 1px solid var(--border); cursor: pointer; }
+    .toggle-track { width: 36px; height: 20px; background: var(--border); border-radius: 10px; position: relative; transition: background .2s; }
+    .toggle-track::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; background: #fff; border-radius: 50%; transition: transform .2s; }
+    .toggle-track.on { background: var(--blue); }
+    .toggle-track.on::after { transform: translateX(16px); }
+    .job-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 10px; transition: box-shadow .15s; }
+    .job-card:hover { box-shadow: var(--shadow); }
+    .job-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+    .job-title a { color: inherit; }
+    .job-title a:hover { color: var(--blue); }
+    .job-meta { font-size: 12px; color: var(--muted); margin-bottom: 6px; display: flex; flex-wrap: wrap; gap: 8px; }
+    .job-snippet { font-size: 13px; color: var(--snippet); line-height: 1.5; }
+    .empty { text-align: center; padding: 40px 20px; color: var(--muted); }
+    .empty h3 { font-size: 16px; font-weight: 600; margin-bottom: 8px; color: var(--text); }
+    .container { max-width: 900px; margin: 0 auto; padding: 24px 20px; }
+    .toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+    .theme-btn { width: 40px; height: 40px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--card); color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo"><a href="/dashboard" style="color:var(--blue);text-decoration:none">Job<span style="color:var(--text)">Pilot</span></a></div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="nav">
+        <a href="/dashboard">Jobs</a>
+        <a href="/fb_posts" class="active">FB Posts</a>
+        <a href="/learning">Learning</a>
+        <a href="/profile">Profile</a>
+      </div>
+      <button class="theme-btn" onclick="toggleTheme()" title="Toggle theme">🌙</button>
+      <span style="font-size:13px;color:var(--muted)">{{ username }}</span>
+      <a href="/logout" style="font-size:13px;color:var(--muted)">Sign out</a>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="toolbar">
+      <div>
+        <h1 style="font-size:24px;font-weight:800">FB Posts</h1>
+        <p style="font-size:13px;color:var(--muted)">Facebook job posts via Graph API. Toggle ON to enable, then scan.</p>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <a href="/fb_posts?toggle={{ 'off' if fb_enabled else 'on' }}&days={{ active_days }}&role={{ active_role }}" class="toggle-wrap" title="Toggle FB post search">
+          <div class="toggle-track {{ 'on' if fb_enabled else '' }}"></div>
+          <span style="font-size:13px;font-weight:500">{{ 'ON' if fb_enabled else 'OFF' }}</span>
+        </a>
+        <button class="btn btn-primary btn-sm" onclick="scanNow()">Scan now</button>
+      </div>
+    </div>
+
+    {% if not fb_enabled %}
+    <div class="card" style="background:var(--orange-bg);border-color:var(--orange);text-align:center">
+      <p style="font-weight:600;color:var(--orange)">FB Post Search is OFF</p>
+      <p style="font-size:13px;color:var(--muted);margin-top:4px">Toggle ON above, then click Scan to fetch recent Facebook job posts.</p>
+    </div>
+    {% endif %}
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
+      <div class="card" style="padding:12px 16px;flex:1;min-width:260px">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Posted</div>
+        <div class="filter-list">
+          {% for val, label in fb_days_options %}
+          <a class="filter-pill {{ 'active' if active_days == val }}" href="/fb_posts?days={{ val }}{% if active_role %}&role={{ active_role }}{% endif %}">{{ label }}</a>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="card" style="padding:12px 16px;flex:1;min-width:260px">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Role</div>
+        <div class="filter-list">
+          <a class="filter-pill {{ 'active' if not active_role }}" href="/fb_posts?days={{ active_days }}">All</a>
+          {% for r in all_roles[:8] %}
+          <a class="filter-pill {{ 'active' if active_role == r.lower() }}" href="/fb_posts?days={{ active_days }}&role={{ r.lower() }}">{{ r }}</a>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div style="font-size:13px;color:var(--muted);margin-bottom:12px">{{ total }} post{{ 's' if total != 1 else '' }} found</div>
+
+    {% if jobs %}
+      {% for job in jobs %}
+      <div class="job-card">
+        <div class="job-title">
+          <a href="{{ job.posting_url }}" target="_blank" rel="noopener">{{ job.title }}</a>
+          <span class="badge badge-blue" style="margin-left:6px">FB Post</span>
+        </div>
+        <div class="job-meta">
+          {% if job.company %}<span>🏢 {{ job.company }}</span>{% endif %}
+          {% if job.location %}<span>📍 {{ job.location }}</span>{% endif %}
+          {% if job.posted_date %}<span>📅 {{ job.posted_date.strftime('%b %d, %Y') }}</span>{% endif %}
+          {% if job.role %}<span class="badge badge-green">{{ job.role }}</span>{% endif %}
+        </div>
+        {% if job.snippet %}
+        <div class="job-snippet">{{ job.snippet[:300] }}{% if job.snippet|length > 300 %}...{% endif %}</div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty">
+        <h3>No Facebook posts found</h3>
+        {% if not fb_enabled %}
+          <p>Enable the toggle above, then click Scan.</p>
+        {% elif total == 0 %}
+          <p>No posts match the current filters. Try "Any time" or a different role.</p>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+
+  <script>
+    function toggleTheme() {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme');
+      html.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+      localStorage.setItem('theme', html.getAttribute('data-theme'));
+    }
+    (function() {
+      const saved = localStorage.getItem('theme');
+      if (saved) document.documentElement.setAttribute('data-theme', saved);
+    })();
+
+    async function scanNow() {
+      const btn = event.target;
+      btn.disabled = true;
+      btn.textContent = 'Scanning...';
+      try {
+        const r = await fetch('/api/fb_posts/scan', {method: 'POST'});
+        const d = await r.json();
+        if (d.started) {
+          btn.textContent = 'Scan started!';
+          setTimeout(() => location.reload(), 3000);
+        } else {
+          btn.textContent = 'Scan already running';
+          setTimeout(() => { btn.textContent = 'Scan now'; btn.disabled = false; }, 2000);
+        }
+      } catch(e) {
+        btn.textContent = 'Error';
+        setTimeout(() => { btn.textContent = 'Scan now'; btn.disabled = false; }, 2000);
+      }
+    }
+  </script>
+</body>
+</html>

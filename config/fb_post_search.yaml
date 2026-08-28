@@ -1,4 +1,4 @@
-# Facebook Graph API — fetch job posts from specific FB pages in Bangladesh.
+# Facebook Graph API — fetch posts from specific FB pages in Bangladesh.
 # Toggle persisted in DB via fb_post_search_enabled setting.
 # Token: FACEBOOK_ACCESS_TOKEN env var.
 
@@ -9,10 +9,6 @@ enabled: true
 max_age_days: 3
 
 # Specific Facebook pages/groups to fetch posts from.
-# Extract page IDs from URLs:
-#   - https://www.facebook.com/share/g/17ntbcEs55/ → group
-#   - https://www.facebook.com/profile.php?id=61583966924591 → page
-#   - https://www.facebook.com/thecvguy.net → page
 pages:
   - id: "61583966924591"
     name: "BD Jobs Circular"
@@ -23,43 +19,15 @@ pages:
   - id: "17ntbcEs55"
     name: "BD Tech Jobs"
     type: "group"
+  - id: "careerzonebangladesh"
+    name: "Career Zone Bangladesh"
+    type: "page"
 
-# Job search keywords to filter posts
-job_keywords:
-  - "hiring"
-  - "vacancy"
-  - "job"
-  - "career"
-  - "apply"
-  - "opening"
-  - "we are hiring"
-  - "join our team"
-  - "position"
-  - "recruitment"
-  - "software engineer"
-  - "developer"
-  - "web developer"
-  - "data analyst"
-  - "devops"
-  - "frontend"
-  - "backend"
-  - "full stack"
-  - "mobile developer"
-  - "ai engineer"
-  - "ml engineer"
-  - "qa engineer"
-  - "it executive"
+# No keyword filter — show ALL posts from configured pages
+job_keywords: []
 
-# Location keywords to filter BD posts
-location_keywords:
-  - "dhaka"
-  - "chittagong"
-  - "chattogram"
-  - "sylhet"
-  - "rajshahi"
-  - "khulna"
-  - "bangladesh"
-  - "bd"
+# No location filter — show all posts
+location_keywords: []
 
 # Limits
 posts_per_page: 25

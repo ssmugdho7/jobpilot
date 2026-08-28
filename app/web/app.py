@@ -602,11 +602,10 @@ FB_DAYS_OPTIONS = [("0", "Any time"), ("1", "Last 1 day"), ("3", "Last 3 days"),
 @app.route("/fb_posts")
 @login_required
 def fb_posts():
-    """Dedicated page for Facebook post search jobs."""
+    """Dedicated page for Facebook posts from configured pages."""
     user_id = session["user_id"]
 
     days = request.args.get("days", "0")
-    role_filter = request.args.get("role", "").strip().lower()
     try:
         days_int = int(days)
     except ValueError:
@@ -623,14 +622,12 @@ def fb_posts():
         toggle = request.args.get("toggle")
         if toggle in ("on", "off"):
             set_setting("fb_post_search_enabled", "true" if toggle == "on" else "false")
-            return redirect(url_for("fb_posts", days=days_int or "", role=role_filter))
+            return redirect(url_for("fb_posts", days=days_int or ""))
 
         fb_enabled = is_fb_post_search_enabled()
 
         # Build query
         q = db_session.query(Job).filter(func.lower(Job.source_site) == "facebook_graph_api")
-        if role_filter:
-            q = q.filter(Job.role == role_filter)
         if cutoff is not None:
             q = q.filter(Job.posted_date >= cutoff)
 
@@ -646,18 +643,13 @@ def fb_posts():
             job.snippet = cleaned_snippet
             job.early_applicant = early_text
 
-        search_cfg = load_search_config()
-        all_roles = search_cfg.get("roles", []) + search_cfg.get("custom_roles", [])
-
         return render_template(
             "fb_jobs.html",
             jobs=jobs,
             total=total,
             active_days=str(days_int),
-            active_role=role_filter,
             fb_enabled=fb_enabled,
             fb_days_options=FB_DAYS_OPTIONS,
-            all_roles=all_roles,
             username=session.get("username"),
         )
     finally:

@@ -132,17 +132,8 @@ def fetch_fb_posts(verbose: bool = True) -> list[dict[str, Any]]:
             print("  [fb_graph] no pages configured")
         return []
 
-    job_keywords = cfg.get("job_keywords") or [
-        "hiring", "vacancy", "job", "career", "apply", "opening",
-        "we are hiring", "join our team", "position", "recruitment",
-        "software engineer", "developer", "web developer", "data analyst",
-        "devops", "frontend", "backend", "full stack", "mobile developer",
-        "ai engineer", "ml engineer", "qa engineer", "it executive",
-    ]
-    location_keywords = cfg.get("location_keywords") or [
-        "dhaka", "chittagong", "chattogram", "sylhet", "rajshahi", "khulna",
-        "bangladesh", "bd",
-    ]
+    job_keywords = cfg.get("job_keywords") or []
+    location_keywords = cfg.get("location_keywords") or []
     max_age_days = int(cfg.get("max_age_days", 3))
     posts_per_page = int(cfg.get("posts_per_page", 25))
     since = datetime.now(timezone.utc) - timedelta(days=max_age_days)
@@ -175,10 +166,12 @@ def fetch_fb_posts(verbose: bool = True) -> list[dict[str, Any]]:
             if not post_id or post_id in seen_post_ids:
                 continue
 
-            if not _is_job_post(message, job_keywords):
+            # Skip keyword filter if empty list
+            if job_keywords and not _is_job_post(message, job_keywords):
                 continue
 
-            if not _has_bd_location(message, location_keywords):
+            # Skip location filter if empty list
+            if location_keywords and not _has_bd_location(message, location_keywords):
                 continue
 
             # Build posting URL

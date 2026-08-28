@@ -90,10 +90,10 @@
     <div class="toolbar">
       <div>
         <h1 style="font-size:24px;font-weight:800">FB Posts</h1>
-        <p style="font-size:13px;color:var(--muted)">Facebook job posts via Graph API. Toggle ON to enable, then scan.</p>
+        <p style="font-size:13px;color:var(--muted)">Posts from configured Facebook pages. Toggle ON to enable, then scan.</p>
       </div>
       <div style="display:flex;gap:8px;align-items:center">
-        <a href="/fb_posts?toggle={{ 'off' if fb_enabled else 'on' }}&days={{ active_days }}&role={{ active_role }}" class="toggle-wrap" title="Toggle FB post search">
+        <a href="/fb_posts?toggle={{ 'off' if fb_enabled else 'on' }}&days={{ active_days }}" class="toggle-wrap" title="Toggle FB posts">
           <div class="toggle-track {{ 'on' if fb_enabled else '' }}"></div>
           <span style="font-size:13px;font-weight:500">{{ 'ON' if fb_enabled else 'OFF' }}</span>
         </a>
@@ -103,8 +103,8 @@
 
     {% if not fb_enabled %}
     <div class="card" style="background:var(--orange-bg);border-color:var(--orange);text-align:center">
-      <p style="font-weight:600;color:var(--orange)">FB Post Search is OFF</p>
-      <p style="font-size:13px;color:var(--muted);margin-top:4px">Toggle ON above, then click Scan to fetch recent Facebook job posts.</p>
+      <p style="font-weight:600;color:var(--orange)">FB Posts is OFF</p>
+      <p style="font-size:13px;color:var(--muted);margin-top:4px">Toggle ON above, then click Scan to fetch recent posts.</p>
     </div>
     {% endif %}
 
@@ -113,16 +113,7 @@
         <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Posted</div>
         <div class="filter-list">
           {% for val, label in fb_days_options %}
-          <a class="filter-pill {{ 'active' if active_days == val }}" href="/fb_posts?days={{ val }}{% if active_role %}&role={{ active_role }}{% endif %}">{{ label }}</a>
-          {% endfor %}
-        </div>
-      </div>
-      <div class="card" style="padding:12px 16px;flex:1;min-width:260px">
-        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Role</div>
-        <div class="filter-list">
-          <a class="filter-pill {{ 'active' if not active_role }}" href="/fb_posts?days={{ active_days }}">All</a>
-          {% for r in all_roles[:8] %}
-          <a class="filter-pill {{ 'active' if active_role == r.lower() }}" href="/fb_posts?days={{ active_days }}&role={{ r.lower() }}">{{ r }}</a>
+          <a class="filter-pill {{ 'active' if active_days == val }}" href="/fb_posts?days={{ val }}">{{ label }}</a>
           {% endfor %}
         </div>
       </div>
@@ -141,7 +132,6 @@
           {% if job.company %}<span>🏢 {{ job.company }}</span>{% endif %}
           {% if job.location %}<span>📍 {{ job.location }}</span>{% endif %}
           {% if job.posted_date %}<span>📅 {{ job.posted_date.strftime('%b %d, %Y') }}</span>{% endif %}
-          {% if job.role %}<span class="badge badge-green">{{ job.role }}</span>{% endif %}
         </div>
         {% if job.snippet %}
         <div class="job-snippet">{{ job.snippet[:300] }}{% if job.snippet|length > 300 %}...{% endif %}</div>
@@ -154,7 +144,7 @@
         {% if not fb_enabled %}
           <p>Enable the toggle above, then click Scan.</p>
         {% elif total == 0 %}
-          <p>No posts match the current filters. Try "Any time" or a different role.</p>
+          <p>No posts found. Try "Any time" or click Scan.</p>
         {% endif %}
       </div>
     {% endif %}

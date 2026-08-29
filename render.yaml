@@ -7,6 +7,13 @@ services:
     dockerfilePath: Dockerfile
     envVars:
       - key: PORT
-        value: 8080
+        sync: false
+        value: "8080"
       - key: GEMINI_MODEL
-        value: gemini-3.5-flash-preview
+        value: gemini-3.7-flash
+      - key: GEMINI_API_KEYS
+        sync: false
+      - key: SECRET_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false

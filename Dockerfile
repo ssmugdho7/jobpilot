@@ -14,6 +14,6 @@ RUN chmod +x start.sh
 
 ENV PORT=8080
 
-EXPOSE 8080
+EXPOSE ${PORT}
 
 CMD ["./start.sh"]

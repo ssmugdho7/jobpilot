@@ -596,6 +596,57 @@ def learning():
     return render_template("learning.html", topic=topic, all_topics=TOPICS, username=session.get("username"))
 
 
+@app.route("/applications")
+@login_required
+def applications():
+    """Applications page — shows all jobs (regular + remote) the user has interacted with."""
+    user_id = session["user_id"]
+    status_filter = request.args.get("status", "all").strip()
+    source_filter = request.args.get("source", "all").strip()
+
+    db_session = SessionLocal()
+    try:
+        q = db_session.query(Job).join(UserJob, UserJob.job_id == Job.id).filter(UserJob.user_id == user_id)
+
+        if status_filter in ("applied", "dismissed", "new"):
+            q = q.filter(UserJob.status == status_filter)
+
+        if source_filter == "remote":
+            q = q.filter(func.lower(Job.source_site) == "remote_jobs")
+        elif source_filter == "regular":
+            q = q.filter(func.lower(Job.source_site) != "remote_jobs")
+
+        jobs = q.order_by(Job.posted_date.desc()).all()
+
+        # Attach user job status
+        user_jobs_map = {}
+        ujs = db_session.query(UserJob).filter(UserJob.user_id == user_id).all()
+        for uj in ujs:
+            user_jobs_map[uj.job_id] = uj.status
+
+        for job in jobs:
+            job.user_status = user_jobs_map.get(job.id, "new")
+
+        # Counts
+        all_uj = db_session.query(UserJob).filter(UserJob.user_id == user_id).all()
+        applied_count = sum(1 for u in all_uj if u.status == "applied")
+        dismissed_count = sum(1 for u in all_uj if u.status == "dismissed")
+        saved_count = sum(1 for u in all_uj if u.status == "new")
+
+        return render_template(
+            "applications.html",
+            jobs=jobs,
+            applied_count=applied_count,
+            dismissed_count=dismissed_count,
+            saved_count=saved_count,
+            active_status=status_filter,
+            active_source=source_filter,
+            username=session.get("username"),
+        )
+    finally:
+        db_session.close()
+
+
 REMOTE_DAYS_OPTIONS = [
     ("0", "Any time"),
     ("7", "Last 1 week"),

@@ -57,24 +57,6 @@ BD_KEYWORDS = [
     "rajshahi", "khulna", "barishal", "barisal", "rangpur", "mymensingh",
 ]
 
-# Onsite/hybrid keywords that indicate non-remote
-ONSITE_KEYWORDS = [
-    "onsite", "on-site", "in-office", "in office", "hybrid",
-    "relocation required", "must relocate",
-]
-
-# Location exclusion - areas that are NOT Bangladesh
-LOCATION_EXCLUSIONS = [
-    "san francisco", "new york", "los angeles", "seattle", "boston",
-    "chicago", "austin", "denver", "miami", "atlanta", "dallas",
-    "london", "manchester", "berlin", "munich", "amsterdam", "paris",
-    "tokyo", "singapore", "sydney", "melbourne", "toronto", "vancouver",
-    "dubai", "abu dhabi", "riyadh", "jeddah",
-    "bangalore", "bengaluru", "mumbai", "delhi", "hyderabad", "pune",
-    "chennai", "coimbatore",
-]
-
-
 def _headers() -> dict:
     import random
     return {
@@ -94,15 +76,6 @@ def _is_bangladesh_location(location: str, snippet: str = "") -> bool:
     """Check if job is specifically for Bangladesh."""
     text = f"{location} {snippet}".lower()
     return any(kw in text for kw in BD_KEYWORDS)
-
-
-def _is_onsite_not_bd(location: str, snippet: str = "") -> bool:
-    """Check if job is onsite/hybrid and NOT for Bangladesh."""
-    text = f"{location} {snippet}".lower()
-    is_onsite = any(kw in text for kw in ONSITE_KEYWORDS)
-    is_bd = any(kw in text for kw in BD_KEYWORDS)
-    has_exclusion = any(kw in text for kw in LOCATION_EXCLUSIONS)
-    return is_onsite and not is_bd and has_exclusion
 
 
 def _clean_text(text: str) -> str:
@@ -199,8 +172,6 @@ def _scrape_greenhouse(board_token: str, company_name: str) -> list[dict]:
             snippet = _clean_text(job.get("description", "")[:300])
             if not _is_tech_job(title, snippet):
                 continue
-            if _is_onsite_not_bd(location, snippet):
-                continue
             is_bd = _is_bangladesh_location(location, snippet)
             posted = job.get("updated_at") or job.get("posted_at")
             posted_date = None
@@ -245,8 +216,6 @@ def _scrape_lever(slug: str, company_name: str) -> list[dict]:
             snippet = _clean_text(job.get("descriptionPlain", "")[:300])
             full_text = f"{title} {team} {department} {snippet}"
             if not _is_tech_job(title, full_text):
-                continue
-            if _is_onsite_not_bd(location, snippet):
                 continue
             is_bd = _is_bangladesh_location(location, snippet)
             posted = job.get("createdAt")
@@ -295,8 +264,6 @@ def _scrape_ashby(slug: str, company_name: str) -> list[dict]:
                 url = f"https://jobs.ashbyhq.com/{slug}/{job.get('id', '')}"
                 snippet = _clean_text(BeautifulSoup(job.get("descriptionHtml", ""), "html.parser").get_text()[:300])
                 if not _is_tech_job(title, snippet):
-                    continue
-                if _is_onsite_not_bd(location, snippet):
                     continue
                 is_bd = _is_bangladesh_location(location, snippet)
                 posted = job.get("createdAt")
@@ -354,8 +321,6 @@ def _scrape_html_careers(url: str, company_name: str) -> list[dict]:
                     if loc_elem:
                         location = loc_elem.get_text(strip=True)
                 snippet = _clean_text(parent.get_text()[:300]) if parent else text
-                if _is_onsite_not_bd(location, snippet):
-                    continue
                 is_bd = _is_bangladesh_location(location, snippet)
                 jobs.append({
                     "title": text[:150],
@@ -390,8 +355,6 @@ def _scrape_smartrecruiters(company_slug: str, company_name: str) -> list[dict]:
             url = job.get("ref", "")
             snippet = _clean_text(job.get("JobPosting", {}).get("description", "")[:300])
             if not _is_tech_job(title, snippet):
-                continue
-            if _is_onsite_not_bd(location, snippet):
                 continue
             is_bd = _is_bangladesh_location(location, snippet)
             posted = job.get("releasedDate")
@@ -448,8 +411,8 @@ REMOTE_PLATFORMS = [
     },
     {
         "name": "SuperAnnotate",
-        "type": "html",
-        "url": "https://www.superannotate.com/careers",
+        "type": "lever",
+        "slug": "superannotate",
     },
     {
         "name": "Toptal",

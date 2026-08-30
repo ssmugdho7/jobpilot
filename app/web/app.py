@@ -235,7 +235,7 @@ def dashboard():
 
     db_session = SessionLocal()
     try:
-        q = db_session.query(Job)
+        q = db_session.query(Job).filter(func.lower(Job.source_site) != "remote_jobs")
         if role_filter:
             q = q.filter(Job.role == role_filter)
         if exp_filter and exp_filter in ("fresher", "2y", "3y", "3y_plus"):
@@ -349,7 +349,7 @@ def dashboard():
 
 
 def _status_counts(db_session, user_id, cutoff, role_filter="", exp_filter="") -> dict:
-    base_q = db_session.query(Job).filter((Job.posted_date.is_(None)) | (Job.posted_date >= cutoff))
+    base_q = db_session.query(Job).filter(func.lower(Job.source_site) != "remote_jobs", (Job.posted_date.is_(None)) | (Job.posted_date >= cutoff))
     if role_filter:
         base_q = base_q.filter(Job.role == role_filter)
     if exp_filter and exp_filter in ("fresher", "2y", "3y", "3y_plus"):

@@ -13,9 +13,9 @@ from app.cv.parse import extract_email
 from app.config import load_search_config
 
 try:
-    from app.scrapers.fb_graph_api import fetch_fb_posts
+    from app.scrapers.remote_jobs import fetch_remote_jobs
 except Exception:
-    fetch_fb_posts = None  # type: ignore
+    fetch_remote_jobs = None  # type: ignore
 
 _scan_lock = threading.Lock()
 _scan_running = False
@@ -105,43 +105,21 @@ def run_scan(verbose: bool = True) -> int:
         if verbose:
             print(f"  [sources] fetch failed: {e}")
 
-    # Facebook Graph API (opt-in, disabled by default)
-    if fetch_fb_posts is not None:
+    # Remote Jobs (international remote positions)
+    if fetch_remote_jobs is not None:
         try:
-            from app.db import is_fb_post_search_enabled
-            if is_fb_post_search_enabled():
-                fb_jobs = fetch_fb_posts(verbose=verbose)
-                if fb_jobs:
-                    if verbose:
-                        print(f"  [fb_graph] collected {len(fb_jobs)} jobs")
-                    raw_jobs.extend(fb_jobs)
-            else:
+            remote_jobs = fetch_remote_jobs(verbose=verbose)
+            if remote_jobs:
                 if verbose:
-                    print("  [fb_graph] disabled — skipping")
+                    print(f"  [remote_jobs] collected {len(remote_jobs)} jobs")
+                raw_jobs.extend(remote_jobs)
         except Exception as e:
             if verbose:
-                print(f"  [fb_graph] fetch failed: {e}")
+                print(f"  [remote_jobs] fetch failed: {e}")
 
     cutoff = datetime.utcnow() - timedelta(days=max_age_days)
 
     session = SessionLocal()
-
-    # Cleanup: delete stale FB posts older than max_age_days
-    try:
-        from app.config import load_fb_post_search_config
-        fb_cfg = load_fb_post_search_config()
-        fb_max_age = int(fb_cfg.get("max_age_days", 3))
-        fb_cutoff = datetime.utcnow() - timedelta(days=fb_max_age)
-        deleted = session.query(Job).filter(
-            func.lower(Job.source_site) == "facebook_graph_api",
-            func.coalesce(Job.posted_date, Job.created_at) < fb_cutoff,
-        ).delete(synchronize_session="fetch")
-        if deleted and verbose:
-            print(f"  [fb_graph] cleaned up {deleted} stale posts (older than {fb_max_age} days)")
-        session.flush()
-    except Exception as e:
-        if verbose:
-            print(f"  [fb_graph] cleanup failed: {e}")
 
     p_dict = {"skills": []}
 

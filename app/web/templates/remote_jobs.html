@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Remote Jobs — JobPilot</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root, [data-theme="light"] {
+      --blue: #2563eb; --blue-dark: #1d4ed8; --blue-light: #dbeafe;
+      --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0;
+      --text: #0f172a; --muted: #64748b; --snippet: #475569;
+      --green: #16a34a; --green-bg: #f0fdf4; --green-light: #dcfce7;
+      --red: #dc2626; --red-bg: #fef2f2;
+      --orange: #ea580c; --orange-bg: #fff7ed;
+      --radius: 12px; --radius-sm: 8px;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,.05);
+      --shadow: 0 1px 3px rgba(0,0,0,.1), 0 1px 2px rgba(0,0,0,.06);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,.1), 0 2px 4px -2px rgba(0,0,0,.1);
+    }
+    [data-theme="dark"] {
+      --blue: #60a5fa; --blue-dark: #93bbfd; --blue-light: #1e3a5f;
+      --bg: #0f172a; --card: #1e293b; --border: #334155;
+      --text: #f1f5f9; --muted: #94a3b8; --snippet: #cbd5e1;
+      --green: #4ade80; --green-bg: #052e16; --green-light: #14532d;
+      --red: #f87171; --red-bg: #450a0a;
+      --orange: #fb923c; --orange-bg: #431407;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,.3);
+      --shadow: 0 1px 3px rgba(0,0,0,.4); --shadow-md: 0 4px 6px rgba(0,0,0,.4);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; -webkit-font-smoothing: antialiased; }
+    a { color: var(--blue); text-decoration: none; }
+
+    /* ── Header ── */
+    .header { background: rgba(255,255,255,.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 20px; height: 60px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+    [data-theme="dark"] .header { background: rgba(15,23,42,.85); }
+    .logo { font-size: 20px; font-weight: 800; color: var(--blue); letter-spacing: -.5px; flex-shrink: 0; }
+    .logo span { color: var(--text); }
+    .header-right { display: flex; align-items: center; gap: 6px; }
+    .nav { display: flex; align-items: center; gap: 2px; overflow-x: auto; scrollbar-width: none; }
+    .nav::-webkit-scrollbar { display: none; }
+    .nav a { padding: 8px 14px; border-radius: var(--radius-sm); font-size: 14px; color: var(--muted); font-weight: 500; white-space: nowrap; transition: all .15s; }
+    .nav a:hover { background: var(--bg); color: var(--text); }
+    .nav a.active { color: var(--blue); background: var(--blue-light); }
+    [data-theme="dark"] .nav a.active { background: rgba(96,165,250,.15); }
+    .theme-btn { width: 40px; height: 40px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--card); color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; transition: all .15s; }
+    .theme-btn:hover { color: var(--text); border-color: var(--muted); }
+    .user-pill { display: flex; align-items: center; gap: 8px; margin-left: 8px; padding-left: 12px; border-left: 1px solid var(--border); flex-shrink: 0; }
+    .user-pill .name { font-size: 13px; color: var(--muted); font-weight: 500; max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .user-pill .logout { font-size: 13px; color: var(--muted); padding: 6px 12px; border-radius: var(--radius-sm); font-weight: 500; transition: all .15s; }
+    .user-pill .logout:hover { background: var(--red-bg); color: var(--red); }
+
+    /* ── Mobile hamburger ── */
+    .hamburger { display: none; width: 40px; height: 40px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--card); cursor: pointer; align-items: center; justify-content: center; flex-direction: column; gap: 5px; padding: 10px; flex-shrink: 0; }
+    .hamburger span { display: block; width: 18px; height: 2px; background: var(--text); border-radius: 2px; transition: all .2s; }
+    .mobile-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 200; }
+    .mobile-overlay.open { display: block; }
+    .mobile-drawer { position: absolute; left: 0; top: 0; bottom: 0; width: 300px; background: var(--card); box-shadow: var(--shadow-md); padding: 72px 16px 24px; overflow-y: auto; }
+    .mobile-drawer .drawer-section { margin-bottom: 20px; }
+    .mobile-drawer .drawer-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; padding: 0 12px; margin-bottom: 8px; }
+    .mobile-drawer .drawer-link { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: var(--radius-sm); font-size: 14px; font-weight: 500; color: var(--muted); transition: all .15s; }
+    .mobile-drawer .drawer-link:hover { background: var(--bg); color: var(--blue); }
+    .mobile-drawer .drawer-link.active { background: var(--blue); color: #fff; }
+    .mobile-drawer .drawer-link.drawer-logout { color: var(--red); }
+    .mobile-drawer .drawer-link.drawer-logout:hover { background: var(--red-bg); color: var(--red); }
+    .mobile-drawer .drawer-link .count { font-size: 12px; opacity: .7; }
+    .mobile-drawer-close { position: absolute; top: 16px; right: 16px; width: 40px; height: 40px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--card); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; color: var(--muted); }
+
+    /* ── Main content ── */
+    .main { max-width: 1060px; margin: 0 auto; padding: 32px 24px 80px; }
+
+    /* ── Hero banner ── */
+    .hero { text-align: center; padding: 48px 20px 32px; }
+    .hero h1 { font-size: 32px; font-weight: 800; letter-spacing: -.5px; margin-bottom: 12px; }
+    .hero h1 span { color: var(--blue); }
+    .hero p { font-size: 16px; color: var(--muted); max-width: 560px; margin: 0 auto; line-height: 1.6; }
+    .hero .scan-btn { display: inline-flex; align-items: center; gap: 8px; margin-top: 20px; padding: 12px 28px; border-radius: var(--radius-sm); background: var(--blue); color: #fff; font-size: 14px; font-weight: 600; border: none; cursor: pointer; transition: all .2s; box-shadow: var(--shadow); }
+    .hero .scan-btn:hover { background: var(--blue-dark); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+    .hero .scan-btn:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+    .hero .scan-btn .spinner { display: none; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .6s linear infinite; }
+    .hero .scan-btn.loading .spinner { display: block; }
+    .hero .scan-btn.loading .btn-text { display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Stats bar ── */
+    .stats { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 28px; }
+    .stat-pill { display: flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 20px; background: var(--card); border: 1px solid var(--border); font-size: 13px; font-weight: 500; color: var(--muted); box-shadow: var(--shadow-sm); }
+    .stat-pill .num { color: var(--text); font-weight: 700; }
+
+    /* ── Filter sections ── */
+    .filter-section { margin-bottom: 20px; }
+    .filter-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 8px; }
+    .time-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+    .time-pill { padding: 8px 16px; border-radius: 20px; border: 1px solid var(--border); background: var(--card); font-size: 13px; font-weight: 500; color: var(--muted); cursor: pointer; transition: all .15s; text-decoration: none; white-space: nowrap; }
+    .time-pill:hover { border-color: var(--blue); color: var(--blue); }
+    .time-pill.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+    .filter-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; }
+    .filter-group { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 160px; }
+    .filter-group label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; }
+    .filter-input { padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--card); font-size: 14px; color: var(--text); outline: none; transition: border-color .15s; width: 100%; }
+    .filter-input:focus { border-color: var(--blue); }
+    .filter-select { padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--card); font-size: 14px; color: var(--text); cursor: pointer; outline: none; width: 100%; }
+    .filter-select:focus { border-color: var(--blue); }
+    .bd-toggle { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--card); font-size: 13px; font-weight: 500; color: var(--muted); cursor: pointer; transition: all .15s; white-space: nowrap; height: 42px; }
+    .bd-toggle:hover { border-color: var(--blue); color: var(--blue); }
+    .bd-toggle.active { background: var(--green-bg); border-color: var(--green); color: var(--green); }
+
+    /* ── Role pills (tag-style) ── */
+    .role-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+    .role-pill { padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border); background: var(--card); font-size: 12px; font-weight: 500; color: var(--muted); cursor: pointer; transition: all .15s; text-decoration: none; white-space: nowrap; }
+    .role-pill:hover { border-color: var(--blue); color: var(--blue); }
+    .role-pill.active { background: var(--blue-light); border-color: var(--blue); color: var(--blue); }
+    [data-theme="dark"] .role-pill.active { background: rgba(96,165,250,.15); }
+
+    /* ── Job cards ── */
+    .jobs-list { display: flex; flex-direction: column; gap: 12px; }
+    .job-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow-sm); transition: all .2s; position: relative; }
+    .job-card:hover { box-shadow: var(--shadow); border-color: var(--blue); transform: translateY(-1px); }
+    .job-card .job-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 8px; }
+    .job-card .job-title { font-size: 16px; font-weight: 700; color: var(--text); line-height: 1.3; flex: 1; }
+    .job-card .job-title a { color: inherit; }
+    .job-card .job-title a:hover { color: var(--blue); }
+    .job-card .job-meta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+    .job-card .company { font-size: 14px; font-weight: 600; color: var(--blue); }
+    .job-card .location { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 4px; }
+    .job-card .location::before { content: "📍"; font-size: 12px; }
+    .job-card .exp-badge { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: capitalize; }
+    .job-card .exp-badge.entry { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-light); }
+    .job-card .exp-badge.mid { background: var(--blue-light); color: var(--blue); border: 1px solid var(--blue); }
+    [data-theme="dark"] .job-card .exp-badge.mid { background: rgba(96,165,250,.15); }
+    .job-card .exp-badge.senior { background: var(--orange-bg); color: var(--orange); border: 1px solid var(--orange); }
+    .job-card .exp-badge.lead { background: var(--red-bg); color: var(--red); border: 1px solid var(--red); }
+    .job-card .role-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; }
+    .job-card .role-tag { padding: 2px 8px; border-radius: 10px; background: var(--bg); border: 1px solid var(--border); font-size: 11px; font-weight: 500; color: var(--muted); }
+    .job-card .snippet { font-size: 13px; color: var(--snippet); line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 12px; }
+    .job-card .job-bottom { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .job-card .posted { font-size: 12px; color: var(--muted); }
+    .job-card .apply-btn { padding: 8px 20px; border-radius: var(--radius-sm); background: var(--blue); color: #fff; font-size: 13px; font-weight: 600; border: none; cursor: pointer; transition: all .15s; text-decoration: none; }
+    .job-card .apply-btn:hover { background: var(--blue-dark); transform: translateY(-1px); }
+
+    /* ── BD badge ── */
+    .bd-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 12px; background: var(--green-bg); border: 1px solid var(--green-light); color: var(--green); font-size: 12px; font-weight: 600; white-space: nowrap; flex-shrink: 0; }
+    [data-theme="dark"] .bd-badge { border-color: var(--green); }
+
+    /* ── Empty state ── */
+    .empty { text-align: center; padding: 64px 20px; }
+    .empty .icon { font-size: 48px; margin-bottom: 16px; }
+    .empty h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+    .empty p { font-size: 14px; color: var(--muted); max-width: 400px; margin: 0 auto; }
+
+    /* ── Toast ── */
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); padding: 12px 24px; border-radius: var(--radius-sm); background: var(--text); color: var(--bg); font-size: 14px; font-weight: 500; box-shadow: var(--shadow-md); z-index: 300; opacity: 0; transition: opacity .3s; pointer-events: none; }
+    .toast.show { opacity: 1; }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .nav { display: none; }
+      .hamburger { display: flex; }
+      .user-pill { display: none; }
+      .hero h1 { font-size: 24px; }
+      .hero p { font-size: 14px; }
+      .filter-row { flex-direction: column; }
+      .filter-group { min-width: 100%; }
+      .job-card .job-top { flex-direction: column; }
+      .job-card .job-bottom { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <a href="/" class="logo">Job<span>Pilot</span></a>
+    <div class="header-right">
+      <nav class="nav">
+        <a href="/">Jobs</a>
+        <a href="/remote_jobs" class="active">Remote Jobs</a>
+        <a href="/saved">Saved</a>
+        <a href="/applications">Applications</a>
+        <a href="/learning">Learning</a>
+      </nav>
+      <button class="theme-btn" onclick="toggleTheme()" title="Toggle theme">🌓</button>
+      {% if user %}
+      <div class="user-pill">
+        <span class="name">{{ user.display_name or user.email }}</span>
+        <a href="/logout" class="logout">Logout</a>
+      </div>
+      {% endif %}
+      <button class="hamburger" onclick="toggleDrawer()">☰</button>
+    </div>
+  </header>
+
+  <!-- Mobile drawer -->
+  <div class="mobile-overlay" id="drawerOverlay" onclick="toggleDrawer()"></div>
+  <div class="mobile-drawer" id="drawer">
+    <button class="mobile-drawer-close" onclick="toggleDrawer()">✕</button>
+    <div class="drawer-section">
+      <div class="drawer-label">Menu</div>
+      <a class="drawer-link" href="/">Jobs</a>
+      <a class="drawer-link active" href="/remote_jobs">Remote Jobs</a>
+      <a class="drawer-link" href="/saved">Saved</a>
+      <a class="drawer-link" href="/applications">Applications</a>
+      <a class="drawer-link" href="/learning">Learning</a>
+    </div>
+    {% if user %}
+    <div class="drawer-section">
+      <div class="drawer-label">Account</div>
+      <a class="drawer-link" href="/profile">{{ user.display_name or user.email }}</a>
+      <a class="drawer-link drawer-logout" href="/logout">Logout</a>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Main -->
+  <main class="main">
+    <!-- Hero -->
+    <section class="hero">
+      <h1>Remote <span>Jobs</span></h1>
+      <p>Explore remote tech jobs from 16 international platforms. Filter by time, role, experience, and location.</p>
+      <button class="scan-btn" onclick="scanJobs()" id="scanBtn">
+        <span class="spinner"></span>
+        <span class="btn-text">Scan Remote Jobs</span>
+      </button>
+    </section>
+
+    <!-- Stats -->
+    <div class="stats">
+      <div class="stat-pill">Total: <span class="num" id="totalCount">{{ total }}</span></div>
+      <div class="stat-pill">Showing: <span class="num" id="visibleCount">{{ jobs|length }}</span></div>
+    </div>
+
+    <!-- Time period filter -->
+    <div class="filter-section">
+      <div class="filter-label">Posted Within</div>
+      <div class="time-pills">
+        {% for val, label in remote_days_options %}
+        <a class="time-pill {{ 'active' if active_days == val }}" href="/remote_jobs?days={{ val }}&role={{ active_role }}&experience={{ active_exp }}&company={{ active_company }}">{{ label }}</a>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Role filter -->
+    <div class="filter-section">
+      <div class="filter-label">Job Role</div>
+      <div class="role-pills">
+        <a class="role-pill {{ 'active' if not active_role }}" href="/remote_jobs?days={{ active_days }}&role=&experience={{ active_exp }}&company={{ active_company }}">All Roles</a>
+        {% for role in all_roles %}
+        <a class="role-pill {{ 'active' if active_role == role }}" href="/remote_jobs?days={{ active_days }}&role={{ role }}&experience={{ active_exp }}&company={{ active_company }}">{{ role|replace('_', ' ')|title }}</a>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Filters row -->
+    <div class="filter-row" style="margin-bottom: 24px;">
+      <div class="filter-group" style="flex:2;">
+        <label>Search</label>
+        <input class="filter-input" type="text" id="searchInput" placeholder="Search jobs by title, company, or keyword..." oninput="filterJobs()">
+      </div>
+      <div class="filter-group" style="flex:1;">
+        <label>Experience</label>
+        <select class="filter-select" id="expFilter" onchange="filterJobs()">
+          <option value="">All Levels</option>
+          {% for exp in all_exps %}
+          <option value="{{ exp }}" {{ 'selected' if active_exp == exp }}>{{ exp|title }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="filter-group" style="flex:1;">
+        <label>Company</label>
+        <select class="filter-select" id="companyFilter" onchange="filterJobs()">
+          <option value="">All Companies</option>
+          {% for company in companies %}
+          <option value="{{ company }}" {{ 'selected' if active_company == company }}>{{ company }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="filter-group" style="flex:0;">
+        <label>&nbsp;</label>
+        <button class="bd-toggle" id="bdToggle" onclick="toggleBD()">🇧🇩 BD Only</button>
+      </div>
+    </div>
+
+    <!-- Job list -->
+    <div class="jobs-list" id="jobsList">
+      {% for job in jobs %}
+      <div class="job-card"
+           data-company="{{ job.company }}"
+           data-bd="{{ job._is_bd_remote }}"
+           data-date="{{ job.posted_date.isoformat() if job.posted_date else '' }}"
+           data-roles="{{ job.role_tags_json }}"
+           data-exp="{{ job.experience_level or 'mid' }}"
+           data-title="{{ (job.title or '')|lower }}"
+           data-snippet="{{ (job.snippet or '')|lower }}">
+        <div class="job-top">
+          <div class="job-title">
+            <a href="{{ job.posting_url }}" target="_blank" rel="noopener">{{ job.title }}</a>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
+            {% if job.experience_level %}
+            <span class="exp-badge {{ job.experience_level }}">{{ job.experience_level }}</span>
+            {% endif %}
+            {% if job._is_bd_remote %}
+            <span class="bd-badge">🇧🇩 BD</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="job-meta">
+          <span class="company">{{ job.company }}</span>
+          {% if job.location %}
+          <span class="location">{{ job.location }}</span>
+          {% endif %}
+        </div>
+        {% if job.role_tags_json %}
+        <div class="role-tags">
+          {% for tag in job.role_tags_json.split(',') %}
+          <span class="role-tag">{{ tag|replace('_', ' ') }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% if job.snippet %}
+        <div class="snippet">{{ job.snippet }}</div>
+        {% endif %}
+        <div class="job-bottom">
+          <span class="posted">{{ job.posted_date.strftime('%b %d, %Y') if job.posted_date else '' }}</span>
+          <a class="apply-btn" href="{{ job.posting_url }}" target="_blank" rel="noopener">Apply →</a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Empty state -->
+    <div class="empty" id="emptyState" style="display: {{ 'none' if jobs else 'block' }}">
+      <div class="icon">🔍</div>
+      <h3>No remote jobs found</h3>
+      <p>Click "Scan Remote Jobs" to fetch the latest listings, or adjust your filters.</p>
+    </div>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // Theme
+    (function() {
+      const saved = localStorage.getItem('theme');
+      if (saved) document.documentElement.setAttribute('data-theme', saved);
+    })();
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme');
+      const next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+    }
+
+    // Drawer
+    function toggleDrawer() {
+      document.getElementById('drawerOverlay').classList.toggle('open');
+    }
+
+    // Toast
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    // Scan
+    async function scanJobs() {
+      const btn = document.getElementById('scanBtn');
+      btn.classList.add('loading');
+      btn.disabled = true;
+      try {
+        const res = await fetch('/api/remote_jobs/scan', { method: 'POST' });
+        const data = await res.json();
+        if (data.ok) {
+          showToast(`Scan started — results will appear shortly`);
+          setTimeout(() => location.reload(), 5000);
+        } else {
+          showToast(data.error || 'Scan failed');
+        }
+      } catch (e) {
+        showToast('Network error');
+      } finally {
+        btn.classList.remove('loading');
+        btn.disabled = false;
+      }
+    }
+
+    // BD toggle
+    let bdOnly = false;
+    function toggleBD() {
+      bdOnly = !bdOnly;
+      document.getElementById('bdToggle').classList.toggle('active', bdOnly);
+      filterJobs();
+    }
+
+    // Filter jobs (client-side for search, role, exp, company, BD)
+    function filterJobs() {
+      const query = document.getElementById('searchInput').value.toLowerCase();
+      const exp = document.getElementById('expFilter').value;
+      const company = document.getElementById('companyFilter').value;
+      const cards = document.querySelectorAll('.job-card');
+      let visible = 0;
+
+      cards.forEach(c => {
+        const title = c.dataset.title || '';
+        const snippet = c.dataset.snippet || '';
+        const comp = c.dataset.company || '';
+        const isBD = c.dataset.bd === 'True';
+        const cExp = c.dataset.exp || '';
+        const roles = (c.dataset.roles || '').split(',');
+
+        const matchSearch = !query || title.includes(query) || snippet.includes(query) || comp.toLowerCase().includes(query);
+        const matchExp = !exp || cExp === exp;
+        const matchCompany = !company || comp === company;
+        const matchBD = !bdOnly || isBD;
+
+        // Role filter is handled server-side via URL param
+        const show = matchSearch && matchExp && matchCompany && matchBD;
+        c.style.display = show ? '' : 'none';
+        if (show) visible++;
+      });
+
+      document.getElementById('visibleCount').textContent = visible;
+      document.getElementById('emptyState').style.display = visible ? 'none' : 'block';
+    }
+  </script>
+</body>
+</html>

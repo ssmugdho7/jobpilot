@@ -596,13 +596,19 @@ def learning():
     return render_template("learning.html", topic=topic, all_topics=TOPICS, username=session.get("username"))
 
 
-FB_DAYS_OPTIONS = [("0", "Any time"), ("1", "Last 1 day"), ("3", "Last 3 days"), ("7", "1 week")]
+REMOTE_DAYS_OPTIONS = [
+    ("0", "Any time"),
+    ("7", "Last 1 week"),
+    ("14", "Last 2 weeks"),
+    ("30", "Last 1 month"),
+    ("60", "Last 2 months"),
+]
 
 
-@app.route("/fb_posts")
+@app.route("/remote_jobs")
 @login_required
-def fb_posts():
-    """Dedicated page for Facebook posts from configured pages."""
+def remote_jobs():
+    """Remote jobs page — international positions from top platforms."""
     user_id = session["user_id"]
 
     days = request.args.get("days", "0")
@@ -610,93 +616,72 @@ def fb_posts():
         days_int = int(days)
     except ValueError:
         days_int = 0
-    if days_int not in (0, 1, 3, 7):
+    if days_int not in (0, 7, 14, 30, 60):
         days_int = 0
     cutoff = datetime.utcnow() - timedelta(days=days_int) if days_int else None
 
+    role_filter = request.args.get("role", "").strip()
+    exp_filter = request.args.get("experience", "").strip()
+    company_filter = request.args.get("company", "").strip()
+
     db_session = SessionLocal()
     try:
-        from app.db import is_fb_post_search_enabled, get_setting, set_setting
-
-        # Toggle handling
-        toggle = request.args.get("toggle")
-        if toggle in ("on", "off"):
-            set_setting("fb_post_search_enabled", "true" if toggle == "on" else "false")
-            return redirect(url_for("fb_posts", days=days_int or ""))
-
-        fb_enabled = is_fb_post_search_enabled()
-
-        # Build query
-        q = db_session.query(Job).filter(func.lower(Job.source_site) == "facebook_graph_api")
+        q = db_session.query(Job).filter(func.lower(Job.source_site) == "remote_jobs")
         if cutoff is not None:
             q = q.filter(Job.posted_date >= cutoff)
 
         total = q.count()
-        jobs = q.order_by(Job.posted_date.desc()).limit(50).all()
+        jobs = q.order_by(Job.posted_date.desc()).limit(100).all()
 
-        # Enrich jobs
         profile = get_or_create_profile(user_id, db_session)
         p_dict = profile_to_dict(profile)
+
+        companies = set()
+        all_roles = set()
+        all_exps = set()
         for job in jobs:
             job.user_relevance = _user_relevance_score(p_dict.get("skills", []), job)
             cleaned_snippet, early_text = _extract_early_applicant(job)
             job.snippet = cleaned_snippet
             job.early_applicant = early_text
+            companies.add(job.company or "")
+            # Extract role tags and experience from snippet/title
+            from app.scrapers.remote_jobs import _extract_role_tags, _extract_experience_level
+            full_text = f"{job.title or ''} {cleaned_snippet}"
+            role_tags = _extract_role_tags(job.title or "", cleaned_snippet)
+            exp_level = _extract_experience_level(job.title or "", cleaned_snippet)
+            job.role_tags_json = ",".join(role_tags)
+            job.experience_level = exp_level
+            all_roles.update(role_tags)
+            all_exps.add(exp_level)
 
         return render_template(
-            "fb_jobs.html",
+            "remote_jobs.html",
             jobs=jobs,
             total=total,
             active_days=str(days_int),
-            fb_enabled=fb_enabled,
-            fb_days_options=FB_DAYS_OPTIONS,
+            remote_days_options=REMOTE_DAYS_OPTIONS,
+            companies=sorted(companies - {""}),
+            all_roles=sorted(all_roles),
+            all_exps=sorted(all_exps),
+            active_role=role_filter,
+            active_exp=exp_filter,
+            active_company=company_filter,
             username=session.get("username"),
         )
     finally:
         db_session.close()
 
 
-@app.route("/api/fb_posts/scan", methods=["POST"])
+@app.route("/api/remote_jobs/scan", methods=["POST"])
 @login_required
-def api_fb_scan():
-    """Trigger a Facebook post search scan."""
+def api_remote_scan():
+    """Trigger a remote jobs scan."""
     from app.pipeline import run_scan_async
     started = run_scan_async()
     if not started:
         return jsonify({"ok": True, "started": False, "error": "scan already running"}), 202
     return jsonify({"ok": True, "started": True})
-
-
-@app.route("/api/settings/fb_post_search", methods=["GET"])
-@login_required
-def api_get_fb_post_search():
-    try:
-        from app.db import is_fb_post_search_enabled
-        from app.config import load_fb_post_search_config
-        cfg = load_fb_post_search_config()
-        return jsonify({
-            "enabled": is_fb_post_search_enabled(),
-            "queries": cfg.get("search_queries") or [],
-        })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route("/api/settings/fb_post_search", methods=["POST"])
-@login_required
-def api_set_fb_post_search():
-    data = request.get_json(silent=True) or {}
-    enabled_raw = data.get("enabled")
-    if isinstance(enabled_raw, bool):
-        enabled = enabled_raw
-    else:
-        enabled = str(enabled_raw).strip().lower() in ("1", "true", "yes", "on")
-    try:
-        from app.db import set_setting
-        set_setting("fb_post_search_enabled", "true" if enabled else "false")
-        return jsonify({"ok": True, "enabled": enabled})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":

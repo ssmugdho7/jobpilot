@@ -631,14 +631,12 @@ def applications():
         all_uj = db_session.query(UserJob).filter(UserJob.user_id == user_id).all()
         applied_count = sum(1 for u in all_uj if u.status == "applied")
         dismissed_count = sum(1 for u in all_uj if u.status == "dismissed")
-        saved_count = sum(1 for u in all_uj if u.status == "new")
 
         return render_template(
             "applications.html",
             jobs=jobs,
             applied_count=applied_count,
             dismissed_count=dismissed_count,
-            saved_count=saved_count,
             active_status=status_filter,
             active_source=source_filter,
             username=session.get("username"),

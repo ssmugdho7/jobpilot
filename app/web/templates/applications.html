@@ -175,13 +175,6 @@
         </div>
       </div>
       <div class="stat-card">
-        <div class="icon">🔖</div>
-        <div class="info">
-          <div class="num">{{ saved_count }}</div>
-          <div class="label">Saved</div>
-        </div>
-      </div>
-      <div class="stat-card">
         <div class="icon">❌</div>
         <div class="info">
           <div class="num">{{ dismissed_count }}</div>
@@ -193,7 +186,6 @@
     <!-- Status filter -->
     <div class="filter-tabs">
       <a class="filter-tab {{ 'active' if active_status == 'all' }}" href="/applications?status=all&source={{ active_source }}">All</a>
-      <a class="filter-tab {{ 'active' if active_status == 'new' }}" href="/applications?status=new&source={{ active_source }}">🔖 Saved</a>
       <a class="filter-tab {{ 'active' if active_status == 'applied' }}" href="/applications?status=applied&source={{ active_source }}">✅ Applied</a>
       <a class="filter-tab {{ 'active' if active_status == 'dismissed' }}" href="/applications?status=dismissed&source={{ active_source }}">❌ Dismissed</a>
     </div>

@@ -54,20 +54,7 @@
     .user-pill .logout:hover { background: var(--red-bg); color: var(--red); }
 
     /* ── Mobile hamburger ── */
-    .hamburger { display: none; width: 40px; height: 40px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--card); cursor: pointer; align-items: center; justify-content: center; flex-direction: column; gap: 5px; padding: 10px; flex-shrink: 0; }
-    .hamburger span { display: block; width: 18px; height: 2px; background: var(--text); border-radius: 2px; transition: all .2s; }
-    .mobile-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 200; }
-    .mobile-overlay.open { display: block; }
-    .mobile-drawer { position: absolute; left: 0; top: 0; bottom: 0; width: 300px; background: var(--card); box-shadow: var(--shadow-md); padding: 72px 16px 24px; overflow-y: auto; }
-    .mobile-drawer .drawer-section { margin-bottom: 20px; }
-    .mobile-drawer .drawer-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; padding: 0 12px; margin-bottom: 8px; }
-    .mobile-drawer .drawer-link { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: var(--radius-sm); font-size: 14px; font-weight: 500; color: var(--muted); transition: all .15s; }
-    .mobile-drawer .drawer-link:hover { background: var(--bg); color: var(--blue); }
-    .mobile-drawer .drawer-link.active { background: var(--blue); color: #fff; }
-    .mobile-drawer .drawer-link.drawer-logout { color: var(--red); }
-    .mobile-drawer .drawer-link.drawer-logout:hover { background: var(--red-bg); color: var(--red); }
-    .mobile-drawer .drawer-link .count { font-size: 12px; opacity: .7; }
-    .mobile-drawer-close { position: absolute; top: 16px; right: 16px; width: 40px; height: 40px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--card); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; color: var(--muted); }
+    .hamburger { display: none; }
 
     /* ── Main content ── */
     .main { max-width: 1060px; margin: 0 auto; padding: 32px 24px 80px; }
@@ -165,7 +152,6 @@
     /* ── Responsive ── */
     @media (max-width: 768px) {
       .nav { display: none; }
-      .hamburger { display: flex; }
       .user-pill { display: none; }
       .hero h1 { font-size: 24px; }
       .hero p { font-size: 14px; }
@@ -195,30 +181,8 @@
         <a href="/logout" class="logout">Logout</a>
       </div>
       {% endif %}
-      <button class="hamburger" onclick="toggleDrawer()">☰</button>
     </div>
   </header>
-
-  <!-- Mobile drawer -->
-  <div class="mobile-overlay" id="drawerOverlay" onclick="toggleDrawer()"></div>
-  <div class="mobile-drawer" id="drawer">
-    <button class="mobile-drawer-close" onclick="toggleDrawer()">✕</button>
-    <div class="drawer-section">
-      <div class="drawer-label">Menu</div>
-      <a class="drawer-link" href="/">Jobs</a>
-      <a class="drawer-link active" href="/remote_jobs">Remote Jobs</a>
-      <a class="drawer-link" href="/saved">Saved</a>
-      <a class="drawer-link" href="/applications">Applications</a>
-      <a class="drawer-link" href="/learning">Learning</a>
-    </div>
-    {% if user %}
-    <div class="drawer-section">
-      <div class="drawer-label">Account</div>
-      <a class="drawer-link" href="/profile">{{ user.display_name or user.email }}</a>
-      <a class="drawer-link drawer-logout" href="/logout">Logout</a>
-    </div>
-    {% endif %}
-  </div>
 
   <!-- Main -->
   <main class="main">
@@ -365,11 +329,6 @@
       const next = current === 'dark' ? 'light' : 'dark';
       document.documentElement.setAttribute('data-theme', next);
       localStorage.setItem('theme', next);
-    }
-
-    // Drawer
-    function toggleDrawer() {
-      document.getElementById('drawerOverlay').classList.toggle('open');
     }
 
     // Toast

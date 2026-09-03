@@ -72,6 +72,12 @@
     /* ── Main content ── */
     .main { max-width: 1060px; margin: 0 auto; padding: 32px 24px 80px; }
 
+    /* ── Breadcrumb ── */
+    .breadcrumb { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+    .breadcrumb a { color: var(--muted); text-decoration: none; transition: color .15s; }
+    .breadcrumb a:hover { color: var(--blue); }
+    .breadcrumb .sep { color: var(--border); }
+
     /* ── Hero banner ── */
     .hero { text-align: center; padding: 48px 20px 32px; }
     .hero h1 { font-size: 32px; font-weight: 800; letter-spacing: -.5px; margin-bottom: 12px; }
@@ -216,6 +222,13 @@
 
   <!-- Main -->
   <main class="main">
+    <!-- Breadcrumb -->
+    <nav class="breadcrumb">
+      <a href="/dashboard">Jobs</a>
+      <span class="sep">/</span>
+      <span>Remote Jobs</span>
+    </nav>
+
     <!-- Hero -->
     <section class="hero">
       <h1>Remote <span>Jobs</span></h1>

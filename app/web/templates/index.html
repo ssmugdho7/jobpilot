@@ -59,28 +59,15 @@
     .mobile-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 200; }
     .mobile-overlay.open { display: block; }
     .mobile-drawer { position: absolute; left: 0; top: 0; bottom: 0; width: 300px; background: var(--card); box-shadow: var(--shadow-md); padding: 72px 16px 24px; overflow-y: auto; }
-    .mobile-drawer .drawer-section { margin-bottom: 20px; }
-    .mobile-drawer .drawer-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; padding: 0 12px; margin-bottom: 8px; }
     .mobile-drawer .drawer-link { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: var(--radius-sm); font-size: 14px; font-weight: 500; color: var(--muted); transition: all .15s; }
     .mobile-drawer .drawer-link:hover { background: var(--bg); color: var(--blue); }
-    .mobile-drawer .drawer-link.active { background: var(--blue); color: #fff; }
     .mobile-drawer .drawer-link.drawer-logout { color: var(--red); }
     .mobile-drawer .drawer-link.drawer-logout:hover { background: var(--red-bg); color: var(--red); }
-    .mobile-drawer .drawer-link .count { font-size: 12px; opacity: .7; }
     .mobile-drawer-close { position: absolute; top: 16px; right: 16px; width: 40px; height: 40px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--card); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; color: var(--muted); }
 
     /* ── Layout ── */
-    .layout { display: flex; max-width: 1280px; margin: 0 auto; padding: 24px 24px 80px; gap: 24px; }
-    .sidebar { width: 260px; flex-shrink: 0; position: sticky; top: 84px; align-self: flex-start; max-height: calc(100vh - 108px); overflow-y: auto; }
-    .sidebar-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow-sm); }
-    .sidebar-card .label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 10px; }
-    .sidebar-card .filter-list { display: flex; flex-direction: column; gap: 4px; }
-    .sidebar-card .filter-pill { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; color: var(--muted); text-decoration: none; transition: all .15s; min-height: 40px; }
-    .sidebar-card .filter-pill:hover { background: var(--bg); color: var(--blue); }
-    .sidebar-card .filter-pill.active { background: var(--blue); color: #fff; }
-    .sidebar-card .filter-pill .count { opacity: .7; font-size: 12px; }
-
-    .content { flex: 1; min-width: 0; }
+    .layout { max-width: 1280px; margin: 0 auto; padding: 24px 24px 80px; }
+    .content { min-width: 0; }
 
     /* ── Stats row ── */
     .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
@@ -249,8 +236,7 @@
 
     /* ── Responsive ── */
     @media (max-width: 768px) {
-      .layout { flex-direction: column; padding: 16px 12px 60px; gap: 16px; }
-      .sidebar { display: none; }
+      .layout { padding: 16px 12px 60px; }
       .hamburger { display: flex; }
       .nav { display: none; }
       .user-pill { display: none; }
@@ -335,44 +321,15 @@
     <button class="ticker-close" onclick="dismissTicker()" title="Dismiss">&times;</button>
   </div>
 
-  <!-- Mobile filter drawer -->
+  <!-- Mobile nav drawer -->
   <div class="mobile-overlay" id="mobileDrawer" onclick="closeDrawer()">
     <div class="mobile-drawer" onclick="event.stopPropagation()">
       <button class="mobile-drawer-close" onclick="closeDrawer()">&times;</button>
-      <div class="drawer-section">
-        <div class="drawer-label">Status</div>
-        <a class="drawer-link {{ 'active' if active_status == '' }}" href="/dashboard?days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">All CSE Jobs<span class="count">{{ counts.all }}</span></a>
-        <a class="drawer-link {{ 'active' if active_status == 'new' }}" href="/dashboard?status=new&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">New<span class="count">{{ counts.new }}</span></a>
-        <a class="drawer-link {{ 'active' if active_status == 'applied' }}" href="/dashboard?status=applied&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">Applied<span class="count">{{ counts.applied }}</span></a>
-        <a class="drawer-link {{ 'active' if active_status == 'dismissed' }}" href="/dashboard?status=dismissed&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">Dismissed<span class="count">{{ counts.dismissed }}</span></a>
-      </div>
-      <div class="drawer-section">
-        <div class="drawer-label">Posted</div>
-        {% for value, label in days_options %}
-        <a class="drawer-link {{ 'active' if active_days == value }}" href="/dashboard?status={{ active_status }}&days={{ value }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">{{ label }}</a>
-        {% endfor %}
-      </div>
-      <div class="drawer-section">
-        <div class="drawer-label">Experience</div>
-        <a class="drawer-link {{ 'active' if not active_exp }}" href="/dashboard?status={{ active_status }}&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}&sort={{ active_sort }}">All</a>
-        {% for value, label in experience_options %}
-        <a class="drawer-link {{ 'active' if active_exp == value }}" href="/dashboard?status={{ active_status }}&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}&exp={{ value }}&sort={{ active_sort }}">{{ label }}</a>
-        {% endfor %}
-      </div>
-      <div class="drawer-section">
-        <div class="drawer-label">Role</div>
-        <a class="drawer-link {{ 'active' if not active_role }}" href="/dashboard?status={{ active_status }}&days={{ active_days }}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">All CSE Jobs</a>
-        {% for r in roles %}
-        <a class="drawer-link {{ 'active' if active_role == r }}" href="/dashboard?status={{ active_status }}&days={{ active_days }}&role={{ r }}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">{{ r }}</a>
-        {% endfor %}
-        {% for cr in custom_roles %}
-        <a class="drawer-link {{ 'active' if active_role == cr }}" href="/dashboard?status={{ active_status }}&days={{ active_days }}&role={{ cr }}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">{{ cr }}</a>
-        {% endfor %}
-      </div>
-      <div style="height:1px;background:var(--border);margin:4px 0"></div>
+      <a class="drawer-link" href="/dashboard">Jobs</a>
       <a class="drawer-link" href="/remote_jobs">Remote Jobs</a>
       <a class="drawer-link" href="/learning">Learning</a>
       <a class="drawer-link" href="/profile">Profile</a>
+      <div style="height:1px;background:var(--border);margin:4px 0"></div>
       <a class="drawer-link drawer-logout" href="/logout">Sign out</a>
     </div>
   </div>
@@ -397,48 +354,6 @@
   {% endif %}
 
   <div class="layout">
-    <!-- Sidebar (desktop) -->
-    <div class="sidebar">
-      <div class="sidebar-card">
-        <div class="label">Status</div>
-        <div class="filter-list">
-          <a class="filter-pill {{ 'active' if active_status == '' }}" href="/dashboard?days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">All CSE Jobs<span class="count">{{ counts.all }}</span></a>
-          <a class="filter-pill {{ 'active' if active_status == 'new' }}" href="/dashboard?status=new&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">New<span class="count">{{ counts.new }}</span></a>
-          <a class="filter-pill {{ 'active' if active_status == 'applied' }}" href="/dashboard?status=applied&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">Applied<span class="count">{{ counts.applied }}</span></a>
-          <a class="filter-pill {{ 'active' if active_status == 'dismissed' }}" href="/dashboard?status=dismissed&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">Dismissed<span class="count">{{ counts.dismissed }}</span></a>
-        </div>
-      </div>
-      <div class="sidebar-card">
-        <div class="label">Posted</div>
-        <div class="filter-list">
-          {% for value, label in days_options %}
-          <a class="filter-pill {{ 'active' if active_days == value }}" href="/dashboard?status={{ active_status }}&days={{ value }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">{{ label }}</a>
-          {% endfor %}
-        </div>
-      </div>
-      <div class="sidebar-card">
-        <div class="label">Experience</div>
-        <div class="filter-list">
-          <a class="filter-pill {{ 'active' if not active_exp }}" href="/dashboard?status={{ active_status }}&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}&sort={{ active_sort }}">All</a>
-          {% for value, label in experience_options %}
-          <a class="filter-pill {{ 'active' if active_exp == value }}" href="/dashboard?status={{ active_status }}&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}&exp={{ value }}&sort={{ active_sort }}">{{ label }}</a>
-          {% endfor %}
-        </div>
-      </div>
-      <div class="sidebar-card">
-        <div class="label">Role</div>
-        <div class="filter-list">
-          <a class="filter-pill {{ 'active' if not active_role }}" href="/dashboard?status={{ active_status }}&days={{ active_days }}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">All CSE Jobs</a>
-          {% for r in roles %}
-          <a class="filter-pill {{ 'active' if active_role == r }}" href="/dashboard?status={{ active_status }}&days={{ active_days }}&role={{ r }}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">{{ r }}</a>
-          {% endfor %}
-          {% for cr in custom_roles %}
-          <a class="filter-pill {{ 'active' if active_role == cr }}" href="/dashboard?status={{ active_status }}&days={{ active_days }}&role={{ cr }}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">{{ cr }}</a>
-          {% endfor %}
-        </div>
-      </div>
-    </div>
-
     <!-- Content -->
     <div class="content">
       <div class="stats">

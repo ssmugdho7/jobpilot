@@ -139,8 +139,8 @@
   </style>
 </head>
 <body>
-  <header class="header">
-    <a href="/" class="logo">Job<span>Pilot</span></a>
+  <div class="header">
+    <div class="logo"><a href="/dashboard" style="color:var(--blue);text-decoration:none">Job<span style="color:var(--text)">Pilot</span></a></div>
     <div class="header-right">
       <div class="nav">
         <a href="/dashboard">Jobs</a>
@@ -149,15 +149,13 @@
         <a href="/learning">Learning</a>
         <a href="/profile">Profile</a>
       </div>
-      <button class="theme-btn" onclick="toggleTheme()">🌓</button>
-      {% if user %}
+      <button class="theme-btn" onclick="toggleTheme()" title="Toggle dark mode" id="themeBtn">&#9789;</button>
       <div class="user-pill">
-        <span class="name">{{ user.display_name or user.email }}</span>
-        <a href="/logout" class="logout">Logout</a>
+        <span class="name">{{ username }}</span>
+        <a href="/logout" class="logout">Sign out</a>
       </div>
-      {% endif %}
     </div>
-  </header>
+  </div>
 
   <main class="main">
     <div class="page-header">

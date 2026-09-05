@@ -89,6 +89,51 @@ class UserCV(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
+class TailoringSession(Base):
+    __tablename__ = "tailoring_sessions"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    job_id = Column(Integer, ForeignKey("jobs.id"), nullable=False, index=True)
+    base_cv_id = Column(Integer, ForeignKey("user_cvs.id"))
+    template_id = Column(String(50), default="business_professional_1")
+    page_format = Column(String(10), default="letter")
+    typography = Column(JSON, default=dict)
+    colors = Column(JSON, default=dict)
+    spacing_in = Column(Float, default=0.75)
+    section_order = Column(JSON, default=list)
+    section_visibility = Column(JSON, default=dict)
+    content = Column(JSON, default=dict)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (UniqueConstraint("user_id", "job_id", name="uq_session_user_job"),)
+
+
+class ResumeSuggestion(Base):
+    __tablename__ = "resume_suggestions"
+
+    id = Column(Integer, primary_key=True)
+    session_id = Column(Integer, ForeignKey("tailoring_sessions.id"), nullable=False, index=True)
+    kind = Column(String(30))
+    section_key = Column(String(30))
+    title = Column(String(200))
+    before_value = Column(Text, default="")
+    after_value = Column(Text, default="")
+    status = Column(String(10), default="pending")
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class ResumeVersion(Base):
+    __tablename__ = "resume_versions"
+
+    id = Column(Integer, primary_key=True)
+    session_id = Column(Integer, ForeignKey("tailoring_sessions.id"), nullable=False, index=True)
+    label = Column(String(100), default="")
+    snapshot = Column(JSON, default=dict)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 class AppSetting(Base):
     __tablename__ = "app_settings"
 
@@ -289,3 +334,167 @@ def is_fb_post_search_enabled() -> bool:
         return bool(cfg.get("enabled", True))
     except Exception:
         return False
+
+
+# ---------------------------------------------------------------------------
+# TailoringSession helpers
+# ---------------------------------------------------------------------------
+
+def get_or_create_session(user_id: int, job_id: int, session: "Session | None" = None) -> "TailoringSession":
+    """Return existing TailoringSession or create a new one."""
+    owns_session = session is None
+    if owns_session:
+        session = SessionLocal()
+    try:
+        ts = session.query(TailoringSession).filter_by(user_id=user_id, job_id=job_id).first()
+        if ts is None:
+            ts = TailoringSession(user_id=user_id, job_id=job_id)
+            session.add(ts)
+            session.commit()
+        if owns_session:
+            session.expunge(ts)
+        return ts
+    finally:
+        if owns_session:
+            session.close()
+
+
+def get_session(session_id: int, user_id: int, session: "Session | None" = None) -> "TailoringSession | None":
+    """Return a TailoringSession if it belongs to the user."""
+    owns_session = session is None
+    if owns_session:
+        session = SessionLocal()
+    try:
+        ts = session.query(TailoringSession).filter_by(id=session_id, user_id=user_id).first()
+        if owns_session and ts:
+            session.expunge(ts)
+        return ts
+    finally:
+        if owns_session:
+            session.close()
+
+
+def tailoring_session_to_dict(ts: "TailoringSession") -> dict:
+    return {
+        "id": ts.id,
+        "user_id": ts.user_id,
+        "job_id": ts.job_id,
+        "base_cv_id": ts.base_cv_id,
+        "template_id": ts.template_id or "business_professional_1",
+        "page_format": ts.page_format or "letter",
+        "typography": ts.typography or {},
+        "colors": ts.colors or {},
+        "spacing_in": ts.spacing_in if ts.spacing_in is not None else 0.75,
+        "section_order": ts.section_order or [],
+        "section_visibility": ts.section_visibility or {},
+        "content": ts.content or {},
+        "created_at": ts.created_at.isoformat() if ts.created_at else "",
+        "updated_at": ts.updated_at.isoformat() if ts.updated_at else "",
+    }
+
+
+# ---------------------------------------------------------------------------
+# ResumeSuggestion helpers
+# ---------------------------------------------------------------------------
+
+def create_suggestion(session_id: int, kind: str, section_key: str, title: str,
+                      before_value: str = "", after_value: str = "", session: "Session | None" = None) -> "ResumeSuggestion":
+    owns_session = session is None
+    if owns_session:
+        session = SessionLocal()
+    try:
+        sug = ResumeSuggestion(
+            session_id=session_id,
+            kind=kind,
+            section_key=section_key,
+            title=title,
+            before_value=before_value or "",
+            after_value=after_value or "",
+            status="pending",
+        )
+        session.add(sug)
+        session.commit()
+        if owns_session:
+            session.expunge(sug)
+        return sug
+    finally:
+        if owns_session:
+            session.close()
+
+
+def get_session_suggestions(session_id: int, session: "Session | None" = None) -> list:
+    owns_session = session is None
+    if owns_session:
+        session = SessionLocal()
+    try:
+        sugs = session.query(ResumeSuggestion).filter_by(session_id=session_id).order_by(ResumeSuggestion.created_at.asc()).all()
+        if owns_session:
+            for s in sugs:
+                session.expunge(s)
+        return sugs
+    finally:
+        if owns_session:
+            session.close()
+
+
+def suggestion_to_dict(sug: "ResumeSuggestion") -> dict:
+    return {
+        "id": sug.id,
+        "session_id": sug.session_id,
+        "kind": sug.kind or "",
+        "section_key": sug.section_key or "",
+        "title": sug.title or "",
+        "before_value": sug.before_value or "",
+        "after_value": sug.after_value or "",
+        "status": sug.status or "pending",
+        "created_at": sug.created_at.isoformat() if sug.created_at else "",
+    }
+
+
+# ---------------------------------------------------------------------------
+# ResumeVersion helpers
+# ---------------------------------------------------------------------------
+
+def create_version(session_id: int, label: str = "", snapshot: dict = None, session: "Session | None" = None) -> "ResumeVersion":
+    owns_session = session is None
+    if owns_session:
+        session = SessionLocal()
+    try:
+        ver = ResumeVersion(
+            session_id=session_id,
+            label=label or "",
+            snapshot=snapshot or {},
+        )
+        session.add(ver)
+        session.commit()
+        if owns_session:
+            session.expunge(ver)
+        return ver
+    finally:
+        if owns_session:
+            session.close()
+
+
+def get_session_versions(session_id: int, session: "Session | None" = None) -> list:
+    owns_session = session is None
+    if owns_session:
+        session = SessionLocal()
+    try:
+        vers = session.query(ResumeVersion).filter_by(session_id=session_id).order_by(ResumeVersion.created_at.desc()).all()
+        if owns_session:
+            for v in vers:
+                session.expunge(v)
+        return vers
+    finally:
+        if owns_session:
+            session.close()
+
+
+def version_to_dict(ver: "ResumeVersion") -> dict:
+    return {
+        "id": ver.id,
+        "session_id": ver.session_id,
+        "label": ver.label or "",
+        "snapshot": ver.snapshot or {},
+        "created_at": ver.created_at.isoformat() if ver.created_at else "",
+    }

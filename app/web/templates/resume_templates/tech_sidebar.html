@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <style>
+    @page {
+      size: {{ page_format }};
+      margin: {{ spacing_in }}in;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: {{ typography.font_family }};
+      font-size: {{ typography.font_size }}pt;
+      color: #111827;
+      line-height: 1.5;
+      display: flex;
+      gap: 18px;
+    }
+    .sidebar {
+      width: 28%;
+      background: {{ colors.primary }};
+      color: #fff;
+      padding: 18px 14px;
+      border-radius: 4px;
+    }
+    .main { width: 72%; }
+    .sidebar h2 {
+      font-size: 10pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      border-bottom: 1px solid rgba(255,255,255,.3);
+      padding-bottom: 3px;
+      margin-top: 14px;
+      margin-bottom: 6px;
+    }
+    .sidebar .contact-line {
+      font-size: 8.5pt;
+      margin-bottom: 4px;
+      word-break: break-word;
+    }
+    .sidebar .skill-tag {
+      display: inline-block;
+      background: rgba(255,255,255,.15);
+      border-radius: 3px;
+      padding: 2px 6px;
+      font-size: 8pt;
+      margin: 0 4px 6px 0;
+    }
+    .main .name {
+      font-size: 20pt;
+      font-weight: 800;
+      color: {{ colors.primary }};
+      margin-bottom: 2px;
+    }
+    .main .title {
+      font-size: 10pt;
+      color: {{ colors.secondary }};
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+    .main h2 {
+      font-size: 10pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: {{ colors.primary }};
+      border-bottom: 1.5px solid {{ colors.primary }};
+      padding-bottom: 3px;
+      margin-top: 14px;
+      margin-bottom: 6px;
+    }
+    .main .item { margin-bottom: 8px; }
+    .main .item-head {
+      font-weight: 700;
+      color: #111827;
+    }
+    .main .item-sub {
+      font-size: 9pt;
+      color: #4b5563;
+    }
+    .main ul { margin: 3px 0 3px 16px; padding: 0; }
+    .main li { margin-bottom: 2px; font-size: {{ typography.font_size|float - 0.5 if typography.font_size else 10.5 }}pt; }
+  </style>
+</head>
+<body>
+  <aside class="sidebar">
+    {% if personal_info %}
+    <div class="contact-line">{{ personal_info.email or '' }}</div>
+    <div class="contact-line">{{ personal_info.phone or '' }}</div>
+    {% if personal_info.linkedin %}<div class="contact-line">{{ personal_info.linkedin }}</div>{% endif %}
+    {% if personal_info.github %}<div class="contact-line">{{ personal_info.github }}</div>{% endif %}
+    {% if personal_info.website %}<div class="contact-line">{{ personal_info.website }}</div>{% endif %}
+    {% endif %}
+
+    {% if section_visibility.get('skills', True) and content.skills %}
+    <h2>Skills</h2>
+    {% for skill in content.skills %}
+    <span class="skill-tag">{{ skill }}</span>
+    {% endfor %}
+    {% endif %}
+  </aside>
+
+  <div class="main">
+    {% if personal_info %}
+    <div class="name">{{ personal_info.full_name }}</div>
+    <div class="title">{{ personal_info.job_title }}</div>
+    {% endif %}
+
+    {% if section_visibility.get('summary', True) and content.summary %}
+    <div class="section">
+      <h2>Profile</h2>
+      <p>{{ content.summary }}</p>
+    </div>
+    {% endif %}
+
+    {% if section_visibility.get('experience', True) and content.experience %}
+    <div class="section">
+      <h2>Experience</h2>
+      {% for entry in content.experience %}
+      <div class="item">
+        <div class="item-head">{{ entry.title }} {% if entry.company %}&middot; {{ entry.company }}{% endif %}</div>
+        <div class="item-sub">{{ entry.start_date or '' }} {% if entry.start_date or entry.end_date %}&ndash;{% endif %} {{ entry.end_date or '' }} {% if entry.location %}&middot; {{ entry.location }}{% endif %}</div>
+        {% if entry.bullets %}
+        <ul>
+          {% for bullet in entry.bullets %}
+          <li>{{ bullet }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if section_visibility.get('education', True) and content.education %}
+    <div class="section">
+      <h2>Education</h2>
+      {% for entry in content.education %}
+      <div class="item">
+        <div class="item-head">{{ entry.school }}</div>
+        <div class="item-sub">{{ entry.degree }} {% if entry.start_date or entry.end_date %}({{ entry.start_date or '' }} &ndash; {{ entry.end_date or '' }}){% endif %}</div>
+        {% if entry.details %}<p>{{ entry.details }}</p>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if section_visibility.get('custom_sections', True) and content.custom_sections %}
+    {% for cs in content.custom_sections %}
+    <div class="section">
+      <h2>{{ cs.title }}</h2>
+      <p>{{ cs.content }}</p>
+    </div>
+    {% endfor %}
+    {% endif %}
+  </div>
+</body>
+</html>

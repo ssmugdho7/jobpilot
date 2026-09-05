@@ -7,7 +7,7 @@ from flask import Flask, render_template, jsonify, request, session, redirect, u
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import func, and_, or_
 
-from app.db import SessionLocal, Job, Profile, User, UserJob, UserCV, get_user_job, profile_to_dict, get_or_create_profile, get_user_cvs, get_user_cv, user_cv_to_dict
+from app.db import SessionLocal, Job, Profile, User, UserJob, UserCV, get_user_job, profile_to_dict, get_or_create_profile, get_user_cvs, get_user_cv, user_cv_to_dict, get_or_create_session, get_session, tailoring_session_to_dict, suggestion_to_dict, version_to_dict, create_suggestion, get_session_suggestions, create_version, get_session_versions, TailoringSession, ResumeSuggestion, ResumeVersion
 from app.pipeline import run_scan_async
 from app.gmail_link import (
     build_job_gmail_link, build_subject, build_body, build_gmail_link,
@@ -731,6 +731,80 @@ def api_ai_studio_render(job_id):
         db_session.close()
 
 
+@app.route("/api/jobs/<int:job_id>/ai-studio/session", methods=["POST"])
+@login_required
+def api_ai_studio_session(job_id):
+    """Get-or-create a TailoringSession for (user, job). Seeds content from best CV."""
+    from app.cv.match import find_best_cv
+    from app.cv.structured import profile_to_structured
+
+    db_session = SessionLocal()
+    try:
+        job = db_session.query(Job).get(job_id)
+        if not job:
+            return jsonify({"error": "job not found"}), 404
+
+        user_cvs = get_user_cvs(session["user_id"], db_session)
+        if not user_cvs:
+            return jsonify({"error": "no CVs uploaded"}), 400
+
+        ts = get_or_create_session(session["user_id"], job_id, db_session)
+
+        if not ts.content:
+            job_text = f"{job.title or ''} {job.snippet or ''} {job.role or ''}"
+            best_cv = find_best_cv(job_text, user_cvs)
+            ts.base_cv_id = best_cv.id
+
+            profile = get_or_create_profile(session["user_id"], db_session)
+            p_dict = profile_to_dict(profile)
+            cv_profile = best_cv.parsed_profile or p_dict
+
+            ts.content = profile_to_structured(cv_profile)
+            db_session.commit()
+
+            # Seed an "Original import" version snapshot
+            create_version(ts.id, label="Original import", snapshot=ts.content, session=db_session)
+
+        return jsonify({"ok": True, "session": tailoring_session_to_dict(ts)})
+    finally:
+        db_session.close()
+
+
+@app.route("/api/ai-studio/sessions/<int:session_id>", methods=["PATCH"])
+@login_required
+def api_patch_session(session_id):
+    """Partial update of a TailoringSession (content, template, typography, colors, spacing, page_format, section_order, section_visibility, base_cv_id)."""
+    ts = get_session(session_id, session["user_id"])
+    if not ts:
+        return jsonify({"error": "session not found"}), 404
+
+    data = request.get_json(silent=True) or {}
+    allowed = {"content", "template_id", "typography", "colors", "spacing_in", "page_format", "section_order", "section_visibility", "base_cv_id"}
+
+    db_session = SessionLocal()
+    try:
+        ts = db_session.query(TailoringSession).get(session_id)
+        if not ts:
+            return jsonify({"error": "session not found"}), 404
+
+        for key in allowed:
+            if key in data:
+                if key == "page_format" and data[key] not in ("letter", "a4"):
+                    return jsonify({"error": "page_format must be letter or a4"}), 400
+                if key == "spacing_in":
+                    try:
+                        data[key] = float(data[key])
+                    except (TypeError, ValueError):
+                        return jsonify({"error": "spacing_in must be a number"}), 400
+                setattr(ts, key, data[key])
+
+        db_session.commit()
+        db_session.refresh(ts)
+        return jsonify({"ok": True, "session": tailoring_session_to_dict(ts)})
+    finally:
+        db_session.close()
+
+
 @app.route("/api/gmail/from-text", methods=["POST"])
 @login_required
 def api_gmail_from_text():
@@ -938,6 +1012,288 @@ def api_remote_scan():
     if not started:
         return jsonify({"ok": True, "started": False, "error": "scan already running"}), 202
     return jsonify({"ok": True, "started": True})
+
+
+# ---------------------------------------------------------------------------
+# AI Studio — suggestions
+# ---------------------------------------------------------------------------
+
+@app.route("/api/ai-studio/sessions/<int:session_id>/suggestions", methods=["GET"])
+@login_required
+def api_list_suggestions(session_id):
+    ts = get_session(session_id, session["user_id"])
+    if not ts:
+        return jsonify({"error": "session not found"}), 404
+
+    db_session = SessionLocal()
+    try:
+        sugs = get_session_suggestions(session_id, session=db_session)
+        return jsonify({"ok": True, "suggestions": [suggestion_to_dict(s) for s in sugs]})
+    finally:
+        db_session.close()
+
+
+@app.route("/api/ai-studio/sessions/<int:session_id>/suggestions/generate", methods=["POST"])
+@login_required
+def api_generate_suggestions(session_id):
+    from app.cv.ai_studio import generate_suggestions, normalize_scope, scoped_content, validate_suggestions
+    from app.cv.structured import profile_to_structured
+
+    ts = get_session(session_id, session["user_id"])
+    if not ts:
+        return jsonify({"error": "session not found"}), 404
+
+    db_session = SessionLocal()
+    try:
+        ts = db_session.query(TailoringSession).get(session_id)
+        job = db_session.query(Job).get(ts.job_id)
+        if not job:
+            return jsonify({"error": "job not found"}), 404
+
+        data = request.get_json(silent=True) or {}
+        scope = normalize_scope(data.get("scope"))
+        visible = scoped_content(ts.content or {}, scope)
+
+        job_dict = {
+            "title": job.title or "",
+            "company": job.company or "",
+            "snippet": job.snippet or "",
+            "role": job.role or "",
+            "location": job.location or "",
+        }
+
+        raw = generate_suggestions(job_dict, visible, scope)
+        valid, rejected = validate_suggestions(raw.get("suggestions", []), scope, ts.content)
+
+        persisted = []
+        for item in valid:
+            sug = create_suggestion(
+                session_id=session_id,
+                kind=item.get("kind", ""),
+                section_key=item.get("section_key", ""),
+                title=item.get("title", ""),
+                before_value=item.get("before_value", ""),
+                after_value=item.get("after_value", ""),
+                session=db_session,
+            )
+            persisted.append(suggestion_to_dict(sug))
+
+        return jsonify({"ok": True, "suggestions": persisted, "rejected": rejected})
+    finally:
+        db_session.close()
+
+
+@app.route("/api/ai-studio/suggestions/<int:suggestion_id>/accept", methods=["POST"])
+@login_required
+def api_accept_suggestion(suggestion_id):
+    from app.cv.ai_studio import apply_suggestion_patch
+
+    db_session = SessionLocal()
+    try:
+        sug = db_session.query(ResumeSuggestion).get(suggestion_id)
+        if not sug:
+            return jsonify({"error": "suggestion not found"}), 404
+
+        ts = db_session.query(TailoringSession).get(sug.session_id)
+        if not ts or ts.user_id != session["user_id"]:
+            return jsonify({"error": "session not found"}), 404
+
+        patch = {
+            "kind": sug.kind,
+            "section_key": sug.section_key,
+            "title": sug.title,
+            "before_value": sug.before_value,
+            "after_value": sug.after_value,
+        }
+        mutated = apply_suggestion_patch(ts.content or {}, patch)
+        if mutated:
+            db_session.commit()
+            db_session.refresh(ts)
+
+        sug.status = "accepted"
+        db_session.commit()
+
+        return jsonify({"ok": True, "session": tailoring_session_to_dict(ts)})
+    finally:
+        db_session.close()
+
+
+@app.route("/api/ai-studio/suggestions/<int:suggestion_id>/reject", methods=["POST"])
+@login_required
+def api_reject_suggestion(suggestion_id):
+    db_session = SessionLocal()
+    try:
+        sug = db_session.query(ResumeSuggestion).get(suggestion_id)
+        if not sug:
+            return jsonify({"error": "suggestion not found"}), 404
+
+        ts = db_session.query(TailoringSession).get(sug.session_id)
+        if not ts or ts.user_id != session["user_id"]:
+            return jsonify({"error": "session not found"}), 404
+
+        sug.status = "rejected"
+        db_session.commit()
+        return jsonify({"ok": True})
+    finally:
+        db_session.close()
+
+
+# ---------------------------------------------------------------------------
+# AI Studio — versions
+# ---------------------------------------------------------------------------
+
+@app.route("/api/ai-studio/sessions/<int:session_id>/versions", methods=["GET"])
+@login_required
+def api_list_versions(session_id):
+    ts = get_session(session_id, session["user_id"])
+    if not ts:
+        return jsonify({"error": "session not found"}), 404
+
+    db_session = SessionLocal()
+    try:
+        vers = get_session_versions(session_id, session=db_session)
+        return jsonify({"ok": True, "versions": [version_to_dict(v) for v in vers]})
+    finally:
+        db_session.close()
+
+
+@app.route("/api/ai-studio/sessions/<int:session_id>/versions", methods=["POST"])
+@login_required
+def api_save_version(session_id):
+    ts = get_session(session_id, session["user_id"])
+    if not ts:
+        return jsonify({"error": "session not found"}), 404
+
+    data = request.get_json(silent=True) or {}
+    label = (data.get("label") or "").strip() or "Untitled version"
+
+    db_session = SessionLocal()
+    try:
+        ts = db_session.query(TailoringSession).get(session_id)
+        snapshot = {
+            "content": ts.content or {},
+            "template_id": ts.template_id,
+            "typography": ts.typography or {},
+            "colors": ts.colors or {},
+            "spacing_in": ts.spacing_in,
+            "page_format": ts.page_format,
+            "section_order": ts.section_order or [],
+            "section_visibility": ts.section_visibility or {},
+        }
+        ver = create_version(session_id, label=label, snapshot=snapshot, session=db_session)
+        return jsonify({"ok": True, "version": version_to_dict(ver)})
+    finally:
+        db_session.close()
+
+
+@app.route("/api/ai-studio/sessions/<int:session_id>/suggestions/custom", methods=["POST"])
+@login_required
+def api_custom_suggestions(session_id):
+    from app.cv.ai_studio import generate_custom_suggestions, normalize_scope
+
+    ts = get_session(session_id, session["user_id"])
+    if not ts:
+        return jsonify({"error": "session not found"}), 404
+
+    data = request.get_json(silent=True) or {}
+    instruction = (data.get("instruction") or "").strip()
+    if not instruction:
+        return jsonify({"error": "instruction required"}), 400
+
+    db_session = SessionLocal()
+    try:
+        ts = db_session.query(TailoringSession).get(session_id)
+        scope = normalize_scope(data.get("scope") or {})
+        result = generate_custom_suggestions(instruction, ts.content or {}, scope)
+
+        persisted = []
+        for item in result.get("suggestions", []):
+            sug = create_suggestion(
+                session_id=session_id,
+                kind=item.get("kind", ""),
+                section_key=item.get("section_key", ""),
+                title=item.get("title", ""),
+                before_value=item.get("before_value", ""),
+                after_value=item.get("after_value", ""),
+                session=db_session,
+            )
+            persisted.append(suggestion_to_dict(sug))
+
+        return jsonify({"ok": True, "suggestions": persisted})
+    finally:
+        db_session.close()
+
+
+@app.route("/api/ai-studio/sessions/<int:session_id>/versions/<int:version_id>/restore", methods=["POST"])
+@login_required
+def api_restore_version(session_id, version_id):
+    ts = get_session(session_id, session["user_id"])
+    if not ts:
+        return jsonify({"error": "session not found"}), 404
+
+    db_session = SessionLocal()
+    try:
+        ver = db_session.query(ResumeVersion).get(version_id)
+        if not ver or ver.session_id != session_id:
+            return jsonify({"error": "version not found"}), 404
+
+        ts = db_session.query(TailoringSession).get(session_id)
+        snapshot = ver.snapshot or {}
+        for key in ("content", "template_id", "typography", "colors", "spacing_in", "page_format", "section_order", "section_visibility"):
+            if key in snapshot:
+                setattr(ts, key, snapshot[key])
+
+        db_session.commit()
+        db_session.refresh(ts)
+        return jsonify({"ok": True, "session": tailoring_session_to_dict(ts)})
+    finally:
+        db_session.close()
+
+
+# ---------------------------------------------------------------------------
+# AI Studio — preview + PDF export
+# ---------------------------------------------------------------------------
+
+@app.route("/api/ai-studio/sessions/<int:session_id>/preview", methods=["GET"])
+@login_required
+def api_session_preview(session_id):
+    from app.cv.pdf_render import render_session_html
+
+    ts = get_session(session_id, session["user_id"])
+    if not ts:
+        return jsonify({"error": "session not found"}), 404
+
+    db_session = SessionLocal()
+    try:
+        ts = db_session.query(TailoringSession).get(session_id)
+        html = render_session_html(ts)
+        return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+    finally:
+        db_session.close()
+
+
+@app.route("/api/ai-studio/sessions/<int:session_id>/export.pdf", methods=["GET"])
+@login_required
+def api_session_export_pdf(session_id):
+    from app.cv.pdf_render import render_session_pdf
+
+    ts = get_session(session_id, session["user_id"])
+    if not ts:
+        return jsonify({"error": "session not found"}), 404
+
+    db_session = SessionLocal()
+    try:
+        ts = db_session.query(TailoringSession).get(session_id)
+        pdf_bytes = render_session_pdf(ts)
+        from flask import make_response
+        resp = make_response(pdf_bytes)
+        resp.headers["Content-Type"] = "application/pdf"
+        resp.headers["Content-Disposition"] = f"attachment; filename=resume_session_{session_id}.pdf"
+        return resp
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        db_session.close()
 
 
 if __name__ == "__main__":

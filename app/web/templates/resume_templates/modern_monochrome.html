@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <style>
+    @page {
+      size: {{ page_format }};
+      margin: {{ spacing_in }}in;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: {{ typography.font_family }};
+      font-size: {{ typography.font_size }}pt;
+      color: #0f172a;
+      line-height: 1.5;
+    }
+    .name {
+      font-size: 24pt;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: #0f172a;
+      margin-bottom: 2px;
+    }
+    .contact {
+      font-size: 9.5pt;
+      color: #64748b;
+      margin-bottom: 18px;
+    }
+    h2 {
+      font-size: 10pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #0f172a;
+      border-top: 2px solid #0f172a;
+      padding-top: 6px;
+      margin-top: 16px;
+      margin-bottom: 8px;
+    }
+    .section { margin-bottom: 8px; }
+    .item { margin-bottom: 8px; }
+    .item-head {
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .item-sub {
+      font-size: 9.5pt;
+      color: #64748b;
+    }
+    ul { margin: 3px 0 3px 16px; padding: 0; }
+    li { margin-bottom: 2px; }
+    .skills-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .skill-pill {
+      background: #f1f5f9;
+      color: #0f172a;
+      border-radius: 3px;
+      padding: 2px 10px;
+      font-size: 9pt;
+      border: 1px solid #e2e8f0;
+    }
+  </style>
+</head>
+<body>
+  {% if personal_info %}
+  <div class="name">{{ personal_info.full_name }}</div>
+  <div class="contact">
+    {% if personal_info.email %}{{ personal_info.email }}{% endif %}
+    {% if personal_info.phone %} | {{ personal_info.phone }}{% endif %}
+    {% if personal_info.linkedin %} | {{ personal_info.linkedin }}{% endif %}
+    {% if personal_info.github %} | {{ personal_info.github }}{% endif %}
+    {% if personal_info.website %} | {{ personal_info.website }}{% endif %}
+  </div>
+  {% endif %}
+
+  {% if section_visibility.get('summary', True) and content.summary %}
+  <div class="section">
+    <h2>Summary</h2>
+    <p>{{ content.summary }}</p>
+  </div>
+  {% endif %}
+
+  {% if section_visibility.get('skills', True) and content.skills %}
+  <div class="section">
+    <h2>Skills</h2>
+    <div class="skills-list">
+      {% for skill in content.skills %}
+      <span class="skill-pill">{{ skill }}</span>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if section_visibility.get('experience', True) and content.experience %}
+  <div class="section">
+    <h2>Experience</h2>
+    {% for entry in content.experience %}
+    <div class="item">
+      <div class="item-head">{{ entry.title }} {% if entry.company %}&middot; {{ entry.company }}{% endif %}</div>
+      <div class="item-sub">{{ entry.start_date or '' }} {% if entry.start_date or entry.end_date %}&ndash;{% endif %} {{ entry.end_date or '' }} {% if entry.location %}&middot; {{ entry.location }}{% endif %}</div>
+      {% if entry.bullets %}
+      <ul>
+        {% for bullet in entry.bullets %}
+        <li>{{ bullet }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if section_visibility.get('education', True) and content.education %}
+  <div class="section">
+    <h2>Education</h2>
+    {% for entry in content.education %}
+    <div class="item">
+      <div class="item-head">{{ entry.school }}</div>
+      <div class="item-sub">{{ entry.degree }} {% if entry.start_date or entry.end_date %}({{ entry.start_date or '' }} &ndash; {{ entry.end_date or '' }}){% endif %}</div>
+      {% if entry.details %}<p>{{ entry.details }}</p>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if section_visibility.get('custom_sections', True) and content.custom_sections %}
+  {% for cs in content.custom_sections %}
+  <div class="section">
+    <h2>{{ cs.title }}</h2>
+    <p>{{ cs.content }}</p>
+  </div>
+  {% endfor %}
+  {% endif %}
+</body>
+</html>

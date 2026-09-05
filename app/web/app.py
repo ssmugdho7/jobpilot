@@ -7,7 +7,7 @@ from flask import Flask, render_template, jsonify, request, session, redirect, u
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import func, and_, or_
 
-from app.db import SessionLocal, Job, Profile, User, UserJob, get_user_job, profile_to_dict, get_or_create_profile
+from app.db import SessionLocal, Job, Profile, User, UserJob, UserCV, get_user_job, profile_to_dict, get_or_create_profile, get_user_cvs, get_user_cv, user_cv_to_dict
 from app.pipeline import run_scan_async
 from app.gmail_link import (
     build_job_gmail_link, build_subject, build_body, build_gmail_link,
@@ -381,7 +381,13 @@ def profile_page():
     db_session = SessionLocal()
     try:
         profile = get_or_create_profile(session["user_id"], db_session)
-        return render_template("profile.html", profile=profile_to_dict(profile), username=session.get("username"))
+        user_cvs = get_user_cvs(session["user_id"], db_session)
+        return render_template(
+            "profile.html",
+            profile=profile_to_dict(profile),
+            user_cvs=[user_cv_to_dict(cv) for cv in user_cvs],
+            username=session.get("username"),
+        )
     finally:
         db_session.close()
 
@@ -522,6 +528,207 @@ def api_parse_cv():
             os.unlink(tmp.name)
         except OSError:
             pass
+
+
+# ── CV Management (multi-CV support for AI Studio) ──
+
+@app.route("/api/cvs", methods=["GET"])
+@login_required
+def api_list_cvs():
+    """List all CVs uploaded by the user."""
+    db_session = SessionLocal()
+    try:
+        cvs = get_user_cvs(session["user_id"], db_session)
+        return jsonify({"ok": True, "cvs": [user_cv_to_dict(cv) for cv in cvs]})
+    finally:
+        db_session.close()
+
+
+@app.route("/api/cvs/upload", methods=["POST"])
+@login_required
+def api_upload_cv():
+    """Upload a named CV, parse it, and store it."""
+    file = request.files.get("file")
+    name = (request.form.get("name") or "").strip()
+    if not file or not file.filename:
+        return jsonify({"error": "no file"}), 400
+    if not name:
+        name = os.path.splitext(file.filename)[0]
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in (".pdf", ".docx", ".doc"):
+        return jsonify({"error": "unsupported file type; use PDF or DOCX"}), 400
+
+    import uuid
+    from app.paths import CV_UPLOAD_DIR
+    from app.cv.parse import extract_text
+    from app.cv.profile import profile_from_text
+
+    unique_name = f"{uuid.uuid4().hex[:12]}_{name}"
+    save_path = os.path.join(CV_UPLOAD_DIR, unique_name + ext)
+
+    try:
+        file.save(save_path)
+        text = extract_text(save_path)
+        parsed = profile_from_text(text) if text.strip() else {}
+    except Exception as e:
+        try:
+            os.unlink(save_path)
+        except OSError:
+            pass
+        return jsonify({"error": f"failed to parse CV: {e}"}), 500
+
+    db_session = SessionLocal()
+    try:
+        cv = UserCV(
+            user_id=session["user_id"],
+            name=name,
+            file_path=save_path,
+            parsed_profile=parsed,
+        )
+        db_session.add(cv)
+        db_session.commit()
+        db_session.refresh(cv)
+        result = user_cv_to_dict(cv)
+        return jsonify({"ok": True, "cv": result})
+    finally:
+        db_session.close()
+
+
+@app.route("/api/cvs/<int:cv_id>", methods=["DELETE"])
+@login_required
+def api_delete_cv(cv_id):
+    """Delete a CV belonging to the user."""
+    db_session = SessionLocal()
+    try:
+        cv = db_session.query(UserCV).filter_by(id=cv_id, user_id=session["user_id"]).first()
+        if not cv:
+            return jsonify({"error": "not found"}), 404
+        # Delete the file
+        if cv.file_path and os.path.exists(cv.file_path):
+            try:
+                os.unlink(cv.file_path)
+            except OSError:
+                pass
+        db_session.delete(cv)
+        db_session.commit()
+        return jsonify({"ok": True})
+    finally:
+        db_session.close()
+
+
+# ── AI Studio ──
+
+@app.route("/jobs/<int:job_id>/ai-studio")
+@login_required
+def ai_studio_page(job_id):
+    """Full-page AI Studio editor for tailoring a CV to a specific job."""
+    db_session = SessionLocal()
+    try:
+        job = db_session.query(Job).get(job_id)
+        if not job:
+            return redirect(url_for("dashboard"))
+        user_cvs = get_user_cvs(session["user_id"], db_session)
+        profile = get_or_create_profile(session["user_id"], db_session)
+        p_dict = profile_to_dict(profile)
+        return render_template(
+            "ai_studio.html",
+            job=job,
+            user_cvs=user_cvs,
+            profile=p_dict,
+            username=session.get("username"),
+        )
+    finally:
+        db_session.close()
+
+
+@app.route("/api/jobs/<int:job_id>/ai-studio/match", methods=["POST"])
+@login_required
+def api_ai_studio_match(job_id):
+    """AI picks closest CV and generates tailored content + recommendations."""
+    from app.cv.match import find_best_cv
+    from app.cv.ai_studio import generate_tailored_cv
+
+    db_session = SessionLocal()
+    try:
+        job = db_session.query(Job).get(job_id)
+        if not job:
+            return jsonify({"error": "job not found"}), 404
+
+        user_cvs = get_user_cvs(session["user_id"], db_session)
+        if not user_cvs:
+            return jsonify({"error": "no CVs uploaded; upload one in Profile first"}), 400
+
+        # Find best matching CV
+        job_text = f"{job.title or ''} {job.snippet or ''} {job.role or ''}"
+        best_cv = find_best_cv(job_text, user_cvs)
+
+        # Generate tailored content
+        profile = get_or_create_profile(session["user_id"], db_session)
+        p_dict = profile_to_dict(profile)
+        cv_profile = best_cv.parsed_profile or p_dict
+
+        job_dict = {
+            "title": job.title or "",
+            "company": job.company or "",
+            "snippet": job.snippet or "",
+            "role": job.role or "",
+            "location": job.location or "",
+        }
+
+        result = generate_tailored_cv(job_dict, cv_profile)
+        result["matched_cv_id"] = best_cv.id
+        result["matched_cv_name"] = best_cv.name
+
+        return jsonify({"ok": True, **result})
+    finally:
+        db_session.close()
+
+
+@app.route("/api/jobs/<int:job_id>/ai-studio/render", methods=["POST"])
+@login_required
+def api_ai_studio_render(job_id):
+    """Render a tailored CV as DOCX from editor state."""
+    from app.cv.render_studio import render_studio_docx
+
+    data = request.get_json(silent=True) or {}
+    sections = data.get("sections") or {}
+    properties = data.get("properties") or {}
+    base_cv_id = data.get("base_cv_id")
+
+    if not base_cv_id:
+        return jsonify({"error": "base_cv_id required"}), 400
+
+    db_session = SessionLocal()
+    try:
+        job = db_session.query(Job).get(job_id)
+        if not job:
+            return jsonify({"error": "job not found"}), 404
+
+        cv = db_session.query(UserCV).filter_by(id=base_cv_id, user_id=session["user_id"]).first()
+        if not cv:
+            return jsonify({"error": "CV not found"}), 404
+
+        profile = get_or_create_profile(session["user_id"], db_session)
+        p_dict = profile_to_dict(profile)
+
+        docx_path = render_studio_docx(
+            template_path=cv.file_path,
+            sections=sections,
+            properties=properties,
+            profile=p_dict,
+            job_title=job.title or "",
+            company=job.company or "",
+        )
+
+        from flask import send_file
+        return send_file(
+            docx_path,
+            as_attachment=True,
+            download_name=f"tailored_cv_{job_id}.docx",
+            mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        )
+    finally:
+        db_session.close()
 
 
 @app.route("/api/gmail/from-text", methods=["POST"])

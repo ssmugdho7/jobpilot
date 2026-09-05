@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Studio — {{ job.title }}</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root, [data-theme="light"] {
+      --blue: #2563eb; --blue-dark: #1d4ed8; --blue-light: #dbeafe;
+      --green: #16a34a; --green-bg: #f0fdf4; --green-light: #bbf7d0;
+      --red: #dc2626; --red-bg: #fef2f2;
+      --orange: #ea580c; --orange-bg: #fff7ed;
+      --purple: #7c3aed; --purple-light: #ede9fe;
+      --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0;
+      --text: #0f172a; --muted: #64748b;
+      --shadow: 0 1px 3px rgba(0,0,0,.1), 0 1px 2px rgba(0,0,0,.06);
+    }
+    [data-theme="dark"] {
+      --blue: #60a5fa; --blue-dark: #93bbfd; --blue-light: #1e3a5f;
+      --green: #4ade80; --green-bg: #052e16; --green-light: #166534;
+      --red: #f87171; --red-bg: #450a0a;
+      --orange: #fb923c; --orange-bg: #431407;
+      --purple: #a78bfa; --purple-light: #2e1065;
+      --bg: #0f172a; --card: #1e293b; --border: #334155;
+      --text: #f1f5f9; --muted: #94a3b8;
+      --shadow: 0 1px 3px rgba(0,0,0,.4);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; -webkit-font-smoothing: antialiased; }
+    a { color: var(--blue); text-decoration: none; }
+
+    .header { background: rgba(255,255,255,.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 20px; height: 60px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+    [data-theme="dark"] .header { background: rgba(15,23,42,.85); }
+    .logo { font-size: 20px; font-weight: 800; color: var(--blue); letter-spacing: -.5px; }
+    .logo span { color: var(--text); }
+    .header-right { display: flex; align-items: center; gap: 6px; }
+    .nav { display: flex; align-items: center; gap: 2px; }
+    .nav a { padding: 8px 14px; border-radius: 10px; font-size: 14px; color: var(--muted); font-weight: 500; transition: all .15s; }
+    .nav a:hover { background: var(--bg); color: var(--text); }
+    .nav a.active { color: var(--blue); background: var(--blue-light); }
+    [data-theme="dark"] .nav a.active { background: rgba(96,165,250,.15); }
+    .theme-btn { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; transition: all .15s; }
+    .theme-btn:hover { color: var(--text); border-color: var(--muted); }
+    .user-pill { display: flex; align-items: center; gap: 8px; margin-left: 8px; padding-left: 12px; border-left: 1px solid var(--border); }
+    .user-pill .name { font-size: 13px; color: var(--muted); font-weight: 500; }
+    .user-pill .logout { font-size: 13px; color: var(--muted); padding: 6px 12px; border-radius: 8px; font-weight: 500; transition: all .15s; }
+    .user-pill .logout:hover { background: #fef2f2; color: #dc2626; }
+    [data-theme="dark"] .user-pill .logout:hover { background: #450a0a; color: #f87171; }
+
+    .back-link { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 500; color: var(--muted); padding: 8px 0; margin-bottom: 16px; transition: color .15s; }
+    .back-link:hover { color: var(--blue); }
+
+    .studio-layout { display: grid; grid-template-columns: 340px 1fr; gap: 24px; max-width: 1400px; margin: 0 auto; padding: 0 24px 80px; }
+    @media (max-width: 900px) { .studio-layout { grid-template-columns: 1fr; } }
+
+    .panel { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; box-shadow: var(--shadow); }
+    .panel h2 { font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .panel h3 { font-size: 14px; font-weight: 700; margin-bottom: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+
+    .job-info { margin-bottom: 24px; }
+    .job-info .title { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+    .job-info .meta { font-size: 13px; color: var(--muted); margin-bottom: 12px; }
+    .job-info .snippet { font-size: 13px; color: var(--muted); line-height: 1.6; max-height: 120px; overflow-y: auto; padding: 12px; background: var(--bg); border-radius: 10px; border: 1px solid var(--border); }
+
+    .cv-selector { margin-bottom: 20px; }
+    .cv-selector label { display: block; font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+    .cv-selector select { width: 100%; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 14px; font-family: inherit; background: var(--bg); color: var(--text); cursor: pointer; }
+    .cv-selector select:focus { outline: none; border-color: var(--blue); }
+
+    .match-btn { width: 100%; padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 700; cursor: pointer; border: none; background: linear-gradient(135deg, var(--blue), var(--purple)); color: #fff; transition: all .2s; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .match-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(37,99,235,.3); }
+    .match-btn:disabled { opacity: .6; cursor: wait; transform: none; }
+    .match-btn .spinner { width: 18px; height: 18px; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .6s linear infinite; display: none; }
+    .match-btn.loading .spinner { display: block; }
+    .match-btn.loading .btn-text { display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .recommendations { margin-top: 20px; }
+    .rec-item { padding: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px; }
+    .rec-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .rec-section { font-size: 11px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: .5px; }
+    .rec-action { font-size: 13px; font-weight: 600; color: var(--text); }
+    .rec-explanation { font-size: 12px; color: var(--muted); line-height: 1.5; margin-bottom: 8px; }
+    .rec-accept { padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1.5px solid var(--green); background: var(--green-bg); color: var(--green); transition: all .15s; font-family: inherit; }
+    .rec-accept:hover { background: var(--green); color: #fff; }
+    .rec-accept.applied { background: var(--green); color: #fff; pointer-events: none; }
+    .accept-all-btn { width: 100%; padding: 10px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1.5px solid var(--green); background: var(--green-bg); color: var(--green); transition: all .15s; font-family: inherit; margin-top: 8px; }
+    .accept-all-btn:hover { background: var(--green); color: #fff; }
+
+    .editor { display: flex; flex-direction: column; gap: 20px; }
+    .section-block { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; box-shadow: var(--shadow); }
+    .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .section-title { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .section-title .icon { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+    .section-title .icon.blue { background: var(--blue-light); color: var(--blue); }
+    .section-title .icon.green { background: var(--green-bg); color: var(--green); }
+    .section-title .icon.purple { background: var(--purple-light); color: var(--purple); }
+    .section-title .icon.orange { background: var(--orange-bg); color: var(--orange); }
+    .section-title .icon.red { background: var(--red-bg); color: var(--red); }
+
+    .section-content textarea { width: 100%; min-height: 100px; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 14px; font-family: inherit; background: var(--bg); color: var(--text); resize: vertical; line-height: 1.6; }
+    .section-content textarea:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
+
+    .section-content .skills-input { width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 14px; font-family: inherit; background: var(--bg); color: var(--text); }
+    .section-content .skills-input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
+
+    .props-row { display: flex; gap: 12px; margin-top: 12px; flex-wrap: wrap; align-items: center; }
+    .prop-group { display: flex; flex-direction: column; gap: 4px; }
+    .prop-group label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+    .prop-group input[type="number"] { width: 70px; padding: 6px 10px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 13px; font-family: inherit; background: var(--bg); color: var(--text); }
+    .prop-group input[type="color"] { width: 36px; height: 32px; padding: 2px; border: 1.5px solid var(--border); border-radius: 8px; cursor: pointer; background: var(--bg); }
+    .prop-group input[type="range"] { width: 120px; accent-color: var(--blue); }
+
+    .custom-sections { margin-top: 8px; }
+    .custom-section-item { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px; position: relative; }
+    .custom-section-item .remove-btn { position: absolute; top: 12px; right: 12px; width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all .15s; }
+    .custom-section-item .remove-btn:hover { background: var(--red-bg); color: var(--red); border-color: var(--red); }
+    .custom-section-item input, .custom-section-item textarea { width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 13px; font-family: inherit; background: var(--card); color: var(--text); margin-bottom: 8px; }
+    .custom-section-item input:focus, .custom-section-item textarea:focus { outline: none; border-color: var(--blue); }
+    .custom-section-item textarea { min-height: 80px; resize: vertical; }
+    .add-section-btn { width: 100%; padding: 12px; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; border: 2px dashed var(--border); background: transparent; color: var(--muted); transition: all .15s; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .add-section-btn:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-light); }
+
+    .global-controls { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; box-shadow: var(--shadow); }
+    .global-controls h3 { font-size: 14px; font-weight: 700; margin-bottom: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+    .global-row { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+    .global-row .prop-group { flex: 1; min-width: 150px; }
+
+    .download-bar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .download-btn { padding: 14px 28px; border-radius: 12px; font-size: 15px; font-weight: 700; cursor: pointer; border: none; background: var(--green); color: #fff; transition: all .2s; font-family: inherit; display: flex; align-items: center; gap: 8px; }
+    .download-btn:hover { background: #15803d; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(22,163,74,.3); }
+    .download-btn:disabled { opacity: .6; cursor: wait; transform: none; }
+    .preview-btn { padding: 14px 28px; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; border: 1.5px solid var(--border); background: var(--card); color: var(--text); transition: all .15s; font-family: inherit; }
+    .preview-btn:hover { border-color: var(--blue); color: var(--blue); }
+
+    .empty-state { text-align: center; padding: 60px 24px; color: var(--muted); }
+    .empty-state h3 { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+    .empty-state p { font-size: 14px; max-width: 400px; margin: 0 auto; line-height: 1.6; }
+
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 14px 24px; border-radius: 12px; font-size: 14px; font-weight: 500; display: none; z-index: 300; box-shadow: 0 4px 12px rgba(0,0,0,.25); }
+
+    @media (max-width: 768px) {
+      .nav { display: none; }
+      .user-pill { display: none; }
+      .studio-layout { padding: 0 16px 60px; gap: 16px; }
+      .panel { padding: 16px; }
+      .section-block { padding: 16px; }
+      .props-row { flex-direction: column; }
+      .global-row { flex-direction: column; }
+      .download-bar { flex-direction: column; }
+      .download-btn, .preview-btn { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo"><a href="/dashboard" style="color:var(--blue);text-decoration:none">Job<span style="color:var(--text)">Pilot</span></a></div>
+    <div class="header-right">
+      <div class="nav">
+        <a href="/dashboard">Jobs</a>
+        <a href="/remote_jobs">Remote Jobs</a>
+        <a href="/applications">Applications</a>
+        <a href="/learning">Learning</a>
+        <a href="/profile">Profile</a>
+      </div>
+      <button class="theme-btn" onclick="toggleTheme()" title="Toggle dark mode" id="themeBtn">&#9789;</button>
+      <div class="user-pill">
+        <span class="name">{{ username }}</span>
+        <a href="/logout" class="logout">Sign out</a>
+      </div>
+    </div>
+  </div>
+
+  <div style="max-width:1400px;margin:0 auto;padding:24px 24px 0">
+    <a href="/dashboard" class="back-link">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+      Back to Jobs
+    </a>
+  </div>
+
+  <div class="studio-layout">
+    <!-- Left Panel: Job Info + AI Match -->
+    <div>
+      <div class="panel" style="position:sticky;top:84px">
+        <div class="job-info">
+          <div class="title">{{ job.title }}</div>
+          <div class="meta">
+            {% if job.company %}{{ job.company }} &middot; {% endif %}
+            {% if job.location %}{{ job.location }} &middot; {% endif %}
+            {% if job.role %}{{ job.role }}{% endif %}
+          </div>
+          {% if job.snippet %}
+          <div class="snippet">{{ job.snippet }}</div>
+          {% endif %}
+        </div>
+
+        <div class="cv-selector">
+          <label>Base CV</label>
+          <select id="baseCvSelect">
+            {% for cv in user_cvs %}
+            <option value="{{ cv.id }}">{{ cv.name }}</option>
+            {% endfor %}
+            {% if not user_cvs %}
+            <option value="" disabled>No CVs uploaded</option>
+            {% endif %}
+          </select>
+        </div>
+
+        <button class="match-btn" id="matchBtn" onclick="runMatch()" {% if not user_cvs %}disabled{% endif %}>
+          <span class="spinner"></span>
+          <span class="btn-text">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+            AI Match &amp; Tailor
+          </span>
+        </button>
+
+        <div class="recommendations" id="recsPanel" style="display:none">
+          <h3>AI Recommendations</h3>
+          <div id="recsList"></div>
+          <button class="accept-all-btn" onclick="acceptAllRecs()">Accept All</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Panel: Editor -->
+    <div class="editor" id="editorPanel">
+      <div class="empty-state" id="emptyState">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.5" style="margin:0 auto 16px"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        <h3>AI Studio</h3>
+        <p>Select a base CV and click "AI Match & Tailor" to generate a tailored resume for this job.</p>
+      </div>
+
+      <div id="editorContent" style="display:none">
+        <!-- Summary -->
+        <div class="section-block">
+          <div class="section-header">
+            <div class="section-title">
+              <span class="icon blue">S</span> Summary
+            </div>
+          </div>
+          <div class="section-content">
+            <textarea id="editorSummary" rows="4" placeholder="Professional summary..."></textarea>
+          </div>
+          <div class="props-row">
+            <div class="prop-group">
+              <label>Font Size</label>
+              <input type="number" id="propsSummaryFontSize" value="11" min="8" max="16" step="0.5">
+            </div>
+            <div class="prop-group">
+              <label>Color</label>
+              <input type="color" id="propsSummaryColor" value="#0f172a">
+            </div>
+            <div class="prop-group">
+              <label>Spacing</label>
+              <input type="range" id="propsSummarySpacing" min="0" max="20" value="4">
+            </div>
+          </div>
+        </div>
+
+        <!-- Skills -->
+        <div class="section-block">
+          <div class="section-header">
+            <div class="section-title">
+              <span class="icon green">K</span> Skills
+            </div>
+          </div>
+          <div class="section-content">
+            <input type="text" id="editorSkills" class="skills-input" placeholder="Comma-separated skills...">
+          </div>
+          <div class="props-row">
+            <div class="prop-group">
+              <label>Font Size</label>
+              <input type="number" id="propsSkillsFontSize" value="11" min="8" max="16" step="0.5">
+            </div>
+            <div class="prop-group">
+              <label>Color</label>
+              <input type="color" id="propsSkillsColor" value="#0f172a">
+            </div>
+            <div class="prop-group">
+              <label>Spacing</label>
+              <input type="range" id="propsSkillsSpacing" min="0" max="20" value="4">
+            </div>
+          </div>
+        </div>
+
+        <!-- Experience -->
+        <div class="section-block">
+          <div class="section-header">
+            <div class="section-title">
+              <span class="icon purple">E</span> Experience
+            </div>
+          </div>
+          <div class="section-content">
+            <textarea id="editorExperience" rows="6" placeholder="Work experience..."></textarea>
+          </div>
+          <div class="props-row">
+            <div class="prop-group">
+              <label>Font Size</label>
+              <input type="number" id="propsExperienceFontSize" value="11" min="8" max="16" step="0.5">
+            </div>
+            <div class="prop-group">
+              <label>Color</label>
+              <input type="color" id="propsExperienceColor" value="#0f172a">
+            </div>
+            <div class="prop-group">
+              <label>Spacing</label>
+              <input type="range" id="propsExperienceSpacing" min="0" max="20" value="4">
+            </div>
+          </div>
+        </div>
+
+        <!-- Education -->
+        <div class="section-block">
+          <div class="section-header">
+            <div class="section-title">
+              <span class="icon orange">D</span> Education
+            </div>
+          </div>
+          <div class="section-content">
+            <textarea id="editorEducation" rows="3" placeholder="Education..."></textarea>
+          </div>
+          <div class="props-row">
+            <div class="prop-group">
+              <label>Font Size</label>
+              <input type="number" id="propsEducationFontSize" value="11" min="8" max="16" step="0.5">
+            </div>
+            <div class="prop-group">
+              <label>Color</label>
+              <input type="color" id="propsEducationColor" value="#0f172a">
+            </div>
+            <div class="prop-group">
+              <label>Spacing</label>
+              <input type="range" id="propsEducationSpacing" min="0" max="20" value="4">
+            </div>
+          </div>
+        </div>
+
+        <!-- Custom Sections -->
+        <div class="custom-sections" id="customSections"></div>
+        <button class="add-section-btn" onclick="addCustomSection()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+          Add Custom Section
+        </button>
+
+        <!-- Global Controls -->
+        <div class="global-controls">
+          <h3>Global Controls</h3>
+          <div class="global-row">
+            <div class="prop-group">
+              <label>Overall Spacing</label>
+              <input type="range" id="globalSpacing" min="0" max="20" value="4" oninput="applyGlobalSpacing(this.value)">
+            </div>
+            <div class="prop-group">
+              <label>Font Size Scale</label>
+              <input type="range" id="globalFontScale" min="8" max="14" value="11" step="0.5" oninput="applyGlobalFontScale(this.value)">
+            </div>
+          </div>
+        </div>
+
+        <!-- Download Bar -->
+        <div class="download-bar">
+          <button class="download-btn" id="downloadBtn" onclick="downloadCv()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download Tailored CV
+          </button>
+          <button class="preview-btn" onclick="previewCv()">Preview</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const JOB_ID = {{ job.id }};
+    let editorData = null;
+    let recommendations = [];
+
+    (function() {
+      const saved = localStorage.getItem('theme');
+      if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+      updateThemeBtn();
+    })();
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+      updateThemeBtn();
+    }
+
+    function updateThemeBtn() {
+      const btn = document.getElementById('themeBtn');
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      btn.innerHTML = isDark ? '&#9788;' : '&#9789;';
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg; t.style.display = 'block';
+      clearTimeout(t._h);
+      t._h = setTimeout(() => { t.style.display = 'none'; }, 3000);
+    }
+
+    async function runMatch() {
+      const btn = document.getElementById('matchBtn');
+      btn.classList.add('loading');
+      btn.disabled = true;
+
+      try {
+        const r = await fetch('/api/jobs/' + JOB_ID + '/ai-studio/match', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+          credentials: 'same-origin'
+        });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || 'Match failed');
+
+        editorData = d;
+        recommendations = d.recommendations || [];
+
+        // Fill editor
+        document.getElementById('editorSummary').value = d.summary || '';
+        document.getElementById('editorSkills').value = (d.skills || []).join(', ');
+        document.getElementById('editorExperience').value = d.experience || '';
+        document.getElementById('editorEducation').value = d.education || '';
+
+        // Set matched CV in selector
+        if (d.matched_cv_id) {
+          document.getElementById('baseCvSelect').value = d.matched_cv_id;
+        }
+
+        // Show custom sections
+        const csContainer = document.getElementById('customSections');
+        csContainer.innerHTML = '';
+        (d.custom_sections || []).forEach(cs => {
+          addCustomSection(cs.title, cs.content);
+        });
+
+        // Show recommendations
+        renderRecommendations();
+
+        // Show editor
+        document.getElementById('emptyState').style.display = 'none';
+        document.getElementById('editorContent').style.display = 'flex';
+        document.getElementById('editorContent').style.flexDirection = 'column';
+        document.getElementById('editorContent').style.gap = '20px';
+
+        showToast('AI tailoring complete! Review and edit below.');
+      } catch (e) {
+        showToast('Error: ' + e.message);
+      } finally {
+        btn.classList.remove('loading');
+        btn.disabled = false;
+      }
+    }
+
+    function renderRecommendations() {
+      const panel = document.getElementById('recsPanel');
+      const list = document.getElementById('recsList');
+      if (!recommendations.length) {
+        panel.style.display = 'none';
+        return;
+      }
+      panel.style.display = 'block';
+      list.innerHTML = '';
+      recommendations.forEach((rec, i) => {
+        const item = document.createElement('div');
+        item.className = 'rec-item';
+        item.id = 'rec-' + i;
+        item.innerHTML = '<div class="rec-header"><span class="rec-section">' + escapeHtml(rec.section) + '</span><span class="rec-action">' + escapeHtml(rec.action) + '</span></div><div class="rec-explanation">' + escapeHtml(rec.explanation) + '</div><button class="rec-accept" onclick="acceptRec(' + i + ')">Accept</button>';
+        list.appendChild(item);
+      });
+    }
+
+    function acceptRec(index) {
+      const rec = recommendations[index];
+      if (!rec) return;
+
+      // Apply the change to the editor
+      const section = rec.section.toLowerCase();
+      if (section === 'summary') {
+        document.getElementById('editorSummary').value = rec.tailored;
+      } else if (section === 'skills') {
+        document.getElementById('editorSkills').value = rec.tailored;
+      } else if (section === 'experience') {
+        document.getElementById('editorExperience').value = rec.tailored;
+      } else if (section === 'education') {
+        document.getElementById('editorEducation').value = rec.tailored;
+      }
+
+      // Mark as applied
+      const btn = document.querySelector('#rec-' + index + ' .rec-accept');
+      if (btn) { btn.classList.add('applied'); btn.textContent = 'Applied'; }
+      showToast('Applied: ' + rec.action);
+    }
+
+    function acceptAllRecs() {
+      recommendations.forEach((rec, i) => {
+        const btn = document.querySelector('#rec-' + i + ' .rec-accept');
+        if (btn && !btn.classList.contains('applied')) {
+          acceptRec(i);
+        }
+      });
+      showToast('All recommendations applied');
+    }
+
+    function addCustomSection(title, content) {
+      const container = document.getElementById('customSections');
+      const item = document.createElement('div');
+      item.className = 'custom-section-item';
+      item.innerHTML = '<button class="remove-btn" onclick="this.parentElement.remove()">&times;</button><input type="text" placeholder="Section title" value="' + escapeHtml(title || '') + '" class="custom-title"><textarea placeholder="Section content..." class="custom-content">' + escapeHtml(content || '') + '</textarea><div class="props-row"><div class="prop-group"><label>Font Size</label><input type="number" value="11" min="8" max="16" step="0.5" class="custom-font-size"></div><div class="prop-group"><label>Color</label><input type="color" value="#0f172a" class="custom-color"></div><div class="prop-group"><label>Spacing</label><input type="range" min="0" max="20" value="4" class="custom-spacing"></div></div>';
+      container.appendChild(item);
+    }
+
+    function applyGlobalSpacing(val) {
+      document.querySelectorAll('.props-row input[type="range"]').forEach(el => {
+        el.value = val;
+      });
+    }
+
+    function applyGlobalFontScale(val) {
+      document.querySelectorAll('.props-row input[type="number"]').forEach(el => {
+        el.value = val;
+      });
+    }
+
+    function getEditorState() {
+      const sections = {
+        summary: document.getElementById('editorSummary').value,
+        skills: document.getElementById('editorSkills').value,
+        experience: document.getElementById('editorExperience').value,
+        education: document.getElementById('editorEducation').value,
+        custom_sections: [],
+      };
+
+      document.querySelectorAll('.custom-section-item').forEach(item => {
+        const title = item.querySelector('.custom-title').value.trim();
+        const content = item.querySelector('.custom-content').value.trim();
+        if (title && content) {
+          sections.custom_sections.push({ title, content });
+        }
+      });
+
+      const properties = {
+        summary: {
+          font_size: parseFloat(document.getElementById('propsSummaryFontSize').value),
+          color: document.getElementById('propsSummaryColor').value,
+          spacing: parseInt(document.getElementById('propsSummarySpacing').value),
+        },
+        skills: {
+          font_size: parseFloat(document.getElementById('propsSkillsFontSize').value),
+          color: document.getElementById('propsSkillsColor').value,
+          spacing: parseInt(document.getElementById('propsSkillsSpacing').value),
+        },
+        experience: {
+          font_size: parseFloat(document.getElementById('propsExperienceFontSize').value),
+          color: document.getElementById('propsExperienceColor').value,
+          spacing: parseInt(document.getElementById('propsExperienceSpacing').value),
+        },
+        education: {
+          font_size: parseFloat(document.getElementById('propsEducationFontSize').value),
+          color: document.getElementById('propsEducationColor').value,
+          spacing: parseInt(document.getElementById('propsEducationSpacing').value),
+        },
+      };
+
+      return { sections, properties };
+    }
+
+    async function downloadCv() {
+      const btn = document.getElementById('downloadBtn');
+      btn.disabled = true;
+      btn.textContent = 'Generating...';
+
+      try {
+        const state = getEditorState();
+        const baseCvId = document.getElementById('baseCvSelect').value;
+
+        const r = await fetch('/api/jobs/' + JOB_ID + '/ai-studio/render', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...state,
+            base_cv_id: parseInt(baseCvId),
+          }),
+          credentials: 'same-origin'
+        });
+
+        if (!r.ok) {
+          const err = await r.json();
+          throw new Error(err.error || 'Render failed');
+        }
+
+        const blob = await r.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'tailored_cv_{{ job.id }}.docx';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('CV downloaded!');
+      } catch (e) {
+        showToast('Error: ' + e.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download Tailored CV';
+      }
+    }
+
+    function previewCv() {
+      // Simple text preview in a new window
+      const state = getEditorState();
+      const s = state.sections;
+      let html = '<!DOCTYPE html><html><head><title>CV Preview</title><style>body{font-family:Inter,sans-serif;max-width:700px;margin:40px auto;padding:0 20px;color:#0f172a;line-height:1.6}h1{font-size:24px;margin-bottom:4px}.contact{font-size:13px;color:#64748b;margin-bottom:24px}h2{font-size:14px;text-transform:uppercase;letter-spacing:.5px;color:#1F4E79;border-bottom:2px solid #1F4E79;padding-bottom:4px;margin-top:20px;margin-bottom:8px}.section{margin-bottom:16px}.skills{font-size:13px}.custom{margin-top:20px}</style></head><body>';
+      html += '<h1>{{ profile.name }}</h1>';
+      html += '<div class="contact">{{ profile.email }}{% if profile.phone %} | {{ profile.phone }}{% endif %}{% if profile.linkedin %} | {{ profile.linkedin }}{% endif %}</div>';
+      html += '<div class="section"><h2>Summary</h2><p>' + escapeHtml(s.summary) + '</p></div>';
+      html += '<div class="section"><h2>Skills</h2><p class="skills">' + escapeHtml(s.skills) + '</p></div>';
+      html += '<div class="section"><h2>Experience</h2><p>' + escapeHtml(s.experience).replace(/\n/g, '<br>') + '</p></div>';
+      html += '<div class="section"><h2>Education</h2><p>' + escapeHtml(s.education).replace(/\n/g, '<br>') + '</p></div>';
+      (s.custom_sections || []).forEach(cs => {
+        html += '<div class="section custom"><h2>' + escapeHtml(cs.title) + '</h2><p>' + escapeHtml(cs.content).replace(/\n/g, '<br>') + '</p></div>';
+      });
+      html += '</body></html>';
+
+      const w = window.open('', '_blank');
+      w.document.write(html);
+      w.document.close();
+    }
+
+    function escapeHtml(text) {
+      var div = document.createElement('div');
+      div.textContent = text || '';
+      return div.innerHTML;
+    }
+  </script>
+</body>
+</html>

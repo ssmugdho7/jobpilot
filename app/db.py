@@ -1,6 +1,7 @@
 import os
 from sqlalchemy import create_engine, Column, Integer, String, Float, Text, DateTime, ForeignKey, inspect, UniqueConstraint
 from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.types import JSON
 from datetime import datetime
 from app.paths import DATABASE_URL, IS_POSTGRES
 
@@ -77,6 +78,17 @@ class Profile(Base):
     cv_file = Column(String(300), default="")  # stored filename under data/uploads
 
 
+class UserCV(Base):
+    __tablename__ = "user_cvs"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    name = Column(String(200), nullable=False)
+    file_path = Column(String(500), nullable=False)
+    parsed_profile = Column(JSON, default=dict)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 class AppSetting(Base):
     __tablename__ = "app_settings"
 
@@ -91,6 +103,10 @@ def init_db():
         _migrate_pg()
     else:
         _migrate_sqlite()
+
+    # Ensure CV upload directory exists
+    from app.paths import CV_UPLOAD_DIR
+    os.makedirs(CV_UPLOAD_DIR, exist_ok=True)
 
 
 def _col_names(table: str) -> list[str]:
@@ -212,6 +228,48 @@ def set_setting(key: str, value: str):
         session.commit()
     finally:
         session.close()
+
+
+def get_user_cvs(user_id: int, session=None) -> list:
+    """Return all CVs for a user, ordered by created_at desc."""
+    owns_session = session is None
+    if owns_session:
+        session = SessionLocal()
+    try:
+        cvs = session.query(UserCV).filter_by(user_id=user_id).order_by(UserCV.created_at.desc()).all()
+        if owns_session:
+            for cv in cvs:
+                session.expunge(cv)
+        return cvs
+    finally:
+        if owns_session:
+            session.close()
+
+
+def get_user_cv(cv_id: int, user_id: int, session=None) -> "UserCV | None":
+    """Return a specific CV if it belongs to the user."""
+    owns_session = session is None
+    if owns_session:
+        session = SessionLocal()
+    try:
+        cv = session.query(UserCV).filter_by(id=cv_id, user_id=user_id).first()
+        if owns_session and cv:
+            session.expunge(cv)
+        return cv
+    finally:
+        if owns_session:
+            session.close()
+
+
+def user_cv_to_dict(cv) -> dict:
+    """Convert a UserCV ORM object to a dict."""
+    return {
+        "id": cv.id,
+        "name": cv.name or "",
+        "file_path": cv.file_path or "",
+        "parsed_profile": cv.parsed_profile or {},
+        "created_at": cv.created_at.isoformat() if cv.created_at else "",
+    }
 
 
 def is_fb_post_search_enabled() -> bool:

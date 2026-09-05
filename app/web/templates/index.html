@@ -143,6 +143,11 @@
     .apply-now:hover { background: #15803d; color: #fff; transform: translateY(-1px); }
     @keyframes pulse-green { 0%, 100% { box-shadow: 0 0 0 0 rgba(22,163,74,.4); } 50% { box-shadow: 0 0 0 8px rgba(22,163,74,0); } }
 
+    /* ── AI Studio button ── */
+    .ai-studio-btn { background: linear-gradient(135deg, var(--blue-light), #ede9fe) !important; border: 1.5px solid var(--blue) !important; color: var(--blue) !important; font-weight: 600 !important; }
+    .ai-studio-btn:hover { background: var(--blue) !important; color: #fff !important; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37,99,235,.3); }
+    [data-theme="dark"] .ai-studio-btn { background: linear-gradient(135deg, rgba(96,165,250,.15), rgba(139,92,246,.15)) !important; }
+
     /* ── Skill gap ── */
     .skill-gap { margin: 10px 0 14px; font-size: 12px; }
     .skill-gap .bar { height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; margin-bottom: 6px; }
@@ -557,6 +562,10 @@
               {% if job.posting_url %}
                 <a class="btn btn-ghost" href="{{ job.posting_url }}" target="_blank" rel="noopener" style="font-size:13px" onclick="trackView({{ job.id }})">View posting</a>
               {% endif %}
+              <a class="btn btn-ghost ai-studio-btn" href="/jobs/{{ job.id }}/ai-studio" style="font-size:13px;background:linear-gradient(135deg,var(--blue-light),#ede9fe);border-color:var(--blue);color:var(--blue)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                AI Studio
+              </a>
               <select class="status-select" onchange="setStatus({{ job.id }}, this.value)">
                 <option value="new" {{ 'selected' if job.status == 'new' }}>New</option>
                 <option value="applied" {{ 'selected' if job.status == 'applied' }}>Applied</option>

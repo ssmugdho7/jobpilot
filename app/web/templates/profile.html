@@ -112,6 +112,25 @@
     #cvFile { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
     .dropzone-label { display: block; cursor: pointer; position: relative; }
 
+    /* ── My CVs list ── */
+    .cv-list { margin-bottom: 16px; }
+    .cv-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px; transition: all .15s; }
+    .cv-item:hover { border-color: var(--blue); }
+    .cv-info { display: flex; flex-direction: column; gap: 2px; }
+    .cv-name { font-size: 14px; font-weight: 600; color: var(--text); }
+    .cv-meta { font-size: 12px; color: var(--muted); }
+    .cv-delete { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .15s; flex-shrink: 0; }
+    .cv-delete:hover { background: var(--red-bg); color: var(--red); border-color: var(--red); }
+    .cv-empty { font-size: 13px; color: var(--muted); padding: 16px; text-align: center; background: var(--bg); border-radius: 10px; border: 1px dashed var(--border); }
+    .cv-upload-row { display: flex; gap: 10px; align-items: center; }
+    .cv-name-input { flex: 1; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 14px; font-family: inherit; background: var(--bg); color: var(--text); }
+    .cv-name-input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
+    .cv-upload-btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; background: var(--blue); color: #fff; border: none; transition: all .15s; white-space: nowrap; }
+    .cv-upload-btn:hover { background: var(--blue-dark); transform: translateY(-1px); }
+    .cv-upload-status { font-size: 13px; color: var(--muted); margin-top: 8px; min-height: 20px; }
+    .cv-upload-status.error { color: var(--red); }
+    .cv-upload-status.success { color: var(--green); }
+
     /* ── Compose link card ── */
 <style>
   .compose-card.unlocked { border-color: var(--green); }
@@ -237,6 +256,42 @@
         <div class="bar-outer"><div class="bar-fill" id="dzBar" style="width:0%"></div></div>
         <div class="dropzone-status parsing" id="dzStatus"><span class="dropzone-spinner"></span> Parsing CV...</div>
       </div>
+    </div>
+
+    <!-- My CVs for AI Studio -->
+    <div class="card">
+      <h2 style="display:flex;align-items:center;gap:8px">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="M14 9h3"/><path d="M14 13h3"/></svg>
+        My CVs (for AI Studio)
+      </h2>
+      <p class="desc">Upload multiple CVs to use as base templates in AI Studio. The AI will match the closest CV to each job.</p>
+
+      <div id="cvList" class="cv-list">
+        {% for cv in user_cvs %}
+        <div class="cv-item" data-cv-id="{{ cv.id }}">
+          <div class="cv-info">
+            <div class="cv-name">{{ cv.name }}</div>
+            <div class="cv-meta">{{ cv.created_at[:10] if cv.created_at else '' }}</div>
+          </div>
+          <button class="cv-delete" onclick="deleteCv({{ cv.id }})" title="Delete CV">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+          </button>
+        </div>
+        {% endfor %}
+        {% if not user_cvs %}
+        <div class="cv-empty">No CVs uploaded yet. Upload your first CV above to get started with AI Studio.</div>
+        {% endif %}
+      </div>
+
+      <div class="cv-upload-row">
+        <input type="text" id="cvName" placeholder="CV name (e.g. Web Dev CV)" class="cv-name-input">
+        <label class="cv-upload-btn" id="cvUploadLabel">
+          <input type="file" id="cvUploadFile" accept=".pdf,.docx,.doc" style="display:none">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Upload CV
+        </label>
+      </div>
+      <div class="cv-upload-status" id="cvUploadStatus"></div>
     </div>
 
     <!-- Gmail compose link card -->
@@ -499,6 +554,74 @@
       } finally {
         btn.disabled = false; btn.textContent = 'Generate ready-made Email to HR';
       }
+    }
+
+    /* ── My CVs: Upload & Delete ── */
+    document.getElementById('cvUploadFile').addEventListener('change', async function() {
+      if (!this.files || !this.files.length) return;
+      const file = this.files[0];
+      this.value = '';
+      const name = document.getElementById('cvName').value.trim() || file.name.replace(/\.[^.]+$/, '');
+      const status = document.getElementById('cvUploadStatus');
+      const btn = document.querySelector('.cv-upload-btn');
+      btn.style.opacity = '.6'; btn.style.pointerEvents = 'none';
+      status.className = 'cv-upload-status'; status.textContent = 'Uploading and parsing CV...';
+
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('name', name);
+
+      try {
+        const r = await fetch('/api/cvs/upload', { method: 'POST', body: fd, credentials: 'same-origin' });
+        const d = await r.json();
+        if (d.ok && d.cv) {
+          status.className = 'cv-upload-status success';
+          status.textContent = 'CV uploaded: ' + d.cv.name;
+          document.getElementById('cvName').value = '';
+          // Add to list
+          const list = document.getElementById('cvList');
+          const empty = list.querySelector('.cv-empty');
+          if (empty) empty.remove();
+          const item = document.createElement('div');
+          item.className = 'cv-item';
+          item.dataset.cvId = d.cv.id;
+          item.innerHTML = '<div class="cv-info"><div class="cv-name">' + escapeHtml(d.cv.name) + '</div><div class="cv-meta">' + (d.cv.created_at || '').slice(0, 10) + '</div></div><button class="cv-delete" onclick="deleteCv(' + d.cv.id + ')" title="Delete CV"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></button>';
+          list.prepend(item);
+          showToast('CV uploaded for AI Studio');
+        } else {
+          throw new Error(d.error || 'Upload failed');
+        }
+      } catch (e) {
+        status.className = 'cv-upload-status error';
+        status.textContent = 'Error: ' + (e.message || 'Upload failed');
+      } finally {
+        btn.style.opacity = '1'; btn.style.pointerEvents = '';
+      }
+    });
+
+    async function deleteCv(cvId) {
+      if (!confirm('Delete this CV?')) return;
+      try {
+        const r = await fetch('/api/cvs/' + cvId, { method: 'DELETE', credentials: 'same-origin' });
+        const d = await r.json();
+        if (d.ok) {
+          const item = document.querySelector('.cv-item[data-cv-id="' + cvId + '"]');
+          if (item) item.remove();
+          const list = document.getElementById('cvList');
+          if (!list.querySelector('.cv-item')) {
+            list.innerHTML = '<div class="cv-empty">No CVs uploaded yet. Upload your first CV above to get started with AI Studio.</div>';
+          }
+          showToast('CV deleted');
+        }
+      } catch (e) {
+        showToast('Failed to delete CV');
+      }
+    }
+
+    function escapeHtml(text) {
+      var div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
     }
   </script>
 </body>

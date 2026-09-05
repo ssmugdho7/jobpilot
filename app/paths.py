@@ -4,9 +4,10 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 UPLOAD_DIR = os.path.join(DATA_DIR, "uploads")
 CV_DIR = os.path.join(DATA_DIR, "cv")
+CV_UPLOAD_DIR = os.path.join(DATA_DIR, "uploads", "cvs")
 CONFIG_DIR = os.path.join(BASE_DIR, "config")
 
-for _d in (DATA_DIR, UPLOAD_DIR, CV_DIR):
+for _d in (DATA_DIR, UPLOAD_DIR, CV_DIR, CV_UPLOAD_DIR):
     os.makedirs(_d, exist_ok=True)
 
 IS_POSTGRES = bool(os.environ.get("DATABASE_URL", "").startswith("postgres"))

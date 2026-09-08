@@ -940,6 +940,21 @@ def tailor_cv(job_id):
             if ts.suggestions:
                 suggestions = json.loads(ts.suggestions)
         
+        # Auto-fill JD from job description if empty
+        if not jd_text and job:
+            parts = []
+            if job.title:
+                parts.append(f"Title: {job.title}")
+            if job.company:
+                parts.append(f"Company: {job.company}")
+            if job.snippet:
+                parts.append(f"\n{job.snippet}")
+            if job.role:
+                parts.append(f"\nRole: {job.role}")
+            if job.location:
+                parts.append(f"Location: {job.location}")
+            jd_text = "\n".join(parts)
+        
         if not cv_content:
             cv_content = _normalize_profile_to_editor(p_dict)
         
@@ -1137,47 +1152,64 @@ Return ONLY valid JSON array. Max 8 suggestions.""".format(
 @app.route("/api/tailor/<int:job_id>/suggest-jobs", methods=["GET"])
 @login_required
 def api_tailor_suggest_jobs(job_id):
-    """Suggest relevant jobs based on the user's profile."""
+    """Suggest relevant jobs based on the current job and user's profile."""
     db_session = SessionLocal()
     try:
+        job = db_session.query(Job).get(job_id)
+        if not job:
+            return jsonify({"suggestions": []})
+
         profile = get_or_create_profile(session["user_id"], db_session)
         p_dict = profile_to_dict(profile)
 
+        # Build search terms from profile skills and current job
         skills = p_dict.get("skills", [])
-        job_title = p_dict.get("tagline", "") or p_dict.get("name", "")
-
-        from app.sources import fetch_bangladesh_jobs
-        all_jobs = fetch_bangladesh_jobs(max_age_days=30)
-
-        scored = []
         search_terms = set()
-        if job_title:
-            search_terms.update(job_title.lower().split())
+        for term in (job.title or "").lower().split():
+            if len(term) > 2:
+                search_terms.add(term)
+        for term in (job.company or "").lower().split():
+            if len(term) > 2:
+                search_terms.add(term)
         for skill in skills[:10]:
             if isinstance(skill, str):
-                search_terms.update(skill.lower().split())
+                for term in skill.lower().split():
+                    if len(term) > 2:
+                        search_terms.add(term)
 
-        for job in all_jobs:
+        if not search_terms:
+            return jsonify({"suggestions": []})
+
+        from app.sources import fetch_bangladesh_jobs
+        try:
+            all_jobs = fetch_bangladesh_jobs(max_age_days=30)
+        except Exception:
+            all_jobs = []
+
+        scored = []
+        for j in all_jobs:
+            # Skip the current job itself
+            if j.get("title") == job.title and j.get("company") == job.company:
+                continue
             score = 0
-            title_lower = (job.get("title", "") or "").lower()
-            snippet_lower = (job.get("snippet", "") or "").lower()
+            title_lower = (j.get("title", "") or "").lower()
+            snippet_lower = (j.get("snippet", "") or "").lower()
             for term in search_terms:
-                if len(term) > 2:
-                    if term in title_lower:
-                        score += 3
-                    if term in snippet_lower:
-                        score += 1
+                if term in title_lower:
+                    score += 3
+                if term in snippet_lower:
+                    score += 1
             if score > 0:
-                scored.append((score, job))
+                scored.append((score, j))
 
         scored.sort(key=lambda x: -x[0])
         suggestions = []
-        for score, job in scored[:8]:
+        for score, j in scored[:8]:
             suggestions.append({
-                "title": job.get("title", ""),
-                "company": job.get("company", ""),
-                "snippet": job.get("snippet", "")[:500],
-                "url": job.get("posting_url", "") or job.get("url", ""),
+                "title": j.get("title", ""),
+                "company": j.get("company", ""),
+                "snippet": j.get("snippet", "")[:500],
+                "url": j.get("posting_url", "") or j.get("url", ""),
                 "score": score,
             })
 
@@ -1430,8 +1462,25 @@ def api_tailor_preview(job_id):
         import json
         if ts and ts.cv_content:
             cv_content = json.loads(ts.cv_content)
-        else:
+        elif p_dict.get("name"):
             cv_content = _normalize_profile_to_editor(p_dict)
+        else:
+            # No TailorSession and empty profile — try to use uploaded CV data
+            user_cvs = get_user_cvs(session["user_id"], db_session)
+            best_cv = None
+            for cv in user_cvs:
+                if cv.parsed_profile:
+                    try:
+                        parsed = json.loads(cv.parsed_profile)
+                        if parsed.get("name"):
+                            best_cv = parsed
+                            break
+                    except Exception:
+                        pass
+            if best_cv:
+                cv_content = _normalize_profile_to_editor(best_cv)
+            else:
+                cv_content = _normalize_profile_to_editor({})
 
         style_config = {}
         if ts and ts.style_config:

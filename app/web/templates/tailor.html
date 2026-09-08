@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JobPilot — Tailor CV</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root, [data-theme="light"] {
+      --blue: #2563eb; --blue-dark: #1d4ed8; --blue-light: #dbeafe;
+      --green: #16a34a; --green-bg: #f0fdf4; --green-light: #bbf7d0;
+      --red: #dc2626; --red-bg: #fef2f2; --red-light: #fecaca;
+      --orange: #ea580c; --orange-bg: #fff7ed;
+      --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0;
+      --text: #0f172a; --muted: #64748b;
+      --shadow: 0 1px 3px rgba(0,0,0,.1), 0 1px 2px rgba(0,0,0,.06);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,.1), 0 2px 4px -2px rgba(0,0,0,.1);
+    }
+    [data-theme="dark"] {
+      --blue: #60a5fa; --blue-dark: #93bbfd; --blue-light: #1e3a5f;
+      --green: #4ade80; --green-bg: #052e16; --green-light: #166534;
+      --red: #f87171; --red-bg: #450a0a; --red-light: #7f1d1d;
+      --orange: #fb923c; --orange-bg: #431407;
+      --bg: #0f172a; --card: #1e293b; --border: #334155;
+      --text: #f1f5f9; --muted: #94a3b8;
+      --shadow: 0 1px 3px rgba(0,0,0,.4); --shadow-md: 0 4px 6px rgba(0,0,0,.4);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; -webkit-font-smoothing: antialiased; }
+    a { color: var(--blue); text-decoration: none; }
+
+    .header { background: rgba(255,255,255,.85); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 20px; height: 60px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+    [data-theme="dark"] .header { background: rgba(15,23,42,.85); }
+    .logo { font-size: 20px; font-weight: 800; color: var(--blue); letter-spacing: -.5px; }
+    .logo span { color: var(--text); }
+    .header-right { display: flex; align-items: center; gap: 6px; }
+    .nav { display: flex; align-items: center; gap: 2px; }
+    .nav a { padding: 8px 14px; border-radius: 10px; font-size: 14px; color: var(--muted); font-weight: 500; transition: all .15s; }
+    .nav a:hover { background: var(--bg); color: var(--text); }
+    .nav a.active { color: var(--blue); background: var(--blue-light); }
+    [data-theme="dark"] .nav a.active { background: rgba(96,165,250,.15); }
+    .theme-btn { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; transition: all .15s; }
+    .theme-btn:hover { color: var(--text); border-color: var(--muted); }
+    .user-pill { display: flex; align-items: center; gap: 8px; margin-left: 8px; padding-left: 12px; border-left: 1px solid var(--border); }
+    .user-pill .name { font-size: 13px; color: var(--muted); font-weight: 500; }
+    .user-pill .logout { font-size: 13px; color: var(--muted); padding: 6px 12px; border-radius: 8px; font-weight: 500; transition: all .15s; }
+    .user-pill .logout:hover { background: var(--red-bg); color: var(--red); }
+
+    .main { max-width: 1600px; margin: 0 auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+    .page-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .page-header h1 { font-size: 24px; font-weight: 800; }
+    .page-header .subtitle { font-size: 14px; color: var(--muted); }
+
+    .workspace { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 1024px) { .workspace { grid-template-columns: 1fr; } }
+
+    .panel { background: var(--card); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); overflow: hidden; display: flex; flex-direction: column; }
+    .panel-header { padding: 16px 20px; border-bottom: 1px solid var(--border); font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+    .panel-body { padding: 16px 20px; overflow-y: auto; flex: 1; }
+
+    .preview-frame { width: 100%; height: calc(100vh - 180px); border: none; background: #525659; }
+
+    .tab-bar { display: flex; gap: 4px; border-bottom: 1px solid var(--border); overflow-x: auto; }
+    .tab-bar button { background: none; border: none; padding: 10px 16px; font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; font-family: inherit; transition: all .15s; }
+    .tab-bar button.active { color: var(--blue); border-bottom-color: var(--blue); }
+    .tab-bar button:hover { color: var(--text); }
+
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 6px; }
+    .field input, .field textarea { width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 14px; font-family: inherit; background: var(--bg); color: var(--text); transition: all .15s; }
+    .field input:focus, .field textarea:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
+    .field textarea { resize: vertical; min-height: 60px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: all .15s; font-family: inherit; }
+    .btn-primary { background: var(--blue); color: #fff; }
+    .btn-primary:hover { background: var(--blue-dark); }
+    .btn-ghost { background: transparent; color: var(--muted); border: 1.5px solid var(--border); }
+    .btn-ghost:hover { background: var(--bg); color: var(--text); border-color: var(--muted); }
+    .btn-success { background: var(--green); color: #fff; }
+    .btn-success:hover { background: #15803d; }
+    .btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 8px; }
+    .btn:disabled { opacity: .5; cursor: wait; }
+
+    .suggestion-card { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 10px; }
+    .suggestion-card .sug-title { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+    .suggestion-card .sug-reason { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+    .suggestion-card .sug-diff { font-size: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 10px; white-space: pre-wrap; font-family: monospace; max-height: 120px; overflow-y: auto; }
+    .suggestion-card .sug-actions { display: flex; gap: 8px; margin-top: 10px; }
+
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 14px 24px; border-radius: 12px; font-size: 14px; font-weight: 500; display: none; z-index: 300; box-shadow: var(--shadow-md); }
+
+    .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); }
+    .empty-state h3 { font-size: 16px; margin-bottom: 6px; color: var(--text); }
+
+    .dropzone { border: 2px dashed var(--border); border-radius: 12px; padding: 24px; text-align: center; cursor: pointer; transition: all .2s; }
+    .dropzone:hover { border-color: var(--blue); background: var(--blue-light); }
+    .dropzone.dragover { border-color: var(--blue); background: var(--blue-light); }
+    [data-theme="dark"] .dropzone:hover { background: rgba(96,165,250,.08); }
+
+    .jd-box { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+    .jd-box textarea { width: 100%; min-height: 100px; border: 1.5px solid var(--border); border-radius: 10px; padding: 12px; font-size: 13px; font-family: inherit; background: var(--card); color: var(--text); resize: vertical; }
+    .jd-box textarea:focus { outline: none; border-color: var(--blue); }
+
+    .sug-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+    .sug-badge.pending { background: var(--blue-light); color: var(--blue); }
+    .sug-badge.accepted { background: var(--green-bg); color: var(--green); }
+    .sug-badge.rejected { background: var(--red-bg); color: var(--red); }
+
+    @media (max-width: 768px) {
+      .workspace { grid-template-columns: 1fr; }
+      .preview-frame { height: 60vh; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo"><a href="/dashboard" style="color:var(--blue);text-decoration:none">Job<span style="color:var(--text)">Pilot</span></a></div>
+    <div class="header-right">
+      <div class="nav">
+        <a href="/dashboard">Jobs</a>
+        <a href="/remote_jobs">Remote Jobs</a>
+        <a href="/applications">Applications</a>
+        <a href="/learning">Learning</a>
+        <a href="/profile">Profile</a>
+        <a href="/tailor/{{ job.id }}" class="active">Tailor CV</a>
+      </div>
+      <button class="theme-btn" onclick="toggleTheme()" title="Toggle dark mode" id="themeBtn">☀</button>
+      <div class="user-pill">
+        <span class="name">{{ username }}</span>
+        <a href="/logout" class="logout">Sign out</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="page-header">
+      <div>
+        <h1>Tailor Your CV</h1>
+        <p class="subtitle">Job: <strong>{{ job.title }}</strong> at {{ job.company or 'Unknown' }}</p>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <input type="file" id="cvUpload" accept=".pdf,.docx,.doc" style="display:none">
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('cvUpload').click()">Upload CV</button>
+        <button class="btn btn-primary btn-sm" id="downloadPdfBtn" onclick="downloadCv('pdf')">Download PDF</button>
+        <button class="btn btn-ghost btn-sm" onclick="downloadCv('docx')">Download DOCX</button>
+      </div>
+    </div>
+
+    <div class="workspace">
+      <!-- Editor panel -->
+      <div class="panel">
+        <div class="tab-bar" id="editorTabs">
+          <button class="active" data-tab="personal" onclick="switchTab('personal')">Personal</button>
+          <button data-tab="summary" onclick="switchTab('summary')">Summary</button>
+          <button data-tab="skills" onclick="switchTab('skills')">Skills</button>
+          <button data-tab="experience" onclick="switchTab('experience')">Experience</button>
+          <button data-tab="education" onclick="switchTab('education')">Education</button>
+          <button data-tab="jd" onclick="switchTab('jd')">Job Description</button>
+          <button data-tab="suggestions" onclick="switchTab('suggestions')">Suggestions</button>
+        </div>
+        <div class="panel-body" id="editorContent">
+          <div id="tab-personal" class="tab-panel">
+            <div class="row">
+              <div class="field"><label>Full name</label><input id="ed-name" oninput="onEditorChange()"></div>
+              <div class="field"><label>Job title</label><input id="ed-job_title" oninput="onEditorChange()"></div>
+            </div>
+            <div class="row">
+              <div class="field"><label>Email</label><input id="ed-email" oninput="onEditorChange()"></div>
+              <div class="field"><label>Phone</label><input id="ed-phone" oninput="onEditorChange()"></div>
+            </div>
+            <div class="row">
+              <div class="field"><label>Location</label><input id="ed-location" oninput="onEditorChange()"></div>
+              <div class="field"><label>Website</label><input id="ed-website" oninput="onEditorChange()"></div>
+            </div>
+            <div class="row">
+              <div class="field"><label>LinkedIn</label><input id="ed-linkedin" oninput="onEditorChange()"></div>
+              <div class="field"><label>GitHub</label><input id="ed-github" oninput="onEditorChange()"></div>
+            </div>
+            <div class="field"><label>Portfolio</label><input id="ed-portfolio" oninput="onEditorChange()"></div>
+          </div>
+
+          <div id="tab-summary" class="tab-panel" style="display:none">
+            <div class="field"><label>Professional Summary</label><textarea id="ed-summary" rows="6" oninput="onEditorChange()"></textarea></div>
+          </div>
+
+          <div id="tab-skills" class="tab-panel" style="display:none">
+            <div class="field"><label>Skills (comma-separated)</label><textarea id="ed-skills" rows="5" oninput="onEditorChange()" placeholder="Python, Flask, React, SQL..."></textarea></div>
+          </div>
+
+          <div id="tab-experience" class="tab-panel" style="display:none">
+            <div id="experienceList"></div>
+            <button class="btn btn-ghost btn-sm" onclick="addExperience()" style="margin-top:8px">+ Add experience</button>
+          </div>
+
+          <div id="tab-education" class="tab-panel" style="display:none">
+            <div id="educationList"></div>
+            <button class="btn btn-ghost btn-sm" onclick="addEducation()" style="margin-top:8px">+ Add education</button>
+          </div>
+
+          <div id="tab-jd" class="tab-panel" style="display:none">
+            <p style="font-size:13px;color:var(--muted);margin-bottom:10px">Paste the job description below and click <strong>Compare</strong> to get tailoring suggestions.</p>
+            <div class="jd-box">
+              <textarea id="jdText" placeholder="Paste the full job description here...">{{ jd_text }}</textarea>
+            </div>
+            <button class="btn btn-primary" style="margin-top:10px" onclick="compareJd()">Compare with my CV</button>
+            <div id="compareStatus" style="margin-top:8px;font-size:13px;color:var(--muted)"></div>
+          </div>
+
+          <div id="tab-suggestions" class="tab-panel" style="display:none">
+            <div id="suggestionsList"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Preview panel -->
+      <div class="panel">
+        <div class="panel-header">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          Live Preview
+        </div>
+        <div class="panel-body" style="padding:0">
+          <iframe id="previewFrame" class="preview-frame" src="/api/tailor/{{ job.id }}/preview"></iframe>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    let jobId = {{ job.id }};
+    let editorTimer = null;
+
+    (function() {
+      const saved = localStorage.getItem('theme');
+      if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+      updateThemeBtn();
+    })();
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+      updateThemeBtn();
+    }
+    function updateThemeBtn() {
+      const btn = document.getElementById('themeBtn');
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      btn.innerHTML = isDark ? '☾' : '☀';
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg; t.style.display = 'block';
+      clearTimeout(t._h);
+      t._h = setTimeout(() => { t.style.display = 'none'; }, 3000);
+    }
+
+    function switchTab(name) {
+      document.querySelectorAll('.tab-bar button').forEach(b => b.classList.remove('active'));
+      document.querySelector(`.tab-bar button[data-tab="${name}"]`)?.classList.add('active');
+      document.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
+      document.getElementById('tab-' + name).style.display = 'block';
+    }
+
+    function readContent() {
+      const pi = {
+        full_name: document.getElementById('ed-name').value.trim(),
+        job_title: document.getElementById('ed-job_title').value.trim(),
+        email: document.getElementById('ed-email').value.trim(),
+        phone: document.getElementById('ed-phone').value.trim(),
+        location: document.getElementById('ed-location').value.trim(),
+        website: { text: document.getElementById('ed-website').value.trim(), url: document.getElementById('ed-website').value.trim() },
+        linkedin: { text: 'LinkedIn', url: document.getElementById('ed-linkedin').value.trim() },
+        github: { text: 'GitHub', url: document.getElementById('ed-github').value.trim() },
+        portfolio: { text: 'Portfolio', url: document.getElementById('ed-portfolio').value.trim() },
+        other_links: [],
+      };
+      const rawSkills = document.getElementById('ed-skills').value;
+      const skills = [s.trim() for s in rawSkills.split(',') if s.trim()];
+      const skillGroups = skills.length ? [{ category: '', items: skills }] : [];
+      const summary = document.getElementById('ed-summary').value;
+      const experience = readExperienceList();
+      const education = readEducationList();
+      return {
+        personal_info: pi,
+        summary,
+        skills,
+        skill_groups: skillGroups,
+        experience,
+        education,
+        projects: [],
+        certifications: [],
+        extracurricular: [],
+        languages: [],
+        references: [],
+        custom_sections: [],
+        links: [],
+      };
+    }
+
+    function writeContent(content) {
+      const pi = content.personal_info || {};
+      document.getElementById('ed-name').value = pi.full_name || '';
+      document.getElementById('ed-job_title').value = pi.job_title || '';
+      document.getElementById('ed-email').value = pi.email || '';
+      document.getElementById('ed-phone').value = pi.phone || '';
+      document.getElementById('ed-location').value = pi.location || '';
+      const w = (pi.website && (pi.website.url || pi.website.text)) ? (pi.website.url || pi.website.text) : '';
+      document.getElementById('ed-website').value = w;
+      const li = (pi.linkedin && pi.linkedin.url) ? pi.linkedin.url : (pi.linkedin || '');
+      document.getElementById('ed-linkedin').value = li;
+      const gh = (pi.github && pi.github.url) ? pi.github.url : (pi.github || '');
+      document.getElementById('ed-github').value = gh;
+      const po = (pi.portfolio && pi.portfolio.url) ? pi.portfolio.url : (pi.portfolio || '');
+      document.getElementById('ed-portfolio').value = po;
+      document.getElementById('ed-summary').value = content.summary || '';
+      const skills = Array.isArray(content.skills) ? content.skills : [];
+      document.getElementById('ed-skills').value = skills.join(', ');
+      writeExperienceList(content.experience || []);
+      writeEducationList(content.education || []);
+    }
+
+    function onEditorChange() {
+      clearTimeout(editorTimer);
+      editorTimer = setTimeout(() => {
+        const content = readContent();
+        fetch(`/api/tailor/${jobId}/save-content`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cv_content: content })
+        }).then(() => refreshPreview());
+      }, 400);
+    }
+
+    function refreshPreview() {
+      const frame = document.getElementById('previewFrame');
+      if (frame) {
+        frame.src = `/api/tailor/${jobId}/preview?ts=${Date.now()}`;
+      }
+    }
+
+    // Experience sub-editor
+    function readExperienceList() {
+      const out = [];
+      document.querySelectorAll('#experienceList .exp-entry').forEach(el => {
+        const bullets = [];
+        el.querySelectorAll('.exp-bullet').forEach(b => bullets.push(b.value));
+        out.push({
+          company: el.querySelector('.exp-company').value || '',
+          title: el.querySelector('.exp-title').value || '',
+          location: el.querySelector('.exp-location').value || '',
+          start_date: el.querySelector('.exp-start').value || '',
+          end_date: el.querySelector('.exp-end').value || '',
+          bullets,
+        });
+      });
+      return out;
+    }
+    function writeExperienceList(exp) {
+      const container = document.getElementById('experienceList');
+      container.innerHTML = '';
+      (exp || []).forEach(e => {
+        const div = document.createElement('div');
+        div.className = 'exp-entry';
+        div.style.cssText = 'border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;background:var(--bg)';
+        div.innerHTML = `
+          <div class="row">
+            <div class="field" style="margin-bottom:8px"><label>Title</label><input class="exp-title" value="${e.title || ''}" oninput="onEditorChange()"></div>
+            <div class="field" style="margin-bottom:8px"><label>Company</label><input class="exp-company" value="${e.company || ''}" oninput="onEditorChange()"></div>
+          </div>
+          <div class="row">
+            <div class="field" style="margin-bottom:8px"><label>Location</label><input class="exp-location" value="${e.location || ''}" oninput="onEditorChange()"></div>
+            <div class="field" style="margin-bottom:8px"><label>Dates</label><input class="exp-start" value="${e.start_date || ''}" placeholder="Start" oninput="onEditorChange()" style="width:48%"> <input class="exp-end" value="${e.end_date || ''}" placeholder="End" oninput="onEditorChange()" style="width:48%"></div>
+          </div>
+          <div class="field" style="margin-bottom:4px"><label>Bullets (one per line)</label><textarea class="exp-bullet" rows="3" oninput="onEditorChange()">${(e.bullets || []).join('\n')}</textarea></div>
+          <button class="btn btn-ghost btn-sm" onclick="this.closest('.exp-entry').remove();onEditorChange()" style="color:var(--red)">Remove</button>
+        `;
+        container.appendChild(div);
+      });
+    }
+    function addExperience() {
+      const container = document.getElementById('experienceList');
+      const div = document.createElement('div');
+      div.className = 'exp-entry';
+      div.style.cssText = 'border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;background:var(--bg)';
+      div.innerHTML = `
+        <div class="row">
+          <div class="field" style="margin-bottom:8px"><label>Title</label><input class="exp-title" value="" oninput="onEditorChange()"></div>
+          <div class="field" style="margin-bottom:8px"><label>Company</label><input class="exp-company" value="" oninput="onEditorChange()"></div>
+        </div>
+        <div class="row">
+          <div class="field" style="margin-bottom:8px"><label>Location</label><input class="exp-location" value="" oninput="onEditorChange()"></div>
+          <div class="field" style="margin-bottom:8px"><label>Dates</label><input class="exp-start" value="" placeholder="Start" oninput="onEditorChange()" style="width:48%"> <input class="exp-end" value="" placeholder="End" oninput="onEditorChange()" style="width:48%"></div>
+        </div>
+        <div class="field" style="margin-bottom:4px"><label>Bullets (one per line)</label><textarea class="exp-bullet" rows="3" oninput="onEditorChange()"></textarea></div>
+        <button class="btn btn-ghost btn-sm" onclick="this.closest('.exp-entry').remove();onEditorChange()" style="color:var(--red)">Remove</button>
+      `;
+      container.appendChild(div);
+      onEditorChange();
+    }
+
+    // Education sub-editor
+    function readEducationList() {
+      const out = [];
+      document.querySelectorAll('#educationList .edu-entry').forEach(el => {
+        out.push({
+          degree: el.querySelector('.edu-degree').value || '',
+          institution: el.querySelector('.edu-institution').value || '',
+          start_date: el.querySelector('.edu-start').value || '',
+          end_date: el.querySelector('.edu-end').value || '',
+          details: el.querySelector('.edu-details').value || '',
+        });
+      });
+      return out;
+    }
+    function writeEducationList(edu) {
+      const container = document.getElementById('educationList');
+      container.innerHTML = '';
+      (edu || []).forEach(e => {
+        const div = document.createElement('div');
+        div.className = 'edu-entry';
+        div.style.cssText = 'border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;background:var(--bg)';
+        div.innerHTML = `
+          <div class="row">
+            <div class="field" style="margin-bottom:8px"><label>Degree</label><input class="edu-degree" value="${e.degree || ''}" oninput="onEditorChange()"></div>
+            <div class="field" style="margin-bottom:8px"><label>Institution</label><input class="edu-institution" value="${e.institution || ''}" oninput="onEditorChange()"></div>
+          </div>
+          <div class="row">
+            <div class="field" style="margin-bottom:8px"><label>Start</label><input class="edu-start" value="${e.start_date || ''}" oninput="onEditorChange()"></div>
+            <div class="field" style="margin-bottom:8px"><label>End</label><input class="edu-end" value="${e.end_date || ''}" oninput="onEditorChange()"></div>
+          </div>
+          <div class="field" style="margin-bottom:4px"><label>Details</label><textarea class="edu-details" rows="2" oninput="onEditorChange()">${e.details || ''}</textarea></div>
+          <button class="btn btn-ghost btn-sm" onclick="this.closest('.edu-entry').remove();onEditorChange()" style="color:var(--red)">Remove</button>
+        `;
+        container.appendChild(div);
+      });
+    }
+    function addEducation() {
+      const container = document.getElementById('educationList');
+      const div = document.createElement('div');
+      div.className = 'edu-entry';
+      div.style.cssText = 'border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;background:var(--bg)';
+      div.innerHTML = `
+        <div class="row">
+          <div class="field" style="margin-bottom:8px"><label>Degree</label><input class="edu-degree" value="" oninput="onEditorChange()"></div>
+          <div class="field" style="margin-bottom:8px"><label>Institution</label><input class="edu-institution" value="" oninput="onEditorChange()"></div>
+        </div>
+        <div class="row">
+          <div class="field" style="margin-bottom:8px"><label>Start</label><input class="edu-start" value="" oninput="onEditorChange()"></div>
+          <div class="field" style="margin-bottom:8px"><label>End</label><input class="edu-end" value="" oninput="onEditorChange()"></div>
+        </div>
+        <div class="field" style="margin-bottom:4px"><label>Details</label><textarea class="edu-details" rows="2" oninput="onEditorChange()"></textarea></div>
+        <button class="btn btn-ghost btn-sm" onclick="this.closest('.edu-entry').remove();onEditorChange()" style="color:var(--red)">Remove</button>
+      `;
+      container.appendChild(div);
+      onEditorChange();
+    }
+
+    // CV loading
+    document.getElementById('cvUpload').addEventListener('change', function() {
+      if (this.files && this.files.length) handleUpload(this.files[0]);
+    });
+
+    function handleUpload(file) {
+      const fd = new FormData();
+      fd.append('file', file);
+      showToast('Uploading and parsing CV...');
+      fetch(`/api/tailor/${jobId}/upload-cv`, { method: 'POST', body: fd, credentials: 'same-origin' })
+        .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
+        .then(data => {
+          if (!data.ok) throw new Error(data.error || 'Upload failed');
+          writeContent(data.profile);
+          refreshPreview();
+          showToast('CV loaded — preview updated');
+        })
+        .catch(err => showToast('Error: ' + (err.message || err)));
+    }
+
+    // JD comparison
+    function compareJd() {
+      const jd = document.getElementById('jdText').value.trim();
+      if (!jd) { showToast('Paste a job description first'); return; }
+      const statusEl = document.getElementById('compareStatus');
+      statusEl.textContent = 'Analyzing...';
+      fetch(`/api/tailor/${jobId}/compare`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jd_text: jd })
+      })
+      .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
+      .then(data => {
+        statusEl.textContent = '';
+        if (data.suggestions && data.suggestions.length) {
+          showToast(`${data.suggestions.length} suggestion(s) found`);
+          switchTab('suggestions');
+          loadSuggestions();
+        } else {
+          showToast('Your CV already matches the JD well');
+        }
+      })
+      .catch(err => { statusEl.textContent = ''; showToast('Comparison failed'); });
+    }
+
+    function loadSuggestions() {
+      fetch(`/api/tailor/${jobId}`)
+        .then(r => r.ok ? r.json() : Promise.reject())
+        .then(data => {
+          const container = document.getElementById('suggestionsList');
+          container.innerHTML = '';
+          const sugs = data.suggestions || [];
+          if (!sugs.length) {
+            container.innerHTML = '<div class="empty-state"><h3>No suggestions yet</h3><p>Paste a job description and click Compare.</p></div>';
+            return;
+          }
+          sugs.forEach(s => {
+            const card = document.createElement('div');
+            card.className = 'suggestion-card';
+            card.innerHTML = `
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                <span class="sug-badge ${s.status || 'pending'}">${s.status || 'pending'}</span>
+                <span class="sug-title">${s.title || s.section}</span>
+              </div>
+              <div class="sug-reason">${s.reason || ''}</div>
+              <div class="sug-diff">Before:\n${s.current || '(empty)'}\n\n→ After:\n${s.suggested || '(empty)'}</div>
+              <div class="sug-actions">
+                ${s.status !== 'accepted' ? `
+                  <button class="btn btn-success btn-sm" onclick="applySuggestion('${s.section}', '${escapeHtml(s.suggested || '')}')">Apply</button>
+                  <button class="btn btn-ghost btn-sm" onclick="skipSuggestion(this)">Skip</button>
+                ` : `<span style="font-size:12px;color:var(--muted)">Applied</span>`}
+              </div>
+            `;
+            container.appendChild(card);
+          });
+        });
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML.replace(/'/g, "&#39;");
+    }
+
+    function applySuggestion(section, suggested) {
+      fetch(`/api/tailor/${jobId}/apply-suggestion`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ suggestion: { section, suggested: decodeHtml(suggested) } })
+      })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => {
+        if (data.ok) {
+          showToast('Suggestion applied');
+          if (data.cv_content) writeContent(data.cv_content);
+          refreshPreview();
+          loadSuggestions();
+        } else {
+          showToast(data.error || 'Failed');
+        }
+      });
+    }
+
+    function decodeHtml(html) {
+      const txt = document.createElement('textarea');
+      txt.innerHTML = html;
+      return txt.value;
+    }
+
+    function skipSuggestion(btn) {
+      btn.closest('.suggestion-card').style.opacity = '0.5';
+      btn.textContent = 'Skipped';
+      btn.disabled = true;
+    }
+
+    function downloadCv(format) {
+      window.location.href = `/api/tailor/${jobId}/download?format=${format}`;
+    }
+
+    // Init: load existing content
+    (function init() {
+      const initialContent = {{ cv_content | tojson | safe }};
+      if (initialContent && Object.keys(initialContent).length > 0) {
+        writeContent(initialContent);
+      }
+      refreshPreview();
+      loadSuggestions();
+    })();
+  </script>
+</body>
+</html>

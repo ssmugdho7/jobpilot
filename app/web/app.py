@@ -1,13 +1,14 @@
 import os
 import re
+import json
 from datetime import datetime, timedelta
 from functools import wraps
 
-from flask import Flask, render_template, jsonify, request, session, redirect, url_for
+from flask import Flask, render_template, jsonify, request, session, redirect, url_for, send_file
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import func, and_, or_
 
-from app.db import SessionLocal, Job, Profile, User, UserJob, get_user_job, profile_to_dict, get_or_create_profile
+from app.db import SessionLocal, Job, Profile, User, UserJob, TailorSession, get_user_job, profile_to_dict, get_or_create_profile
 from app.pipeline import run_scan_async
 from app.gmail_link import (
     build_job_gmail_link, build_subject, build_body, build_gmail_link,
@@ -731,6 +732,402 @@ def api_remote_scan():
     if not started:
         return jsonify({"ok": True, "started": False, "error": "scan already running"}), 202
     return jsonify({"ok": True, "started": True})
+
+
+# ============================================================
+# Tailor CV feature
+# ============================================================
+
+@app.route("/tailor/<int:job_id>")
+@login_required
+def tailor_cv(job_id):
+    """Tailor CV page for a specific job."""
+    db_session = SessionLocal()
+    try:
+        job = db_session.query(Job).get(job_id)
+        if not job:
+            return "Job not found", 404
+        
+        # Get or create tailor session
+        ts = db_session.query(TailorSession).filter_by(
+            user_id=session["user_id"], job_id=job_id
+        ).first()
+        
+        profile = get_or_create_profile(session["user_id"], db_session)
+        p_dict = profile_to_dict(profile)
+        
+        # Load existing session data if available
+        cv_content = {}
+        jd_text = ""
+        suggestions = []
+        if ts:
+            if ts.cv_content:
+                import json
+                cv_content = json.loads(ts.cv_content)
+            jd_text = ts.jd_text or ""
+            if ts.suggestions:
+                suggestions = json.loads(ts.suggestions)
+        
+        # If no CV content in session, use profile as base
+        if not cv_content:
+            cv_content = p_dict
+        
+        return render_template(
+            "tailor.html",
+            job=job,
+            cv_content=cv_content,
+            jd_text=jd_text,
+            suggestions=suggestions,
+            username=session.get("username"),
+        )
+    finally:
+        db_session.close()
+
+
+@app.route("/api/tailor/<int:job_id>/upload-cv", methods=["POST"])
+@login_required
+def api_tailor_upload_cv(job_id):
+    """Upload and parse a CV file for tailoring."""
+    file = request.files.get("file")
+    if not file or not file.filename:
+        return jsonify({"error": "no file"}), 400
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in (".pdf", ".docx", ".doc"):
+        return jsonify({"error": "unsupported file type; use PDF or DOCX"}), 400
+    
+    import tempfile
+    from app.cv.parse import extract_text
+    from app.cv.profile import profile_from_text
+    
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=ext)
+    try:
+        file.save(tmp.name)
+        tmp.close()
+        text = extract_text(tmp.name)
+        if not text.strip():
+            return jsonify({"error": "could not extract text from CV"}), 400
+        parsed = profile_from_text(text)
+        
+        # Save to tailor session
+        db_session = SessionLocal()
+        try:
+            ts = db_session.query(TailorSession).filter_by(
+                user_id=session["user_id"], job_id=job_id
+            ).first()
+            if not ts:
+                ts = TailorSession(user_id=session["user_id"], job_id=job_id)
+                db_session.add(ts)
+            ts.cv_file = file.filename
+            import json
+            ts.cv_content = json.dumps(parsed)
+            ts.updated_at = datetime.utcnow()
+            db_session.commit()
+            return jsonify({"ok": True, "profile": parsed})
+        finally:
+            db_session.close()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        try:
+            os.unlink(tmp.name)
+        except OSError:
+            pass
+
+
+@app.route("/api/tailor/<int:job_id>/save-content", methods=["POST"])
+@login_required
+def api_tailor_save_content(job_id):
+    """Save edited CV content."""
+    data = request.get_json(silent=True) or {}
+    cv_content = data.get("cv_content", {})
+    
+    db_session = SessionLocal()
+    try:
+        ts = db_session.query(TailorSession).filter_by(
+            user_id=session["user_id"], job_id=job_id
+        ).first()
+        if not ts:
+            ts = TailorSession(user_id=session["user_id"], job_id=job_id)
+            db_session.add(ts)
+        import json
+        ts.cv_content = json.dumps(cv_content)
+        ts.updated_at = datetime.utcnow()
+        db_session.commit()
+        return jsonify({"ok": True})
+    finally:
+        db_session.close()
+
+
+@app.route("/api/tailor/<int:job_id>/compare", methods=["POST"])
+@login_required
+def api_tailor_compare(job_id):
+    """Compare CV with job description and generate suggestions."""
+    data = request.get_json(silent=True) or {}
+    jd_text = data.get("jd_text", "").strip()
+    
+    if not jd_text:
+        return jsonify({"error": "job description is required"}), 400
+    
+    db_session = SessionLocal()
+    try:
+        job = db_session.query(Job).get(job_id)
+        if not job:
+            return jsonify({"error": "job not found"}), 404
+        
+        # Get or create tailor session
+        ts = db_session.query(TailorSession).filter_by(
+            user_id=session["user_id"], job_id=job_id
+        ).first()
+        
+        import json
+        
+        # Get CV content from session or fall back to user profile
+        if ts and ts.cv_content:
+            cv_content = json.loads(ts.cv_content)
+        else:
+            profile = get_or_create_profile(session["user_id"], db_session)
+            cv_content = profile_to_dict(profile)
+        
+        # Generate suggestions using Gemini
+        from app.gemini import generate_json, gemini_available
+        
+        # Create a comprehensive prompt for comparison
+        COMPARE_PROMPT = """Compare the candidate's CV with the job description and identify specific improvements.
+        
+Job Description:
+{jd_text}
+
+Job Title: {job_title}
+Company: {company}
+
+Candidate's Current CV:
+{cv_json}
+
+Analyze and return a JSON array of specific, actionable suggestions. Each suggestion should have:
+- "section": the CV section to modify (summary, skills, experience, education)
+- "current": the current text in that section
+- "suggested": the improved text
+- "reason": why this change helps match the job
+
+Focus on:
+1. Adding missing keywords from JD to summary/skills
+2. Rephrasing experience bullets to match JD language
+3. Highlighting relevant skills
+4. Not fabricating experience
+
+Return ONLY valid JSON array. Max 8 suggestions.""".format(
+            jd_text=jd_text[:2000],
+            job_title=job.title or "",
+            company=job.company or "",
+            cv_json=json.dumps(cv_content)
+        )
+        
+        suggestions = []
+        if gemini_available():
+            try:
+                result = generate_json(COMPARE_PROMPT, temperature=0.3)
+                if isinstance(result, list):
+                    suggestions = result
+            except Exception as e:
+                print(f"[tailor] Gemini comparison failed: {e}")
+        
+        # Fallback: simple keyword-based suggestions
+        if not suggestions:
+            suggestions = _generate_fallback_suggestions(cv_content, jd_text, job)
+        
+        # Save or update session
+        if not ts:
+            ts = TailorSession(user_id=session["user_id"], job_id=job_id)
+            db_session.add(ts)
+        ts.jd_text = jd_text
+        ts.suggestions = json.dumps(suggestions)
+        ts.updated_at = datetime.utcnow()
+        db_session.commit()
+        
+        return jsonify({"ok": True, "suggestions": suggestions})
+    finally:
+        db_session.close()
+
+
+def _generate_fallback_suggestions(cv_content, jd_text, job):
+    """Generate basic suggestions without Gemini."""
+    suggestions = []
+    jd_lower = jd_text.lower()
+    
+    # Check summary
+    summary = cv_content.get("summary", "")
+    if summary:
+        # Find keywords in JD not in summary
+        jd_keywords = set()
+        for word in ["python", "java", "javascript", "react", "node", "sql", "aws", "docker", "kubernetes", "git", "api", "rest", "graphql", "microservices", "agile", "scrum", "ci/cd", "testing", "jenkins", "github", "gitlab", "jira", "confluence", "linux", "bash", "html", "css", "typescript", "angular", "vue", "django", "flask", "fastapi", "spring", "postgresql", "mysql", "mongodb", "redis", "elasticsearch"]:
+            if word in jd_lower and word not in summary.lower():
+                jd_keywords.add(word)
+        if jd_keywords:
+            suggestions.append({
+                "section": "summary",
+                "current": summary[:200],
+                "suggested": summary + " " + ", ".join(list(jd_keywords)[:5]),
+                "reason": f"Add relevant keywords from job description: {', '.join(list(jd_keywords)[:5])}"
+            })
+    
+    # Check skills
+    skills = cv_content.get("skills", [])
+    if isinstance(skills, list):
+        skill_text = ", ".join(skills).lower()
+        missing_skills = []
+        for word in ["python", "java", "javascript", "react", "node", "sql", "aws", "docker", "kubernetes", "git", "api", "rest", "graphql", "microservices", "agile", "scrum", "ci/cd", "testing", "jenkins", "github", "gitlab", "jira", "confluence", "linux", "bash", "html", "css", "typescript", "angular", "vue", "django", "flask", "fastapi", "spring", "postgresql", "mysql", "mongodb", "redis", "elasticsearch"]:
+            if word in jd_lower and word not in skill_text:
+                missing_skills.append(word)
+        if missing_skills:
+            suggestions.append({
+                "section": "skills",
+                "current": ", ".join(skills[:10]),
+                "suggested": ", ".join(skills + missing_skills[:5]),
+                "reason": f"Add missing skills from job description: {', '.join(missing_skills[:5])}"
+            })
+    
+    return suggestions[:8]
+
+
+@app.route("/api/tailor/<int:job_id>/apply-suggestion", methods=["POST"])
+@login_required
+def api_tailor_apply_suggestion(job_id):
+    """Apply a suggestion to the CV content."""
+    data = request.get_json(silent=True) or {}
+    suggestion = data.get("suggestion", {})
+    
+    db_session = SessionLocal()
+    try:
+        ts = db_session.query(TailorSession).filter_by(
+            user_id=session["user_id"], job_id=job_id
+        ).first()
+        if not ts:
+            return jsonify({"error": "session not found"}), 404
+        
+        import json
+        cv_content = json.loads(ts.cv_content) if ts.cv_content else {}
+        
+        section = suggestion.get("section")
+        suggested = suggestion.get("suggested", "")
+        
+        if section == "summary":
+            cv_content["summary"] = suggested
+        elif section == "skills":
+            # Parse suggested skills
+            if isinstance(suggested, str):
+                cv_content["skills"] = [s.strip() for s in suggested.split(",") if s.strip()]
+            elif isinstance(suggested, list):
+                cv_content["skills"] = suggested
+        elif section == "experience":
+            cv_content["experience"] = suggested
+        elif section == "education":
+            cv_content["education"] = suggested
+        
+        ts.cv_content = json.dumps(cv_content)
+        ts.updated_at = datetime.utcnow()
+        db_session.commit()
+        
+        return jsonify({"ok": True, "cv_content": cv_content})
+    finally:
+        db_session.close()
+
+
+@app.route("/api/tailor/<int:job_id>/preview", methods=["GET"])
+@login_required
+def api_tailor_preview(job_id):
+    """Generate a preview PDF of the tailored CV."""
+    db_session = SessionLocal()
+    try:
+        job = db_session.query(Job).get(job_id)
+        if not job:
+            return jsonify({"error": "job not found"}), 404
+        
+        profile = get_or_create_profile(session["user_id"], db_session)
+        p_dict = profile_to_dict(profile)
+        
+        # Get CV content from tailor session or fall back to profile
+        ts = db_session.query(TailorSession).filter_by(
+            user_id=session["user_id"], job_id=job_id
+        ).first()
+        
+        import json
+        if ts and ts.cv_content:
+            cv_content = json.loads(ts.cv_content)
+        else:
+            cv_content = p_dict
+        
+        # Generate ATS-tailored content
+        from app.cv.ats import generate_ats_cv
+        ats = generate_ats_cv({
+            "title": job.title,
+            "company": job.company,
+            "snippet": job.snippet,
+        }, cv_content)
+        
+        # Use uploaded CV as template if available
+        template_path = None
+        if ts and ts.cv_file:
+            from app.paths import UPLOAD_DIR
+            template_path = os.path.join(UPLOAD_DIR, ts.cv_file)
+        
+        from app.cv.render import render_cv_pdf
+        pdf_path = render_cv_pdf(job_id, cv_content, ats, template_path=template_path)
+        
+        return send_file(pdf_path, mimetype="application/pdf", as_attachment=False)
+    finally:
+        db_session.close()
+
+
+@app.route("/api/tailor/<int:job_id>/download", methods=["GET"])
+@login_required
+def api_tailor_download(job_id):
+    """Download the tailored CV as DOCX or PDF."""
+    format_type = request.args.get("format", "pdf")
+    
+    db_session = SessionLocal()
+    try:
+        job = db_session.query(Job).get(job_id)
+        if not job:
+            return jsonify({"error": "job not found"}), 404
+        
+        profile = get_or_create_profile(session["user_id"], db_session)
+        p_dict = profile_to_dict(profile)
+        
+        # Get CV content from tailor session or fall back to profile
+        ts = db_session.query(TailorSession).filter_by(
+            user_id=session["user_id"], job_id=job_id
+        ).first()
+        
+        import json
+        if ts and ts.cv_content:
+            cv_content = json.loads(ts.cv_content)
+        else:
+            cv_content = p_dict
+        
+        # Generate ATS-tailored content
+        from app.cv.ats import generate_ats_cv
+        ats = generate_ats_cv({
+            "title": job.title,
+            "company": job.company,
+            "snippet": job.snippet,
+        }, cv_content)
+        
+        # Use uploaded CV as template if available
+        template_path = None
+        if ts and ts.cv_file:
+            from app.paths import UPLOAD_DIR
+            template_path = os.path.join(UPLOAD_DIR, ts.cv_file)
+        
+        if format_type == "docx":
+            from app.cv.render import render_cv_docx
+            docx_path = render_cv_docx(job_id, cv_content, ats, template_path=template_path)
+            return send_file(docx_path, mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document", as_attachment=True, download_name=f"Tailored_CV_{job.title.replace(' ', '_')}.docx")
+        else:
+            from app.cv.render import render_cv_pdf
+            pdf_path = render_cv_pdf(job_id, cv_content, ats, template_path=template_path)
+            return send_file(pdf_path, mimetype="application/pdf", as_attachment=True, download_name=f"Tailored_CV_{job.title.replace(' ', '_')}.pdf")
+    finally:
+        db_session.close()
 
 
 if __name__ == "__main__":

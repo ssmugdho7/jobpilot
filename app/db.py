@@ -84,6 +84,20 @@ class AppSetting(Base):
     value = Column(String(500), default="")
 
 
+class TailorSession(Base):
+    __tablename__ = "tailor_sessions"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    job_id = Column(Integer, ForeignKey("jobs.id"), index=True)
+    cv_file = Column(String(300), default="")  # uploaded CV file
+    cv_content = Column(Text, default="")  # parsed CV content as JSON
+    jd_text = Column(Text, default="")  # job description text
+    suggestions = Column(Text, default="")  # JSON array of suggestions
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 def init_db():
     Base.metadata.create_all(engine)
 

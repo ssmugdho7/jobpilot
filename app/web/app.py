@@ -762,7 +762,6 @@ def tailor_cv(job_id):
         suggestions = []
         if ts:
             if ts.cv_content:
-                import json
                 cv_content = json.loads(ts.cv_content)
             jd_text = ts.jd_text or ""
             if ts.suggestions:
@@ -794,44 +793,40 @@ def api_tailor_upload_cv(job_id):
     ext = os.path.splitext(file.filename)[1].lower()
     if ext not in (".pdf", ".docx", ".doc"):
         return jsonify({"error": "unsupported file type; use PDF or DOCX"}), 400
-    
-    import tempfile
+
+    from app.paths import UPLOAD_DIR
+    import uuid
+
+    # Save file permanently to uploads directory
+    file_id = str(uuid.uuid4())[:8]
+    saved_name = f"tailor_{session['user_id']}_{job_id}_{file_id}{ext}"
+    saved_path = os.path.join(UPLOAD_DIR, saved_name)
+    file.save(saved_path)
+
     from app.cv.parse import extract_text
     from app.cv.profile import profile_from_text
-    
-    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=ext)
+
+    text = extract_text(saved_path)
+    if not text.strip():
+        return jsonify({"error": "could not extract text from CV"}), 400
+    parsed = profile_from_text(text)
+
+    db_session = SessionLocal()
     try:
-        file.save(tmp.name)
-        tmp.close()
-        text = extract_text(tmp.name)
-        if not text.strip():
-            return jsonify({"error": "could not extract text from CV"}), 400
-        parsed = profile_from_text(text)
-        
-        # Save to tailor session
-        db_session = SessionLocal()
-        try:
-            ts = db_session.query(TailorSession).filter_by(
-                user_id=session["user_id"], job_id=job_id
-            ).first()
-            if not ts:
-                ts = TailorSession(user_id=session["user_id"], job_id=job_id)
-                db_session.add(ts)
-            ts.cv_file = file.filename
-            import json
-            ts.cv_content = json.dumps(parsed)
-            ts.updated_at = datetime.utcnow()
-            db_session.commit()
-            return jsonify({"ok": True, "profile": parsed})
-        finally:
-            db_session.close()
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        ts = db_session.query(TailorSession).filter_by(
+            user_id=session["user_id"], job_id=job_id
+        ).first()
+        if not ts:
+            ts = TailorSession(user_id=session["user_id"], job_id=job_id)
+            db_session.add(ts)
+        ts.cv_file = saved_name
+        import json
+        ts.cv_content = json.dumps(parsed)
+        ts.updated_at = datetime.utcnow()
+        db_session.commit()
+        return jsonify({"ok": True, "profile": parsed})
     finally:
-        try:
-            os.unlink(tmp.name)
-        except OSError:
-            pass
+        db_session.close()
 
 
 @app.route("/api/tailor/<int:job_id>/save-content", methods=["POST"])
@@ -1032,10 +1027,45 @@ def api_tailor_apply_suggestion(job_id):
         db_session.close()
 
 
+@app.route("/api/tailor/<int:job_id>/session", methods=["GET"])
+@login_required
+def api_tailor_session(job_id):
+    """Get current tailor session data as JSON."""
+    db_session = SessionLocal()
+    try:
+        ts = db_session.query(TailorSession).filter_by(
+            user_id=session["user_id"], job_id=job_id
+        ).first()
+        
+        import json
+        cv_content = {}
+        jd_text = ""
+        suggestions = []
+        cv_file = ""
+        
+        if ts:
+            if ts.cv_content:
+                cv_content = json.loads(ts.cv_content)
+            jd_text = ts.jd_text or ""
+            if ts.suggestions:
+                suggestions = json.loads(ts.suggestions)
+            cv_file = ts.cv_file or ""
+        
+        return jsonify({
+            "ok": True,
+            "cv_content": cv_content,
+            "jd_text": jd_text,
+            "suggestions": suggestions,
+            "cv_file": cv_file,
+        })
+    finally:
+        db_session.close()
+
+
 @app.route("/api/tailor/<int:job_id>/preview", methods=["GET"])
 @login_required
 def api_tailor_preview(job_id):
-    """Generate a preview PDF of the tailored CV."""
+    """Generate a preview HTML of the tailored CV."""
     db_session = SessionLocal()
     try:
         job = db_session.query(Job).get(job_id)
@@ -1045,7 +1075,6 @@ def api_tailor_preview(job_id):
         profile = get_or_create_profile(session["user_id"], db_session)
         p_dict = profile_to_dict(profile)
         
-        # Get CV content from tailor session or fall back to profile
         ts = db_session.query(TailorSession).filter_by(
             user_id=session["user_id"], job_id=job_id
         ).first()
@@ -1068,7 +1097,9 @@ def api_tailor_preview(job_id):
         template_path = None
         if ts and ts.cv_file:
             from app.paths import UPLOAD_DIR
-            template_path = os.path.join(UPLOAD_DIR, ts.cv_file)
+            full_path = os.path.join(UPLOAD_DIR, ts.cv_file)
+            if os.path.exists(full_path):
+                template_path = full_path
         
         from app.cv.render import render_cv_pdf
         pdf_path = render_cv_pdf(job_id, cv_content, ats, template_path=template_path)
@@ -1093,7 +1124,6 @@ def api_tailor_download(job_id):
         profile = get_or_create_profile(session["user_id"], db_session)
         p_dict = profile_to_dict(profile)
         
-        # Get CV content from tailor session or fall back to profile
         ts = db_session.query(TailorSession).filter_by(
             user_id=session["user_id"], job_id=job_id
         ).first()
@@ -1116,7 +1146,9 @@ def api_tailor_download(job_id):
         template_path = None
         if ts and ts.cv_file:
             from app.paths import UPLOAD_DIR
-            template_path = os.path.join(UPLOAD_DIR, ts.cv_file)
+            full_path = os.path.join(UPLOAD_DIR, ts.cv_file)
+            if os.path.exists(full_path):
+                template_path = full_path
         
         if format_type == "docx":
             from app.cv.render import render_cv_docx

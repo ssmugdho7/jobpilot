@@ -95,11 +95,6 @@
     .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); }
     .empty-state h3 { font-size: 16px; margin-bottom: 6px; color: var(--text); }
 
-    .dropzone { border: 2px dashed var(--border); border-radius: 12px; padding: 24px; text-align: center; cursor: pointer; transition: all .2s; }
-    .dropzone:hover { border-color: var(--blue); background: var(--blue-light); }
-    .dropzone.dragover { border-color: var(--blue); background: var(--blue-light); }
-    [data-theme="dark"] .dropzone:hover { background: rgba(96,165,250,.08); }
-
     .jd-box { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
     .jd-box textarea { width: 100%; min-height: 100px; border: 1.5px solid var(--border); border-radius: 10px; padding: 12px; font-size: 13px; font-family: inherit; background: var(--card); color: var(--text); resize: vertical; }
     .jd-box textarea:focus { outline: none; border-color: var(--blue); }
@@ -144,7 +139,7 @@
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <input type="file" id="cvUpload" accept=".pdf,.docx,.doc" style="display:none">
         <button class="btn btn-ghost btn-sm" onclick="document.getElementById('cvUpload').click()">Upload CV</button>
-        <button class="btn btn-primary btn-sm" id="downloadPdfBtn" onclick="downloadCv('pdf')">Download PDF</button>
+        <button class="btn btn-primary btn-sm" onclick="downloadCv('pdf')">Download PDF</button>
         <button class="btn btn-ghost btn-sm" onclick="downloadCv('docx')">Download DOCX</button>
       </div>
     </div>
@@ -233,6 +228,7 @@
   <script>
     let jobId = {{ job.id }};
     let editorTimer = null;
+    let lastSavedContent = null;
 
     (function() {
       const saved = localStorage.getItem('theme');
@@ -331,10 +327,18 @@
       clearTimeout(editorTimer);
       editorTimer = setTimeout(() => {
         const content = readContent();
+        const contentStr = JSON.stringify(content);
+        if (contentStr === lastSavedContent) return;
         fetch(`/api/tailor/${jobId}/save-content`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ cv_content: content })
-        }).then(() => refreshPreview());
+        }).then(r => r.ok ? r.json() : Promise.reject(r.statusText))
+        .then(data => {
+          if (data.ok) {
+            lastSavedContent = contentStr;
+            refreshPreview();
+          }
+        }).catch(() => {});
       }, 400);
     }
 
@@ -371,14 +375,14 @@
         div.style.cssText = 'border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;background:var(--bg)';
         div.innerHTML = `
           <div class="row">
-            <div class="field" style="margin-bottom:8px"><label>Title</label><input class="exp-title" value="${e.title || ''}" oninput="onEditorChange()"></div>
-            <div class="field" style="margin-bottom:8px"><label>Company</label><input class="exp-company" value="${e.company || ''}" oninput="onEditorChange()"></div>
+            <div class="field" style="margin-bottom:8px"><label>Title</label><input class="exp-title" value="${escapeHtmlAttr(e.title || '')}" oninput="onEditorChange()"></div>
+            <div class="field" style="margin-bottom:8px"><label>Company</label><input class="exp-company" value="${escapeHtmlAttr(e.company || '')}" oninput="onEditorChange()"></div>
           </div>
           <div class="row">
-            <div class="field" style="margin-bottom:8px"><label>Location</label><input class="exp-location" value="${e.location || ''}" oninput="onEditorChange()"></div>
-            <div class="field" style="margin-bottom:8px"><label>Dates</label><input class="exp-start" value="${e.start_date || ''}" placeholder="Start" oninput="onEditorChange()" style="width:48%"> <input class="exp-end" value="${e.end_date || ''}" placeholder="End" oninput="onEditorChange()" style="width:48%"></div>
+            <div class="field" style="margin-bottom:8px"><label>Location</label><input class="exp-location" value="${escapeHtmlAttr(e.location || '')}" oninput="onEditorChange()"></div>
+            <div class="field" style="margin-bottom:8px"><label>Dates</label><input class="exp-start" value="${escapeHtmlAttr(e.start_date || '')}" placeholder="Start" oninput="onEditorChange()" style="width:48%"> <input class="exp-end" value="${escapeHtmlAttr(e.end_date || '')}" placeholder="End" oninput="onEditorChange()" style="width:48%"></div>
           </div>
-          <div class="field" style="margin-bottom:4px"><label>Bullets (one per line)</label><textarea class="exp-bullet" rows="3" oninput="onEditorChange()">${(e.bullets || []).join('\n')}</textarea></div>
+          <div class="field" style="margin-bottom:4px"><label>Bullets (one per line)</label><textarea class="exp-bullet" rows="3" oninput="onEditorChange()">${escapeHtml((e.bullets || []).join('\n'))}</textarea></div>
           <button class="btn btn-ghost btn-sm" onclick="this.closest('.exp-entry').remove();onEditorChange()" style="color:var(--red)">Remove</button>
         `;
         container.appendChild(div);
@@ -428,14 +432,14 @@
         div.style.cssText = 'border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;background:var(--bg)';
         div.innerHTML = `
           <div class="row">
-            <div class="field" style="margin-bottom:8px"><label>Degree</label><input class="edu-degree" value="${e.degree || ''}" oninput="onEditorChange()"></div>
-            <div class="field" style="margin-bottom:8px"><label>Institution</label><input class="edu-institution" value="${e.institution || ''}" oninput="onEditorChange()"></div>
+            <div class="field" style="margin-bottom:8px"><label>Degree</label><input class="edu-degree" value="${escapeHtmlAttr(e.degree || '')}" oninput="onEditorChange()"></div>
+            <div class="field" style="margin-bottom:8px"><label>Institution</label><input class="edu-institution" value="${escapeHtmlAttr(e.institution || '')}" oninput="onEditorChange()"></div>
           </div>
           <div class="row">
-            <div class="field" style="margin-bottom:8px"><label>Start</label><input class="edu-start" value="${e.start_date || ''}" oninput="onEditorChange()"></div>
-            <div class="field" style="margin-bottom:8px"><label>End</label><input class="edu-end" value="${e.end_date || ''}" oninput="onEditorChange()"></div>
+            <div class="field" style="margin-bottom:8px"><label>Start</label><input class="edu-start" value="${escapeHtmlAttr(e.start_date || '')}" oninput="onEditorChange()"></div>
+            <div class="field" style="margin-bottom:8px"><label>End</label><input class="edu-end" value="${escapeHtmlAttr(e.end_date || '')}" oninput="onEditorChange()"></div>
           </div>
-          <div class="field" style="margin-bottom:4px"><label>Details</label><textarea class="edu-details" rows="2" oninput="onEditorChange()">${e.details || ''}</textarea></div>
+          <div class="field" style="margin-bottom:4px"><label>Details</label><textarea class="edu-details" rows="2" oninput="onEditorChange()">${escapeHtml(e.details || '')}</textarea></div>
           <button class="btn btn-ghost btn-sm" onclick="this.closest('.edu-entry').remove();onEditorChange()" style="color:var(--red)">Remove</button>
         `;
         container.appendChild(div);
@@ -462,6 +466,15 @@
       onEditorChange();
     }
 
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    function escapeHtmlAttr(text) {
+      return escapeHtml(text).replace(/"/g, '&quot;');
+    }
+
     // CV loading
     document.getElementById('cvUpload').addEventListener('change', function() {
       if (this.files && this.files.length) handleUpload(this.files[0]);
@@ -476,6 +489,7 @@
         .then(data => {
           if (!data.ok) throw new Error(data.error || 'Upload failed');
           writeContent(data.profile);
+          lastSavedContent = JSON.stringify(readContent());
           refreshPreview();
           showToast('CV loaded — preview updated');
         })
@@ -507,7 +521,7 @@
     }
 
     function loadSuggestions() {
-      fetch(`/api/tailor/${jobId}`)
+      fetch(`/api/tailor/${jobId}/session`)
         .then(r => r.ok ? r.json() : Promise.reject())
         .then(data => {
           const container = document.getElementById('suggestionsList');
@@ -520,16 +534,18 @@
           sugs.forEach(s => {
             const card = document.createElement('div');
             card.className = 'suggestion-card';
+            card.setAttribute('data-section', s.section || '');
+            card.setAttribute('data-suggested', escapeHtmlAttr(s.suggested || ''));
             card.innerHTML = `
               <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
                 <span class="sug-badge ${s.status || 'pending'}">${s.status || 'pending'}</span>
-                <span class="sug-title">${s.title || s.section}</span>
+                <span class="sug-title">${escapeHtml(s.title || s.section || 'Suggestion')}</span>
               </div>
-              <div class="sug-reason">${s.reason || ''}</div>
-              <div class="sug-diff">Before:\n${s.current || '(empty)'}\n\n→ After:\n${s.suggested || '(empty)'}</div>
+              <div class="sug-reason">${escapeHtml(s.reason || '')}</div>
+              <div class="sug-diff">Before:\n${escapeHtml(s.current || '(empty)')}\n\n→ After:\n${escapeHtml(s.suggested || '(empty)')}</div>
               <div class="sug-actions">
                 ${s.status !== 'accepted' ? `
-                  <button class="btn btn-success btn-sm" onclick="applySuggestion('${s.section}', '${escapeHtml(s.suggested || '')}')">Apply</button>
+                  <button class="btn btn-success btn-sm" onclick="applySuggestion(this)">Apply</button>
                   <button class="btn btn-ghost btn-sm" onclick="skipSuggestion(this)">Skip</button>
                 ` : `<span style="font-size:12px;color:var(--muted)">Applied</span>`}
               </div>
@@ -539,34 +555,29 @@
         });
     }
 
-    function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML.replace(/'/g, "&#39;");
-    }
-
-    function applySuggestion(section, suggested) {
+    function applySuggestion(btn) {
+      const card = btn.closest('.suggestion-card');
+      const section = card.getAttribute('data-section');
+      const suggested = card.getAttribute('data-suggested');
+      
       fetch(`/api/tailor/${jobId}/apply-suggestion`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ suggestion: { section, suggested: decodeHtml(suggested) } })
+        body: JSON.stringify({ suggestion: { section, suggested } })
       })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(data => {
         if (data.ok) {
           showToast('Suggestion applied');
-          if (data.cv_content) writeContent(data.cv_content);
+          if (data.cv_content) {
+            writeContent(data.cv_content);
+            lastSavedContent = JSON.stringify(data.cv_content);
+          }
           refreshPreview();
           loadSuggestions();
         } else {
           showToast(data.error || 'Failed');
         }
       });
-    }
-
-    function decodeHtml(html) {
-      const txt = document.createElement('textarea');
-      txt.innerHTML = html;
-      return txt.value;
     }
 
     function skipSuggestion(btn) {
@@ -579,14 +590,23 @@
       window.location.href = `/api/tailor/${jobId}/download?format=${format}`;
     }
 
-    // Init: load existing content
+    // Init: load existing content from server
     (function init() {
-      const initialContent = {{ cv_content | tojson | safe }};
-      if (initialContent && Object.keys(initialContent).length > 0) {
-        writeContent(initialContent);
-      }
-      refreshPreview();
-      loadSuggestions();
+      fetch(`/api/tailor/${jobId}/session`)
+        .then(r => r.ok ? r.json() : Promise.reject())
+        .then(data => {
+          if (data.cv_content && Object.keys(data.cv_content).length > 0) {
+            writeContent(data.cv_content);
+            lastSavedContent = JSON.stringify(data.cv_content);
+          }
+          document.getElementById('jdText').value = data.jd_text || '';
+          refreshPreview();
+          loadSuggestions();
+        })
+        .catch(() => {
+          refreshPreview();
+          loadSuggestions();
+        });
     })();
   </script>
 </body>

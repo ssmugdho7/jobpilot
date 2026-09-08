@@ -69,6 +69,7 @@ class Profile(Base):
     phone = Column(String(100), default="")
     linkedin = Column(String(300), default="")
     github = Column(String(300), default="")
+    website = Column(String(300), default="")
     portfolio = Column(String(300), default="")
     summary = Column(Text, default="")
     education = Column(Text, default="")
@@ -223,6 +224,7 @@ def profile_to_dict(profile: Profile) -> dict:
         "phone": profile.phone or "",
         "linkedin": profile.linkedin or "",
         "github": profile.github or "",
+        "website": profile.website or "",
         "portfolio": profile.portfolio or "",
         "summary": profile.summary or "",
         "education": profile.education or "",

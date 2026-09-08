@@ -14,17 +14,36 @@ def extract_text_from_pdf(path: str) -> str:
             parts.append(page.extract_text() or "")
         except Exception:
             continue
+        # Extract hyperlink annotations
+        try:
+            for annot in page.get("/Annots", []):
+                annot_obj = annot.get_object()
+                a_dict = annot_obj.get("/A")
+                if a_dict:
+                    url = a_dict.get("/URI", "")
+                    if url and url not in "\n".join(parts):
+                        parts.append(url)
+        except Exception:
+            continue
     return "\n".join(parts)
 
 
 def extract_text_from_docx(path: str) -> str:
     from docx import Document
+    from docx.oxml.ns import qn
 
     doc = Document(path)
     parts = []
     for para in doc.paragraphs:
         if para.text.strip():
             parts.append(para.text)
+        # Extract hyperlink URLs from paragraph XML
+        for hyperlink in para._element.findall(qn('w:hyperlink')):
+            r_id = hyperlink.get(qn('r:id'))
+            if r_id and r_id in doc.part.rels:
+                url = doc.part.rels[r_id].target_ref
+                if url and url.startswith('http'):
+                    parts.append(url)
     for table in doc.tables:
         for row in table.rows:
             cells = [c.text.strip() for c in row.cells if c.text.strip()]
@@ -65,21 +84,25 @@ def extract_contact(text: str) -> dict:
     phones = PHONE_RE.findall(text)
     urls = URL_RE.findall(text)
 
-    linkedin = github = portfolio = ""
+    linkedin = github = portfolio = website = ""
     for u in urls:
-        u_low = u.rstrip(".,;)").lower()
+        u_clean = u.rstrip(".,;)")
+        u_low = u_clean.lower()
         if "linkedin.com" in u_low and not linkedin:
-            linkedin = u.rstrip(".,;)")
+            linkedin = u_clean
         elif "github.com" in u_low and not github:
-            github = u.rstrip(".,;)")
+            github = u_clean
+        elif not website:
+            website = u_clean
         elif not portfolio:
-            portfolio = u.rstrip(".,;)")
+            portfolio = u_clean
 
     return {
         "email": emails[0] if emails else "",
         "phone": phones[0].strip() if phones else "",
         "linkedin": linkedin,
         "github": github,
+        "website": website,
         "portfolio": portfolio,
     }
 

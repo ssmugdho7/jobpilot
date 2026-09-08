@@ -281,7 +281,11 @@
       </div>
       <div class="row">
         <div class="field"><label>GitHub</label><input id="github" value="{{ profile.github }}"></div>
+        <div class="field"><label>Website</label><input id="website" value="{{ profile.website }}"></div>
+      </div>
+      <div class="row">
         <div class="field"><label>Portfolio</label><input id="portfolio" value="{{ profile.portfolio }}"></div>
+        <div></div>
       </div>
     </div>
 
@@ -357,7 +361,8 @@
     async function saveProfile() {
       const body = {
         name: val('name'), email: val('email'), phone: val('phone'),
-        linkedin: val('linkedin'), github: val('github'), portfolio: val('portfolio'),
+        linkedin: val('linkedin'), github: val('github'), website: val('website'),
+        portfolio: val('portfolio'),
         education: val('education'), experience: val('experience'), summary: val('summary'),
         skills: val('skills').split(',').map(s => s.trim()).filter(Boolean)
       };
@@ -438,6 +443,7 @@
           if (p.phone) document.getElementById('phone').value = p.phone;
           if (p.linkedin) document.getElementById('linkedin').value = p.linkedin;
           if (p.github) document.getElementById('github').value = p.github;
+          if (p.website) document.getElementById('website').value = p.website;
           if (p.portfolio) document.getElementById('portfolio').value = p.portfolio;
           if (p.summary) document.getElementById('summary').value = p.summary;
           if (p.experience) document.getElementById('experience').value = p.experience;

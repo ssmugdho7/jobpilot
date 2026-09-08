@@ -119,6 +119,13 @@
     .section-order-item .drag-handle { color: var(--muted); font-size: 14px; }
     .section-order-item label { display: flex; align-items: center; gap: 6px; margin: 0; cursor: pointer; flex: 1; }
     .section-order-item input[type="checkbox"] { accent-color: var(--blue); }
+
+    .job-suggestion-card { background: var(--card); border: 1.5px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; cursor: pointer; transition: all .15s; }
+    .job-suggestion-card:hover { border-color: var(--blue); box-shadow: var(--shadow); }
+    .job-suggestion-card .js-title { font-weight: 700; font-size: 13px; color: var(--text); margin-bottom: 2px; }
+    .job-suggestion-card .js-company { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+    .job-suggestion-card .js-snippet { font-size: 11px; color: var(--muted); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .job-suggestion-card .js-match { display: inline-block; background: var(--blue-light); color: var(--blue); font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 999px; margin-top: 4px; }
   </style>
 </head>
 <body>
@@ -238,64 +245,156 @@
           </div>
 
           <div id="tab-customize" class="tab-panel" style="display:none">
-            <div class="field">
-              <label>Font</label>
-              <select id="style-font" onchange="onEditorChange()" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;background:var(--bg);color:var(--text)">
-                <option value="Inter">Inter</option>
-                <option value="Georgia">Georgia</option>
-                <option value="Times New Roman">Times New Roman</option>
-                <option value="Arial">Arial</option>
-                <option value="Helvetica">Helvetica</option>
-                <option value="Calibri">Calibri</option>
-                <option value="Garamond">Garamond</option>
-              </select>
-            </div>
-            <div class="row">
+            <!-- Typography Section -->
+            <div style="margin-bottom:16px">
+              <label style="font-weight:600;font-size:13px;display:block;margin-bottom:8px">Typography</label>
               <div class="field">
-                <label>Font Size</label>
-                <select id="style-fontsize" onchange="onEditorChange()" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;background:var(--bg);color:var(--text)">
-                  <option value="0.9">Small</option>
-                  <option value="1" selected>Normal</option>
-                  <option value="1.1">Large</option>
-                  <option value="1.2">Extra Large</option>
+                <label>Font Family</label>
+                <select id="style-font" onchange="onStyleChange()">
+                  <option value="Inter">Inter</option>
+                  <option value="Georgia">Georgia</option>
+                  <option value="Times New Roman">Times New Roman</option>
+                  <option value="Arial">Arial</option>
+                  <option value="Helvetica">Helvetica</option>
+                  <option value="Calibri">Calibri</option>
+                  <option value="Garamond">Garamond</option>
+                  <option value="Courier">Courier</option>
+                  <option value="Verdana">Verdana</option>
+                  <option value="Tahoma">Tahoma</option>
                 </select>
               </div>
-              <div class="field">
-                <label>Spacing</label>
-                <select id="style-spacing" onchange="onEditorChange()" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;background:var(--bg);color:var(--text)">
-                  <option value="0.9">Compact</option>
-                  <option value="1" selected>Normal</option>
-                  <option value="1.15">Relaxed</option>
-                  <option value="1.3">Spacious</option>
-                </select>
-              </div>
-            </div>
-            <div class="row">
-              <div class="field">
-                <label>Accent Color</label>
-                <div style="display:flex;gap:8px;align-items:center">
-                  <input type="color" id="style-accent" value="#1a365d" onchange="onEditorChange()" style="width:40px;height:36px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;padding:2px">
-                  <input type="text" id="style-accent-hex" value="#1a365d" oninput="document.getElementById('style-accent').value=this.value;onEditorChange()" style="flex:1;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:monospace;background:var(--bg);color:var(--text)">
+              <div class="row">
+                <div class="field">
+                  <label>Name Size</label>
+                  <input type="range" id="style-name-size" min="12" max="36" value="20" oninput="onStyleChange()">
+                  <span id="style-name-size-val" style="font-size:12px;color:var(--muted)">20pt</span>
+                </div>
+                <div class="field">
+                  <label>Section Title Size</label>
+                  <input type="range" id="style-section-size" min="8" max="24" value="13" oninput="onStyleChange()">
+                  <span id="style-section-size-val" style="font-size:12px;color:var(--muted)">13pt</span>
                 </div>
               </div>
-              <div class="field">
-                <label>Page Size</label>
-                <select id="style-pagesize" onchange="onEditorChange()" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;background:var(--bg);color:var(--text)">
-                  <option value="a4" selected>A4</option>
-                  <option value="letter">US Letter</option>
-                </select>
+              <div class="row">
+                <div class="field">
+                  <label>Body Size</label>
+                  <input type="range" id="style-body-size" min="7" max="16" value="10" oninput="onStyleChange()">
+                  <span id="style-body-size-val" style="font-size:12px;color:var(--muted)">10pt</span>
+                </div>
+                <div class="field">
+                  <label>Role/Title Size</label>
+                  <input type="range" id="style-role-size" min="8" max="20" value="12" oninput="onStyleChange()">
+                  <span id="style-role-size-val" style="font-size:12px;color:var(--muted)">12pt</span>
+                </div>
+              </div>
+              <div class="row">
+                <div class="field">
+                  <label>Section Title Weight</label>
+                  <select id="style-title-weight" onchange="onStyleChange()">
+                    <option value="bold" selected>Bold</option>
+                    <option value="normal">Normal</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Header Alignment</label>
+                  <select id="style-header-align" onchange="onStyleChange()">
+                    <option value="center" selected>Center</option>
+                    <option value="left">Left</option>
+                    <option value="right">Right</option>
+                  </select>
+                </div>
               </div>
             </div>
-            <div class="field">
-              <label>Section Order (drag to reorder)</label>
+
+            <!-- Colors Section -->
+            <div style="margin-bottom:16px">
+              <label style="font-weight:600;font-size:13px;display:block;margin-bottom:8px">Colors</label>
+              <div class="row">
+                <div class="field">
+                  <label>Accent Color</label>
+                  <div style="display:flex;gap:8px;align-items:center">
+                    <input type="color" id="style-accent" value="#1a365d" onchange="onStyleChange()">
+                    <input type="text" id="style-accent-hex" value="#1a365d" style="width:80px"
+                           oninput="document.getElementById('style-accent').value=this.value;onStyleChange()">
+                  </div>
+                </div>
+                <div class="field">
+                  <label>Text Color</label>
+                  <div style="display:flex;gap:8px;align-items:center">
+                    <input type="color" id="style-text-color" value="#555555" onchange="onStyleChange()">
+                    <input type="text" id="style-text-hex" value="#555555" style="width:80px"
+                           oninput="document.getElementById('style-text-color').value=this.value;onStyleChange()">
+                  </div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="field">
+                  <label>Link Color</label>
+                  <div style="display:flex;gap:8px;align-items:center">
+                    <input type="color" id="style-link-color" value="#1a365d" onchange="onStyleChange()">
+                    <input type="text" id="style-link-hex" value="#1a365d" style="width:80px"
+                           oninput="document.getElementById('style-link-color').value=this.value;onStyleChange()">
+                  </div>
+                </div>
+                <div class="field">
+                  <label>Divider Color</label>
+                  <div style="display:flex;gap:8px;align-items:center">
+                    <input type="color" id="style-border-color" value="#e0e0e0" onchange="onStyleChange()">
+                    <input type="text" id="style-border-hex" value="#e0e0e0" style="width:80px"
+                           oninput="document.getElementById('style-border-color').value=this.value;onStyleChange()">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Layout Section -->
+            <div style="margin-bottom:16px">
+              <label style="font-weight:600;font-size:13px;display:block;margin-bottom:8px">Layout</label>
+              <div class="row">
+                <div class="field">
+                  <label>Page Size</label>
+                  <select id="style-pagesize" onchange="onStyleChange()">
+                    <option value="a4" selected>A4</option>
+                    <option value="letter">US Letter</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Section Divider Thickness</label>
+                  <input type="range" id="style-breaker-size" min="0" max="5" value="1" step="0.5" oninput="onStyleChange()">
+                  <span id="style-breaker-size-val" style="font-size:12px;color:var(--muted)">1px</span>
+                </div>
+              </div>
+              <div class="row">
+                <div class="field">
+                  <label>Section Spacing Before</label>
+                  <input type="range" id="style-gap-before" min="0" max="30" value="8" oninput="onStyleChange()">
+                  <span id="style-gap-before-val" style="font-size:12px;color:var(--muted)">8px</span>
+                </div>
+                <div class="field">
+                  <label>Section Spacing After</label>
+                  <input type="range" id="style-gap-after" min="0" max="20" value="6" oninput="onStyleChange()">
+                  <span id="style-gap-after-val" style="font-size:12px;color:var(--muted)">6px</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Section Order -->
+            <div>
+              <label style="font-weight:600;font-size:13px;display:block;margin-bottom:8px">Section Order (drag to reorder)</label>
               <div id="sectionOrder" style="display:flex;flex-direction:column;gap:4px"></div>
             </div>
           </div>
 
           <div id="tab-jd" class="tab-panel" style="display:none">
-            <p style="font-size:13px;color:var(--muted);margin-bottom:10px">Paste the job description below and click <strong>Compare</strong> to get tailoring suggestions.</p>
-            <div class="jd-box">
-              <textarea id="jdText" placeholder="Paste the full job description here...">{{ jd_text }}</textarea>
+            <div style="margin-bottom:12px">
+              <label style="font-weight:600;font-size:13px;display:block;margin-bottom:8px">Suggested Jobs (based on your profile)</label>
+              <div id="jobSuggestions" style="margin-bottom:16px">
+                <p style="color:var(--muted);font-size:12px">Loading suggestions...</p>
+              </div>
+            </div>
+            <div class="field">
+              <label style="font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.6px">Job Description (paste manually or click a suggestion above)</label>
+              <textarea id="jdText" rows="10" style="width:100%;font-family:monospace;font-size:12px;padding:8px;border:1px solid var(--border);border-radius:6px;min-height:100px" oninput="onEditorChange()" placeholder="Paste the full job description here...">{{ jd_text }}</textarea>
             </div>
             <button class="btn btn-primary" style="margin-top:10px" onclick="compareJd()">Compare with my CV</button>
             <div id="compareStatus" style="margin-top:8px;font-size:13px;color:var(--muted)"></div>
@@ -447,10 +546,20 @@
       });
       return {
         font_family: document.getElementById('style-font').value,
-        font_scale: parseFloat(document.getElementById('style-fontsize').value),
-        spacing_scale: parseFloat(document.getElementById('style-spacing').value),
+        name_size: parseInt(document.getElementById('style-name-size').value),
+        section_title_size: parseInt(document.getElementById('style-section-size').value),
+        body_size: parseInt(document.getElementById('style-body-size').value),
+        role_size: parseInt(document.getElementById('style-role-size').value),
+        section_title_weight: document.getElementById('style-title-weight').value,
+        header_align: document.getElementById('style-header-align').value,
         accent_color: document.getElementById('style-accent').value,
+        text_color: document.getElementById('style-text-color').value,
+        link_color: document.getElementById('style-link-color').value,
+        border_color: document.getElementById('style-border-color').value,
         page_size: document.getElementById('style-pagesize').value,
+        breaker_size: parseFloat(document.getElementById('style-breaker-size').value),
+        section_margin_before: parseInt(document.getElementById('style-gap-before').value),
+        section_margin_after: parseInt(document.getElementById('style-gap-after').value),
         section_order: sectionOrder,
       };
     }
@@ -484,14 +593,57 @@
 
     function writeStyle(style) {
       if (!style) return;
-      if (style.font_family) document.getElementById('style-font').value = style.font_family;
-      if (style.font_scale) document.getElementById('style-fontsize').value = style.font_scale;
-      if (style.spacing_scale) document.getElementById('style-spacing').value = style.spacing_scale;
+      if (style.font_family) {
+        document.getElementById('style-font').value = style.font_family;
+        loadGoogleFont(style.font_family);
+      }
+      if (style.name_size != null) {
+        document.getElementById('style-name-size').value = style.name_size;
+        document.getElementById('style-name-size-val').textContent = style.name_size + 'pt';
+      }
+      if (style.section_title_size != null) {
+        document.getElementById('style-section-size').value = style.section_title_size;
+        document.getElementById('style-section-size-val').textContent = style.section_title_size + 'pt';
+      }
+      if (style.body_size != null) {
+        document.getElementById('style-body-size').value = style.body_size;
+        document.getElementById('style-body-size-val').textContent = style.body_size + 'pt';
+      }
+      if (style.role_size != null) {
+        document.getElementById('style-role-size').value = style.role_size;
+        document.getElementById('style-role-size-val').textContent = style.role_size + 'pt';
+      }
+      if (style.section_title_weight) document.getElementById('style-title-weight').value = style.section_title_weight;
+      if (style.header_align) document.getElementById('style-header-align').value = style.header_align;
       if (style.accent_color) {
         document.getElementById('style-accent').value = style.accent_color;
         document.getElementById('style-accent-hex').value = style.accent_color;
       }
+      if (style.text_color) {
+        document.getElementById('style-text-color').value = style.text_color;
+        document.getElementById('style-text-hex').value = style.text_color;
+      }
+      if (style.link_color) {
+        document.getElementById('style-link-color').value = style.link_color;
+        document.getElementById('style-link-hex').value = style.link_color;
+      }
+      if (style.border_color) {
+        document.getElementById('style-border-color').value = style.border_color;
+        document.getElementById('style-border-hex').value = style.border_color;
+      }
       if (style.page_size) document.getElementById('style-pagesize').value = style.page_size;
+      if (style.breaker_size != null) {
+        document.getElementById('style-breaker-size').value = style.breaker_size;
+        document.getElementById('style-breaker-size-val').textContent = style.breaker_size + 'px';
+      }
+      if (style.section_margin_before != null) {
+        document.getElementById('style-gap-before').value = style.section_margin_before;
+        document.getElementById('style-gap-before-val').textContent = style.section_margin_before + 'px';
+      }
+      if (style.section_margin_after != null) {
+        document.getElementById('style-gap-after').value = style.section_margin_after;
+        document.getElementById('style-gap-after-val').textContent = style.section_margin_after + 'px';
+      }
       // Section order
       const allSections = [
         { key: 'summary', label: 'Summary' },
@@ -515,7 +667,7 @@
         div.draggable = true;
         div.innerHTML = `
           <span class="drag-handle">&#9776;</span>
-          <label><input type="checkbox" ${visible ? 'checked' : ''} onchange="onEditorChange()"> ${sec.label}</label>
+          <label><input type="checkbox" ${visible ? 'checked' : ''} onchange="onStyleChange()"> ${sec.label}</label>
         `;
         container.appendChild(div);
       });
@@ -550,37 +702,48 @@
         const style = readStyle();
         const payload = JSON.stringify({ cv_content: content, style });
         if (payload === lastSavedContent) return;
+        // Fire save in background (don't block preview)
         fetch(`/api/tailor/${jobId}/save-content`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ cv_content: content, style })
-        }).then(r => {
-          if (!r.ok) throw new Error(r.statusText);
-          return r.json();
-        })
-        .then(data => {
-          if (data.ok) {
-            lastSavedContent = payload;
-            refreshPreview();
-          }
+        }).then(r => r.json()).then(data => {
+          if (data.ok) lastSavedContent = payload;
         }).catch(() => {});
-      }, 400);
+        // Render preview immediately
+        refreshPreview(content, style);
+      }, 300);
     }
 
-    function refreshPreview() {
-      const content = readContent();
-      const style = readStyle();
+    const onStyleChange = onEditorChange;
+
+    let abortController = null;
+
+    function refreshPreview(content, style) {
+      if (abortController) abortController.abort();
+      abortController = new AbortController();
+      content = content || readContent();
+      style = style || readStyle();
       fetch('/api/cv/render', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cv_content: content, style })
+        body: JSON.stringify({ cv_content: content, style }),
+        signal: abortController.signal
       })
       .then(r => r.ok ? r.text() : Promise.reject())
       .then(html => {
         const frame = document.getElementById('previewFrame');
-        if (frame) {
-          frame.srcdoc = html;
-        }
+        if (frame) frame.srcdoc = html;
       })
-      .catch(() => {});
+      .catch(e => { if (e.name !== 'AbortError') console.error('Preview render failed:', e); });
+    }
+
+    const loadedFonts = new Set();
+    function loadGoogleFont(family) {
+      if (loadedFonts.has(family) || ['Arial','Helvetica','Georgia','Times New Roman','Courier','Verdana','Tahoma','Calibri'].includes(family)) return;
+      loadedFonts.add(family);
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(family)}:wght@400;500;600;700;800&display=swap`;
+      document.head.appendChild(link);
     }
 
     // Experience sub-editor
@@ -934,7 +1097,8 @@
           lastSavedContent = JSON.stringify(readContent());
           refreshPreview();
           showToast('CV loaded — preview updated');
-          loadCvList(); // Refresh CV list after upload
+          loadCvList();
+          fetchJobSuggestions(); // Refresh job suggestions with new profile
         })
         .catch(err => showToast('Error: ' + (err.message || err)));
     }
@@ -1087,11 +1251,96 @@
       window.location.href = `/api/tailor/${jobId}/download?format=${format}`;
     }
 
+    // Auto-fetch job suggestions based on profile
+    function fetchJobSuggestions() {
+      const container = document.getElementById('jobSuggestions');
+      if (!container) return;
+      container.innerHTML = '<p style="color:var(--muted);font-size:12px">Loading suggestions...</p>';
+      fetch(`/api/tailor/${jobId}/suggest-jobs`, { credentials: 'same-origin' })
+        .then(r => r.ok ? r.json() : Promise.reject())
+        .then(data => {
+          if (!data.suggestions || !data.suggestions.length) {
+            container.innerHTML = '<p style="color:var(--muted);font-size:12px">No suggestions found. You can paste a job description manually.</p>';
+            return;
+          }
+          container.innerHTML = data.suggestions.map(s => `
+            <div class="job-suggestion-card" onclick="applyJobSuggestion(this)"
+                 data-title="${escapeHtmlAttr(s.title)}"
+                 data-company="${escapeHtmlAttr(s.company)}"
+                 data-snippet="${escapeHtmlAttr(s.snippet)}">
+              <div class="js-title">${escapeHtml(s.title)}</div>
+              <div class="js-company">${escapeHtml(s.company)}</div>
+              <div class="js-snippet">${escapeHtml(s.snippet.substring(0, 200))}</div>
+              <span class="js-match">Relevance: ${s.score}</span>
+            </div>
+          `).join('');
+        })
+        .catch(() => {
+          container.innerHTML = '<p style="color:var(--muted);font-size:12px">Could not load suggestions. You can paste a job description manually.</p>';
+        });
+    }
+
+    function applyJobSuggestion(el) {
+      const title = el.dataset.title;
+      const company = el.dataset.company;
+      const snippet = el.dataset.snippet;
+      const textarea = document.getElementById('jdText');
+      if (textarea) {
+        textarea.value = `Title: ${title}\nCompany: ${company}\n\n${snippet}`;
+        onEditorChange();
+        showToast('Job description filled from suggestion');
+        switchTab('jd');
+      }
+    }
+
     // Init: load existing content from server
     (function init() {
       // Sync accent color picker with hex input
       document.getElementById('style-accent').addEventListener('input', function() {
         document.getElementById('style-accent-hex').value = this.value;
+      });
+      document.getElementById('style-accent-hex').addEventListener('input', function() {
+        document.getElementById('style-accent').value = this.value;
+      });
+
+      // Sync text color picker with hex input
+      document.getElementById('style-text-color').addEventListener('input', function() {
+        document.getElementById('style-text-hex').value = this.value;
+      });
+      document.getElementById('style-text-hex').addEventListener('input', function() {
+        document.getElementById('style-text-color').value = this.value;
+      });
+
+      // Sync link color picker with hex input
+      document.getElementById('style-link-color').addEventListener('input', function() {
+        document.getElementById('style-link-hex').value = this.value;
+      });
+      document.getElementById('style-link-hex').addEventListener('input', function() {
+        document.getElementById('style-link-color').value = this.value;
+      });
+
+      // Sync border/divider color picker with hex input
+      document.getElementById('style-border-color').addEventListener('input', function() {
+        document.getElementById('style-border-hex').value = this.value;
+      });
+      document.getElementById('style-border-hex').addEventListener('input', function() {
+        document.getElementById('style-border-color').value = this.value;
+      });
+
+      // Update range slider display values
+      document.querySelectorAll('input[type="range"]').forEach(slider => {
+        slider.addEventListener('input', function() {
+          const span = document.getElementById(this.id + '-val');
+          if (span) {
+            const unit = this.id.includes('breaker') || this.id.includes('gap') ? 'px' : 'pt';
+            span.textContent = this.value + unit;
+          }
+        });
+      });
+
+      // Load Google Font when font dropdown changes
+      document.getElementById('style-font').addEventListener('change', function() {
+        loadGoogleFont(this.value);
       });
 
       // Load CV list and auto-select best match
@@ -1139,6 +1388,9 @@
           refreshPreview();
           loadSuggestions();
         });
+
+      // Auto-fetch job suggestions after page load
+      setTimeout(fetchJobSuggestions, 1000);
     })();
   </script>
 </body>

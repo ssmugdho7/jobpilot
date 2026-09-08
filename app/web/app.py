@@ -482,7 +482,7 @@ def api_save_profile():
     db_session = SessionLocal()
     try:
         profile = get_or_create_profile(session["user_id"], db_session)
-        for key in ("name", "email", "phone", "linkedin", "github", "portfolio",
+        for key in ("name", "email", "phone", "linkedin", "github", "website", "portfolio",
                     "summary", "education", "experience"):
             if key in data:
                 setattr(profile, key, str(data[key] or "").strip())
@@ -747,7 +747,7 @@ def _normalize_profile_to_editor(p_dict: dict) -> dict:
         "email": p_dict.get("email", "") or "",
         "phone": p_dict.get("phone", "") or "",
         "location": "",
-        "website": {"text": "", "url": ""},
+        "website": {"text": "Website", "url": p_dict.get("website", "") or ""},
         "linkedin": {"text": "LinkedIn", "url": p_dict.get("linkedin", "") or ""},
         "github": {"text": "GitHub", "url": p_dict.get("github", "") or ""},
         "portfolio": {"text": "Portfolio", "url": p_dict.get("portfolio", "") or ""},
@@ -861,24 +861,55 @@ def _structured_content_from_profile(parsed: dict, canonical: Optional[dict] = N
 
 def _style_to_css(style: dict) -> dict:
     """Convert a style config dict to pre-computed CSS values for the template."""
-    font_family = style.get("font_family", "Inter")
     font_scale = float(style.get("font_scale", 1))
     spacing_scale = float(style.get("spacing_scale", 1))
-    accent = style.get("accent_color", "#1a365d")
     page_size = style.get("page_size", "a4")
 
+    _FONT_STACKS = {
+        "Inter": "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
+        "Georgia": "Georgia, 'Times New Roman', Times, serif",
+        "Times New Roman": "'Times New Roman', Times, serif",
+        "Arial": "Arial, Helvetica, sans-serif",
+        "Helvetica": "Helvetica, Arial, sans-serif",
+        "Calibri": "Calibri, 'Segoe UI', sans-serif",
+        "Garamond": "Garamond, 'EB Garamond', Georgia, serif",
+        "Courier": "Courier, 'Courier New', monospace",
+    }
+    raw_font = style.get("font_family", "Inter")
+    css_font_family = _FONT_STACKS.get(raw_font, f"'{raw_font}', sans-serif")
+
+    def _pt(key, default):
+        v = style.get(key)
+        return f"{float(v)}pt" if v is not None else f"{default * font_scale}pt"
+
+    def _px(key, default):
+        v = style.get(key)
+        return str(int(float(v))) if v is not None else str(int(default * spacing_scale))
+
     return {
-        "css_font": f"'{font_family}', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-        "css_accent": accent,
+        "css_font_family": css_font_family,
         "css_page_w": "215.9mm" if page_size == "letter" else "210mm",
         "css_page_h": "279.4mm" if page_size == "letter" else "297mm",
-        "css_font_body": f"{10.5 * font_scale}pt",
-        "css_font_name": f"{20 * font_scale}pt",
-        "css_font_section": f"{11 * font_scale}pt",
-        "css_font_small": f"{9.5 * font_scale}pt",
-        "css_font_date": f"{9 * font_scale}pt",
-        "css_gap_section": f"{12 * spacing_scale}px",
-        "css_gap_entry": f"{8 * spacing_scale}px",
+        "css_accent": style.get("accent_color", "#1a365d"),
+        "css_text": style.get("text_color", "#555555"),
+        "css_light": style.get("light_color", "#888888"),
+        "css_border": style.get("border_color", "#e0e0e0"),
+        "css_link_color": style.get("link_color", "#1a365d"),
+        "css_font_name": _pt("name_size", 20),
+        "css_font_section": _pt("section_title_size", 13),
+        "css_font_body": _pt("body_size", 10),
+        "css_font_desc": _pt("desc_size", 10),
+        "css_font_role": _pt("role_size", 12),
+        "css_font_company": _pt("company_size", 10),
+        "css_font_small": _pt("body_size", 10),
+        "css_font_date": _pt("body_size", 10),
+        "css_breaker_size": _px("breaker_size", 1),
+        "css_breaker_color": style.get("breaker_color", "#e0e0e0"),
+        "css_gap_section": _px("section_margin_before", 8),
+        "css_gap_after": _px("section_margin_after", 6),
+        "css_gap_entry": _px("section_margin_before", 4),
+        "css_header_align": style.get("header_align", "center"),
+        "css_title_weight": style.get("section_title_weight", "bold"),
     }
 
 
@@ -1099,6 +1130,61 @@ Return ONLY valid JSON array. Max 8 suggestions.""".format(
         db_session.commit()
         
         return jsonify({"ok": True, "suggestions": suggestions})
+    finally:
+        db_session.close()
+
+
+@app.route("/api/tailor/<int:job_id>/suggest-jobs", methods=["GET"])
+@login_required
+def api_tailor_suggest_jobs(job_id):
+    """Suggest relevant jobs based on the user's profile."""
+    db_session = SessionLocal()
+    try:
+        profile = get_or_create_profile(session["user_id"], db_session)
+        p_dict = profile_to_dict(profile)
+
+        skills = p_dict.get("skills", [])
+        job_title = p_dict.get("tagline", "") or p_dict.get("name", "")
+
+        from app.sources import fetch_bangladesh_jobs
+        all_jobs = fetch_bangladesh_jobs(max_age_days=30)
+
+        scored = []
+        search_terms = set()
+        if job_title:
+            search_terms.update(job_title.lower().split())
+        for skill in skills[:10]:
+            if isinstance(skill, str):
+                search_terms.update(skill.lower().split())
+
+        for job in all_jobs:
+            score = 0
+            title_lower = (job.get("title", "") or "").lower()
+            snippet_lower = (job.get("snippet", "") or "").lower()
+            for term in search_terms:
+                if len(term) > 2:
+                    if term in title_lower:
+                        score += 3
+                    if term in snippet_lower:
+                        score += 1
+            if score > 0:
+                scored.append((score, job))
+
+        scored.sort(key=lambda x: -x[0])
+        suggestions = []
+        for score, job in scored[:8]:
+            suggestions.append({
+                "title": job.get("title", ""),
+                "company": job.get("company", ""),
+                "snippet": job.get("snippet", "")[:500],
+                "url": job.get("posting_url", "") or job.get("url", ""),
+                "score": score,
+            })
+
+        return jsonify({"suggestions": suggestions})
+    except Exception as e:
+        print(f"[suggest-jobs] error: {e}")
+        return jsonify({"suggestions": []})
     finally:
         db_session.close()
 

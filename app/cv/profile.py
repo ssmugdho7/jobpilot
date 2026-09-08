@@ -19,13 +19,14 @@ PROFILE_SCHEMA = {
         "phone": {"type": "string"},
         "linkedin": {"type": "string"},
         "github": {"type": "string"},
+        "website": {"type": "string"},
         "portfolio": {"type": "string"},
         "summary": {"type": "string"},
         "education": {"type": "string"},
         "experience": {"type": "string"},
         "skills": {"type": "array", "items": {"type": "string"}},
     },
-    "required": ["name", "email", "phone", "linkedin", "github", "portfolio",
+    "required": ["name", "email", "phone", "linkedin", "github", "website", "portfolio",
                  "summary", "education", "experience", "skills"],
 }
 
@@ -37,6 +38,7 @@ Rules:
 - experience: condensed work experience (role, company, key responsibilities) as readable text.
 - education: degrees + institutions.
 - skills: list of concrete technical skills (languages, frameworks, tools).
+- website: personal website URL (not LinkedIn, GitHub, or portfolio).
 - If a field is absent, use empty string (or empty list for skills).
 - Do NOT invent information.
 
@@ -95,6 +97,7 @@ def _fallback_profile(text: str, existing: dict | None = None) -> dict:
         "phone": contact["phone"],
         "linkedin": contact["linkedin"],
         "github": contact["github"],
+        "website": contact["website"],
         "portfolio": contact["portfolio"],
         "summary": join("summary"),
         "education": join("education"),
@@ -139,7 +142,7 @@ def profile_from_text(cv_text: str, existing: dict | None = None) -> dict:
                 fallback[key] = val
 
     # keep regex-extracted contact info as authoritative where Gemini missed it
-    for k in ("email", "phone", "linkedin", "github", "portfolio"):
+    for k in ("email", "phone", "linkedin", "github", "website", "portfolio"):
         if not fallback[k]:
             fallback[k] = contact[k]
     if not fallback["name"]:

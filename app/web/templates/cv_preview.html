@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CV Preview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* ── Theme variables (overridable via style dict) ── */
+    /* ── Reset ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ── Body: grey canvas behind the page ── */
+    body {
+      font-family: Inter, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif;
+      background: #525659;
+      display: flex;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    /* ── Page: white A4 sheet ── */
+    .cv-page {
+      background: #fff;
+      width: {{ css_page_w }};
+      min-height: {{ css_page_h }};
+      padding: 15mm;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      color: #222;
+      font-size: {{ css_font_body }};
+      line-height: 1.45;
+    }
+
+    /* ── Header ── */
+    .cv-header { text-align: center; margin-bottom: 14px; }
+    .cv-name {
+      font-size: {{ css_font_name }};
+      font-weight: 800;
+      color: {{ css_accent }};
+      letter-spacing: -0.3px;
+      margin-bottom: 2px;
+    }
+    .cv-tagline {
+      font-size: {{ css_font_body }};
+      color: #666;
+      margin-bottom: 6px;
+    }
+    .cv-contact {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 4px 12px;
+      font-size: {{ css_font_small }};
+      color: #444;
+    }
+    .cv-contact a { color: #2563eb; text-decoration: none; }
+    .cv-contact .sep { color: #888; }
+
+    /* ── Sections ── */
+    .cv-section { margin-bottom: {{ css_gap_section }}; }
+    .cv-section-title {
+      font-size: {{ css_font_section }};
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: {{ css_accent }};
+      border-bottom: 1.5px solid #d1d5db;
+      padding-bottom: 2px;
+      margin-bottom: 6px;
+    }
+
+    /* ── Entry (experience, education, projects, certs, refs) ── */
+    .cv-entry { margin-bottom: {{ css_gap_entry }}; }
+    .cv-entry-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+    }
+    .cv-entry-title {
+      font-weight: 700;
+      font-size: {{ css_font_body }};
+      color: #222;
+    }
+    .cv-entry-date {
+      font-size: {{ css_font_date }};
+      color: #888;
+      font-style: italic;
+      white-space: nowrap;
+    }
+    .cv-entry-sub {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+      font-size: {{ css_font_small }};
+      color: #444;
+      margin-top: 1px;
+    }
+    .cv-entry-sub-right {
+      font-size: {{ css_font_date }};
+      color: #888;
+      font-style: italic;
+    }
+
+    /* ── Bullets ── */
+    .cv-bullets {
+      margin-top: 3px;
+      padding-left: 14px;
+    }
+    .cv-bullets li {
+      font-size: {{ css_font_small }};
+      color: #333;
+      margin-bottom: 2px;
+    }
+
+    /* ── Skills ── */
+    .cv-skills-group {
+      margin-bottom: 4px;
+      font-size: {{ css_font_small }};
+    }
+    .cv-skills-group strong { color: {{ css_accent }}; }
+
+    /* ── Summary / description text ── */
+    .cv-text {
+      font-size: {{ css_font_small }};
+      color: #333;
+    }
+
+    /* ── Divider between entries ── */
+    .cv-divider {
+      border-bottom: 1px solid #e5e7eb;
+      margin: 6px 0;
+    }
+
+    /* ── Utilities ── */
+    .cv-link { color: #2563eb; text-decoration: none; }
+    .empty-section { display: none; }
+
+    /* ── Print: strip chrome ── */
+    @media print {
+      body { background: #fff; padding: 0; }
+      .cv-page { box-shadow: none; width: 100%; min-height: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="cv-page">
+    {% set c = cv_content or {} %}
+    {% set pi = c.personal_info or {} %}
+
+    {# ── Header ── #}
+    <div class="cv-header">
+      <div class="cv-name">{{ pi.full_name or '' }}</div>
+      {% if pi.job_title %}
+        <div class="cv-tagline">{{ pi.job_title }}</div>
+      {% endif %}
+      <div class="cv-contact">
+        {% set items = [] %}
+        {% if pi.phone %}{% set _ = items.append(('phone', pi.phone)) %}{% endif %}
+        {% if pi.email %}{% set _ = items.append(('email', pi.email)) %}{% endif %}
+        {% if pi.location %}{% set _ = items.append(('location', pi.location)) %}{% endif %}
+        {% if pi.website and pi.website.url %}{% set _ = items.append(('website', pi.website)) %}{% endif %}
+        {% if pi.linkedin and pi.linkedin.url %}{% set _ = items.append(('linkedin', pi.linkedin)) %}{% endif %}
+        {% if pi.github and pi.github.url %}{% set _ = items.append(('github', pi.github)) %}{% endif %}
+        {% if pi.portfolio and pi.portfolio.url %}{% set _ = items.append(('portfolio', pi.portfolio)) %}{% endif %}
+        {% for kind, val in items %}
+          {% if not loop.first %}<span class="sep">|</span>{% endif %}
+          {% if kind == 'email' %}
+            <a href="mailto:{{ val }}">{{ val }}</a>
+          {% elif kind in ('website', 'linkedin', 'github', 'portfolio') %}
+            <a href="{{ val.url }}">{{ val.text or val.url }}</a>
+          {% else %}
+            {{ val }}
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+
+    {# ── Build section order from style config ── #}
+    {% set section_order = [] %}
+    {% set visible_keys = [] %}
+    {% if style and style.get('section_order') %}
+      {% for s in style.section_order %}
+        {% set _ = section_order.append(s.key) %}
+        {% if s.get('visible', true) %}
+          {% set _ = visible_keys.append(s.key) %}
+        {% endif %}
+      {% endfor %}
+    {% else %}
+      {% for k in ['summary','skills','experience','education','projects','certifications','languages','references'] %}
+        {% set _ = section_order.append(k) %}
+        {% set _ = visible_keys.append(k) %}
+      {% endfor %}
+    {% endif %}
+    {% if 'summary' in visible_keys and c.summary %}
+      <div class="cv-section">
+        <div class="cv-section-title">Summary</div>
+        <div class="cv-text">{{ c.summary }}</div>
+      </div>
+    {% endif %}
+
+    {# ── Skills ── #}
+    {% set all_skills = c.skills or [] %}
+    {% set skill_groups = c.skill_groups or [] %}
+    {% if 'skills' in visible_keys and (all_skills or skill_groups) %}
+      <div class="cv-section">
+        <div class="cv-section-title">Skills</div>
+        {% if skill_groups %}
+          {% for group in skill_groups %}
+            <div class="cv-skills-group">
+              {% if group.category %}<strong>{{ group.category }}:</strong> {% endif %}
+              {{ group['items'] | join(', ') }}
+            </div>
+          {% endfor %}
+        {% elif all_skills %}
+          <div class="cv-text">{{ all_skills | join(', ') }}</div>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    {# ── Experience ── #}
+    {% set exps = c.experience or [] %}
+    {% if 'experience' in visible_keys and exps %}
+      <div class="cv-section">
+        <div class="cv-section-title">Experience</div>
+        {% for exp in exps %}
+          <div class="cv-entry">
+            <div class="cv-entry-header">
+              <span class="cv-entry-title">{{ exp.title or '' }}</span>
+              <span class="cv-entry-date">
+                {{ exp.start_date or '' }}{% if exp.end_date %} – {{ exp.end_date }}{% endif %}
+              </span>
+            </div>
+            <div class="cv-entry-sub">
+              <span>
+                {{ exp.company or '' }}{% if exp.location %}, {{ exp.location }}{% endif %}
+              </span>
+            </div>
+            {% if exp.bullets %}
+              <ul class="cv-bullets">
+                {% for b in exp.bullets %}
+                  <li>{{ b }}</li>
+                {% endfor %}
+              </ul>
+            {% elif exp.description %}
+              <div class="cv-text" style="margin-top:3px">{{ exp.description }}</div>
+            {% endif %}
+          </div>
+          {% if not loop.last %}<div class="cv-divider"></div>{% endif %}
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {# ── Education ── #}
+    {% set edus = c.education or [] %}
+    {% if 'education' in visible_keys and edus %}
+      <div class="cv-section">
+        <div class="cv-section-title">Education</div>
+        {% for edu in edus %}
+          <div class="cv-entry">
+            <div class="cv-entry-header">
+              <span class="cv-entry-title">{{ edu.degree or '' }}</span>
+              <span class="cv-entry-date">
+                {{ edu.start_date or '' }}{% if edu.end_date %} – {{ edu.end_date }}{% endif %}
+              </span>
+            </div>
+            <div class="cv-entry-sub">
+              <span>{{ edu.institution or '' }}{% if edu.location %}, {{ edu.location }}{% endif %}</span>
+              {% if edu.gpa %}<span class="cv-entry-sub-right">GPA: {{ edu.gpa }}</span>{% endif %}
+            </div>
+            {% if edu.details %}
+              <div class="cv-text" style="margin-top:3px">{{ edu.details }}</div>
+            {% endif %}
+          </div>
+          {% if not loop.last %}<div class="cv-divider"></div>{% endif %}
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {# ── Projects ── #}
+    {% set projects = c.projects or [] %}
+    {% if 'projects' in visible_keys and projects %}
+      <div class="cv-section">
+        <div class="cv-section-title">Projects</div>
+        {% for proj in projects %}
+          <div class="cv-entry">
+            <div class="cv-entry-header">
+              <span class="cv-entry-title">
+                {% if proj.url %}<a href="{{ proj.url }}" class="cv-link">{{ proj.name or '' }}</a>
+                {% else %}{{ proj.name or '' }}{% endif %}
+              </span>
+            </div>
+            {% if proj.description %}
+              <div class="cv-text" style="margin-top:3px">{{ proj.description }}</div>
+            {% endif %}
+            {% if proj.bullets %}
+              <ul class="cv-bullets">
+                {% for b in proj.bullets %}
+                  <li>{{ b }}</li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+          </div>
+          {% if not loop.last %}<div class="cv-divider"></div>{% endif %}
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {# ── Certifications ── #}
+    {% set certs = c.certifications or [] %}
+    {% if 'certifications' in visible_keys and certs %}
+      <div class="cv-section">
+        <div class="cv-section-title">Certifications</div>
+        {% for cert in certs %}
+          <div class="cv-entry">
+            <div class="cv-entry-header">
+              <span class="cv-entry-title">
+                {% if cert.url %}<a href="{{ cert.url }}" class="cv-link">{{ cert.name or '' }}</a>
+                {% else %}{{ cert.name or '' }}{% endif %}
+              </span>
+              {% if cert.date %}<span class="cv-entry-date">{{ cert.date }}</span>{% endif %}
+            </div>
+            <div class="cv-entry-sub">
+              <span>{{ cert.issuer or '' }}</span>
+            </div>
+          </div>
+          {% if not loop.last %}<div class="cv-divider"></div>{% endif %}
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {# ── Languages ── #}
+    {% set langs = c.languages or [] %}
+    {% if 'languages' in visible_keys and langs %}
+      <div class="cv-section">
+        <div class="cv-section-title">Languages</div>
+        {% for lang in langs %}
+          <div class="cv-entry" style="display:flex;justify-content:space-between;align-items:baseline">
+            <span class="cv-entry-title">{{ lang.language or lang.name or '' }}</span>
+            <span class="cv-entry-date">{{ lang.proficiency or lang.level or '' }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {# ── References ── #}
+    {% set refs = c.references or [] %}
+    {% if 'references' in visible_keys and refs %}
+      <div class="cv-section">
+        <div class="cv-section-title">References</div>
+        {% for ref in refs %}
+          <div class="cv-entry">
+            <div class="cv-entry-title">{{ ref.name or '' }}</div>
+            <div class="cv-entry-sub">
+              <span>{{ ref.title or '' }}{% if ref.company %} at {{ ref.company }}{% endif %}</span>
+              {% if ref.email %}<span class="cv-entry-sub-right"><a href="mailto:{{ ref.email }}" class="cv-link">{{ ref.email }}</a></span>{% endif %}
+            </div>
+          </div>
+          {% if not loop.last %}<div class="cv-divider"></div>{% endif %}
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {# ── Custom sections ── #}
+    {% set customs = c.custom_sections or [] %}
+    {% for sec in customs %}
+      {% if sec.title and sec.content %}
+        <div class="cv-section">
+          <div class="cv-section-title">{{ sec.title }}</div>
+          <div class="cv-text">{{ sec.content }}</div>
+        </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+</body>
+</html>

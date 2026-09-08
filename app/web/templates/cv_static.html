@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JobPilot — CV Template Preview</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root, [data-theme="light"] {
+      --blue: #2563eb; --blue-dark: #1d4ed8; --blue-light: #dbeafe;
+      --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0;
+      --text: #0f172a; --muted: #64748b;
+    }
+    [data-theme="dark"] {
+      --blue: #60a5fa; --blue-dark: #93bbfd; --blue-light: #1e3a5f;
+      --bg: #0f172a; --card: #1e293b; --border: #334155;
+      --text: #f1f5f9; --muted: #94a3b8;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: var(--text); }
+
+    .topbar {
+      background: var(--card); border-bottom: 1px solid var(--border);
+      padding: 16px 24px; display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .topbar h1 { font-size: 18px; font-weight: 800; }
+    .topbar h1 span { color: var(--blue); }
+    .topbar .info { font-size: 13px; color: var(--muted); }
+    .topbar .actions { display: flex; gap: 8px; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600;
+      cursor: pointer; border: 1.5px solid var(--border); background: var(--card);
+      color: var(--text); font-family: inherit; transition: all .15s;
+    }
+    .btn:hover { border-color: var(--muted); }
+    .btn-primary { background: var(--blue); color: #fff; border-color: var(--blue); }
+    .btn-primary:hover { background: var(--blue-dark); }
+
+    .frame-wrap {
+      display: flex; justify-content: center; padding: 24px;
+    }
+    .frame-wrap iframe {
+      width: 210mm; min-height: 297mm; border: none;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15); background: #fff;
+    }
+    @media (max-width: 900px) {
+      .frame-wrap iframe { width: 100%; min-height: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div>
+      <h1><span>Job</span>Pilot — CV Template Preview</h1>
+      <div class="info">Phase 1: Single ATS-friendly resume template, rendered from sample CV JSON</div>
+    </div>
+    <div class="actions">
+      <button class="btn" onclick="window.print()">Print / Save PDF</button>
+      <a href="/dashboard" class="btn">Back to Dashboard</a>
+    </div>
+  </div>
+  <div class="frame-wrap">
+    <iframe id="preview" src="/api/cv-preview-static/render"></iframe>
+  </div>
+</body>
+</html>

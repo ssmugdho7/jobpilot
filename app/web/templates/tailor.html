@@ -108,6 +108,17 @@
       .workspace { grid-template-columns: 1fr; }
       .preview-frame { height: 60vh; }
     }
+
+    .section-order-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px;
+      background: var(--bg); font-size: 13px; font-weight: 500; cursor: grab;
+      user-select: none; transition: all .15s;
+    }
+    .section-order-item:active { cursor: grabbing; box-shadow: var(--shadow-md); }
+    .section-order-item .drag-handle { color: var(--muted); font-size: 14px; }
+    .section-order-item label { display: flex; align-items: center; gap: 6px; margin: 0; cursor: pointer; flex: 1; }
+    .section-order-item input[type="checkbox"] { accent-color: var(--blue); }
   </style>
 </head>
 <body>
@@ -136,9 +147,15 @@
         <h1>Tailor Your CV</h1>
         <p class="subtitle">Job: <strong>{{ job.title }}</strong> at {{ job.company or 'Unknown' }}</p>
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <div class="field" style="margin:0;min-width:200px">
+          <label style="font-size:11px;margin-bottom:4px">Base CV</label>
+          <select id="cvSelect" onchange="switchBaseCv()" style="width:100%;padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)">
+            <option value="">Upload or select a CV...</option>
+          </select>
+        </div>
         <input type="file" id="cvUpload" accept=".pdf,.docx,.doc" style="display:none">
-        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('cvUpload').click()">Upload CV</button>
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('cvUpload').click()">Upload New</button>
         <button class="btn btn-primary btn-sm" onclick="downloadCv('pdf')">Download PDF</button>
         <button class="btn btn-ghost btn-sm" onclick="downloadCv('docx')">Download DOCX</button>
       </div>
@@ -153,6 +170,11 @@
           <button data-tab="skills" onclick="switchTab('skills')">Skills</button>
           <button data-tab="experience" onclick="switchTab('experience')">Experience</button>
           <button data-tab="education" onclick="switchTab('education')">Education</button>
+          <button data-tab="projects" onclick="switchTab('projects')">Projects</button>
+          <button data-tab="certifications" onclick="switchTab('certifications')">Certs</button>
+          <button data-tab="languages" onclick="switchTab('languages')">Languages</button>
+          <button data-tab="references" onclick="switchTab('references')">References</button>
+          <button data-tab="customize" onclick="switchTab('customize')">Customize</button>
           <button data-tab="jd" onclick="switchTab('jd')">Job Description</button>
           <button data-tab="suggestions" onclick="switchTab('suggestions')">Suggestions</button>
         </div>
@@ -193,6 +215,81 @@
           <div id="tab-education" class="tab-panel" style="display:none">
             <div id="educationList"></div>
             <button class="btn btn-ghost btn-sm" onclick="addEducation()" style="margin-top:8px">+ Add education</button>
+          </div>
+
+          <div id="tab-projects" class="tab-panel" style="display:none">
+            <div id="projectsList"></div>
+            <button class="btn btn-ghost btn-sm" onclick="addProject()" style="margin-top:8px">+ Add project</button>
+          </div>
+
+          <div id="tab-certifications" class="tab-panel" style="display:none">
+            <div id="certificationsList"></div>
+            <button class="btn btn-ghost btn-sm" onclick="addCertification()" style="margin-top:8px">+ Add certification</button>
+          </div>
+
+          <div id="tab-languages" class="tab-panel" style="display:none">
+            <div id="languagesList"></div>
+            <button class="btn btn-ghost btn-sm" onclick="addLanguage()" style="margin-top:8px">+ Add language</button>
+          </div>
+
+          <div id="tab-references" class="tab-panel" style="display:none">
+            <div id="referencesList"></div>
+            <button class="btn btn-ghost btn-sm" onclick="addReference()" style="margin-top:8px">+ Add reference</button>
+          </div>
+
+          <div id="tab-customize" class="tab-panel" style="display:none">
+            <div class="field">
+              <label>Font</label>
+              <select id="style-font" onchange="onEditorChange()" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;background:var(--bg);color:var(--text)">
+                <option value="Inter">Inter</option>
+                <option value="Georgia">Georgia</option>
+                <option value="Times New Roman">Times New Roman</option>
+                <option value="Arial">Arial</option>
+                <option value="Helvetica">Helvetica</option>
+                <option value="Calibri">Calibri</option>
+                <option value="Garamond">Garamond</option>
+              </select>
+            </div>
+            <div class="row">
+              <div class="field">
+                <label>Font Size</label>
+                <select id="style-fontsize" onchange="onEditorChange()" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;background:var(--bg);color:var(--text)">
+                  <option value="0.9">Small</option>
+                  <option value="1" selected>Normal</option>
+                  <option value="1.1">Large</option>
+                  <option value="1.2">Extra Large</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Spacing</label>
+                <select id="style-spacing" onchange="onEditorChange()" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;background:var(--bg);color:var(--text)">
+                  <option value="0.9">Compact</option>
+                  <option value="1" selected>Normal</option>
+                  <option value="1.15">Relaxed</option>
+                  <option value="1.3">Spacious</option>
+                </select>
+              </div>
+            </div>
+            <div class="row">
+              <div class="field">
+                <label>Accent Color</label>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <input type="color" id="style-accent" value="#1a365d" onchange="onEditorChange()" style="width:40px;height:36px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;padding:2px">
+                  <input type="text" id="style-accent-hex" value="#1a365d" oninput="document.getElementById('style-accent').value=this.value;onEditorChange()" style="flex:1;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:monospace;background:var(--bg);color:var(--text)">
+                </div>
+              </div>
+              <div class="field">
+                <label>Page Size</label>
+                <select id="style-pagesize" onchange="onEditorChange()" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;background:var(--bg);color:var(--text)">
+                  <option value="a4" selected>A4</option>
+                  <option value="letter">US Letter</option>
+                </select>
+              </div>
+            </div>
+            <div class="field">
+              <label>Section Order (drag to reorder)</label>
+              <div id="sectionOrder" style="display:flex;flex-direction:column;gap:4px"></div>
+            </div>
           </div>
 
           <div id="tab-jd" class="tab-panel" style="display:none">
@@ -265,25 +362,26 @@
       document.getElementById('tab-' + name).style.display = 'block';
     }
 
-    function readContent() {
+    function normalizeContent(content) {
+      if (!content) return null;
+      if (content.personal_info) return content;
       const pi = {
-        full_name: document.getElementById('ed-name').value.trim(),
-        job_title: document.getElementById('ed-job_title').value.trim(),
-        email: document.getElementById('ed-email').value.trim(),
-        phone: document.getElementById('ed-phone').value.trim(),
-        location: document.getElementById('ed-location').value.trim(),
-        website: { text: document.getElementById('ed-website').value.trim(), url: document.getElementById('ed-website').value.trim() },
-        linkedin: { text: 'LinkedIn', url: document.getElementById('ed-linkedin').value.trim() },
-        github: { text: 'GitHub', url: document.getElementById('ed-github').value.trim() },
-        portfolio: { text: 'Portfolio', url: document.getElementById('ed-portfolio').value.trim() },
+        full_name: content.name || '',
+        job_title: content.job_title || '',
+        email: content.email || '',
+        phone: content.phone || '',
+        location: content.location || '',
+        website: { text: content.website || '', url: content.website || '' },
+        linkedin: { text: 'LinkedIn', url: content.linkedin || '' },
+        github: { text: 'GitHub', url: content.github || '' },
+        portfolio: { text: 'Portfolio', url: content.portfolio || '' },
         other_links: [],
       };
-      const rawSkills = document.getElementById('ed-skills').value;
-      const skills = [s.trim() for s in rawSkills.split(',') if s.trim()];
+      const summary = content.summary || '';
+      const skills = Array.isArray(content.skills) ? content.skills : [];
       const skillGroups = skills.length ? [{ category: '', items: skills }] : [];
-      const summary = document.getElementById('ed-summary').value;
-      const experience = readExperienceList();
-      const education = readEducationList();
+      const experience = [];
+      const education = [];
       return {
         personal_info: pi,
         summary,
@@ -301,8 +399,65 @@
       };
     }
 
+    function readContent() {
+      const pi = {
+        full_name: document.getElementById('ed-name').value.trim(),
+        job_title: document.getElementById('ed-job_title').value.trim(),
+        email: document.getElementById('ed-email').value.trim(),
+        phone: document.getElementById('ed-phone').value.trim(),
+        location: document.getElementById('ed-location').value.trim(),
+        website: { text: document.getElementById('ed-website').value.trim(), url: document.getElementById('ed-website').value.trim() },
+        linkedin: { text: 'LinkedIn', url: document.getElementById('ed-linkedin').value.trim() },
+        github: { text: 'GitHub', url: document.getElementById('ed-github').value.trim() },
+        portfolio: { text: 'Portfolio', url: document.getElementById('ed-portfolio').value.trim() },
+        other_links: [],
+      };
+      const rawSkills = document.getElementById('ed-skills').value;
+      const skills = rawSkills.split(',').map(s => s.trim()).filter(Boolean);
+      const skillGroups = skills.length ? [{ category: '', items: skills }] : [];
+      const summary = document.getElementById('ed-summary').value;
+      const experience = readExperienceList();
+      const education = readEducationList();
+      const projects = readProjectsList();
+      const certifications = readCertificationsList();
+      const languages = readLanguagesList();
+      const references = readReferencesList();
+      return {
+        personal_info: pi,
+        summary,
+        skills,
+        skill_groups: skillGroups,
+        experience,
+        education,
+        projects,
+        certifications,
+        languages,
+        references,
+        custom_sections: [],
+      };
+    }
+
+    function readStyle() {
+      const sectionOrder = [];
+      document.querySelectorAll('#sectionOrder .section-order-item').forEach(el => {
+        sectionOrder.push({
+          key: el.dataset.key,
+          visible: el.querySelector('input[type="checkbox"]').checked,
+        });
+      });
+      return {
+        font_family: document.getElementById('style-font').value,
+        font_scale: parseFloat(document.getElementById('style-fontsize').value),
+        spacing_scale: parseFloat(document.getElementById('style-spacing').value),
+        accent_color: document.getElementById('style-accent').value,
+        page_size: document.getElementById('style-pagesize').value,
+        section_order: sectionOrder,
+      };
+    }
+
     function writeContent(content) {
-      const pi = content.personal_info || {};
+      const normalized = normalizeContent(content) || {};
+      const pi = normalized.personal_info || {};
       document.getElementById('ed-name').value = pi.full_name || '';
       document.getElementById('ed-job_title').value = pi.job_title || '';
       document.getElementById('ed-email').value = pi.email || '';
@@ -310,32 +465,101 @@
       document.getElementById('ed-location').value = pi.location || '';
       const w = (pi.website && (pi.website.url || pi.website.text)) ? (pi.website.url || pi.website.text) : '';
       document.getElementById('ed-website').value = w;
-      const li = (pi.linkedin && pi.linkedin.url) ? pi.linkedin.url : (pi.linkedin || '');
+      const li = (pi.linkedin && pi.linkedin.url) ? pi.linkedin.url : '';
       document.getElementById('ed-linkedin').value = li;
-      const gh = (pi.github && pi.github.url) ? pi.github.url : (pi.github || '');
+      const gh = (pi.github && pi.github.url) ? pi.github.url : '';
       document.getElementById('ed-github').value = gh;
-      const po = (pi.portfolio && pi.portfolio.url) ? pi.portfolio.url : (pi.portfolio || '');
+      const po = (pi.portfolio && pi.portfolio.url) ? pi.portfolio.url : '';
       document.getElementById('ed-portfolio').value = po;
-      document.getElementById('ed-summary').value = content.summary || '';
-      const skills = Array.isArray(content.skills) ? content.skills : [];
+      document.getElementById('ed-summary').value = normalized.summary || '';
+      const skills = Array.isArray(normalized.skills) ? normalized.skills : [];
       document.getElementById('ed-skills').value = skills.join(', ');
-      writeExperienceList(content.experience || []);
-      writeEducationList(content.education || []);
+      writeExperienceList(normalized.experience || []);
+      writeEducationList(normalized.education || []);
+      writeProjectsList(normalized.projects || []);
+      writeCertificationsList(normalized.certifications || []);
+      writeLanguagesList(normalized.languages || []);
+      writeReferencesList(normalized.references || []);
+    }
+
+    function writeStyle(style) {
+      if (!style) return;
+      if (style.font_family) document.getElementById('style-font').value = style.font_family;
+      if (style.font_scale) document.getElementById('style-fontsize').value = style.font_scale;
+      if (style.spacing_scale) document.getElementById('style-spacing').value = style.spacing_scale;
+      if (style.accent_color) {
+        document.getElementById('style-accent').value = style.accent_color;
+        document.getElementById('style-accent-hex').value = style.accent_color;
+      }
+      if (style.page_size) document.getElementById('style-pagesize').value = style.page_size;
+      // Section order
+      const allSections = [
+        { key: 'summary', label: 'Summary' },
+        { key: 'skills', label: 'Skills' },
+        { key: 'experience', label: 'Experience' },
+        { key: 'education', label: 'Education' },
+        { key: 'projects', label: 'Projects' },
+        { key: 'certifications', label: 'Certifications' },
+        { key: 'languages', label: 'Languages' },
+        { key: 'references', label: 'References' },
+      ];
+      const orderMap = {};
+      (style.section_order || []).forEach(s => { orderMap[s.key] = s.visible; });
+      const container = document.getElementById('sectionOrder');
+      container.innerHTML = '';
+      allSections.forEach(sec => {
+        const visible = sec.key in orderMap ? orderMap[sec.key] : true;
+        const div = document.createElement('div');
+        div.className = 'section-order-item';
+        div.dataset.key = sec.key;
+        div.draggable = true;
+        div.innerHTML = `
+          <span class="drag-handle">&#9776;</span>
+          <label><input type="checkbox" ${visible ? 'checked' : ''} onchange="onEditorChange()"> ${sec.label}</label>
+        `;
+        container.appendChild(div);
+      });
+      initDragDrop();
+    }
+
+    function initDragDrop() {
+      const container = document.getElementById('sectionOrder');
+      let dragItem = null;
+      container.querySelectorAll('.section-order-item').forEach(item => {
+        item.addEventListener('dragstart', e => { dragItem = item; item.style.opacity = '0.4'; });
+        item.addEventListener('dragend', e => { dragItem = null; item.style.opacity = '1'; });
+        item.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; });
+        item.addEventListener('drop', e => {
+          e.preventDefault();
+          if (dragItem && dragItem !== item) {
+            const items = [...container.children];
+            const fromIdx = items.indexOf(dragItem);
+            const toIdx = items.indexOf(item);
+            if (fromIdx < toIdx) container.insertBefore(dragItem, item.nextSibling);
+            else container.insertBefore(dragItem, item);
+            onEditorChange();
+          }
+        });
+      });
     }
 
     function onEditorChange() {
       clearTimeout(editorTimer);
       editorTimer = setTimeout(() => {
         const content = readContent();
-        const contentStr = JSON.stringify(content);
-        if (contentStr === lastSavedContent) return;
+        const style = readStyle();
+        const payload = JSON.stringify({ cv_content: content, style });
+        if (payload === lastSavedContent) return;
         fetch(`/api/tailor/${jobId}/save-content`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ cv_content: content })
-        }).then(r => r.ok ? r.json() : Promise.reject(r.statusText))
+          body: JSON.stringify({ cv_content: content, style })
+        }).then(r => {
+          if (!r.ok) throw new Error(r.statusText);
+          return r.json();
+        })
         .then(data => {
           if (data.ok) {
-            lastSavedContent = contentStr;
+            lastSavedContent = payload;
             refreshPreview();
           }
         }).catch(() => {});
@@ -343,10 +567,20 @@
     }
 
     function refreshPreview() {
-      const frame = document.getElementById('previewFrame');
-      if (frame) {
-        frame.src = `/api/tailor/${jobId}/preview?ts=${Date.now()}`;
-      }
+      const content = readContent();
+      const style = readStyle();
+      fetch('/api/cv/render', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cv_content: content, style })
+      })
+      .then(r => r.ok ? r.text() : Promise.reject())
+      .then(html => {
+        const frame = document.getElementById('previewFrame');
+        if (frame) {
+          frame.srcdoc = html;
+        }
+      })
+      .catch(() => {});
     }
 
     // Experience sub-editor
@@ -416,8 +650,10 @@
         out.push({
           degree: el.querySelector('.edu-degree').value || '',
           institution: el.querySelector('.edu-institution').value || '',
+          location: el.querySelector('.edu-location')?.value || '',
           start_date: el.querySelector('.edu-start').value || '',
           end_date: el.querySelector('.edu-end').value || '',
+          gpa: el.querySelector('.edu-gpa')?.value || '',
           details: el.querySelector('.edu-details').value || '',
         });
       });
@@ -434,6 +670,10 @@
           <div class="row">
             <div class="field" style="margin-bottom:8px"><label>Degree</label><input class="edu-degree" value="${escapeHtmlAttr(e.degree || '')}" oninput="onEditorChange()"></div>
             <div class="field" style="margin-bottom:8px"><label>Institution</label><input class="edu-institution" value="${escapeHtmlAttr(e.institution || '')}" oninput="onEditorChange()"></div>
+          </div>
+          <div class="row">
+            <div class="field" style="margin-bottom:8px"><label>Location</label><input class="edu-location" value="${escapeHtmlAttr(e.location || '')}" oninput="onEditorChange()"></div>
+            <div class="field" style="margin-bottom:8px"><label>GPA</label><input class="edu-gpa" value="${escapeHtmlAttr(e.gpa || '')}" oninput="onEditorChange()"></div>
           </div>
           <div class="row">
             <div class="field" style="margin-bottom:8px"><label>Start</label><input class="edu-start" value="${escapeHtmlAttr(e.start_date || '')}" oninput="onEditorChange()"></div>
@@ -456,11 +696,213 @@
           <div class="field" style="margin-bottom:8px"><label>Institution</label><input class="edu-institution" value="" oninput="onEditorChange()"></div>
         </div>
         <div class="row">
+          <div class="field" style="margin-bottom:8px"><label>Location</label><input class="edu-location" value="" oninput="onEditorChange()"></div>
+          <div class="field" style="margin-bottom:8px"><label>GPA</label><input class="edu-gpa" value="" oninput="onEditorChange()"></div>
+        </div>
+        <div class="row">
           <div class="field" style="margin-bottom:8px"><label>Start</label><input class="edu-start" value="" oninput="onEditorChange()"></div>
           <div class="field" style="margin-bottom:8px"><label>End</label><input class="edu-end" value="" oninput="onEditorChange()"></div>
         </div>
         <div class="field" style="margin-bottom:4px"><label>Details</label><textarea class="edu-details" rows="2" oninput="onEditorChange()"></textarea></div>
         <button class="btn btn-ghost btn-sm" onclick="this.closest('.edu-entry').remove();onEditorChange()" style="color:var(--red)">Remove</button>
+      `;
+      container.appendChild(div);
+      onEditorChange();
+    }
+
+    // Projects sub-editor
+    function readProjectsList() {
+      const out = [];
+      document.querySelectorAll('#projectsList .proj-entry').forEach(el => {
+        out.push({
+          name: el.querySelector('.proj-name').value || '',
+          url: el.querySelector('.proj-url').value || '',
+          description: el.querySelector('.proj-desc').value || '',
+          bullets: el.querySelector('.proj-bullets').value.split('\n').map(s => s.trim()).filter(Boolean),
+        });
+      });
+      return out;
+    }
+    function writeProjectsList(projects) {
+      const container = document.getElementById('projectsList');
+      container.innerHTML = '';
+      (projects || []).forEach(p => {
+        const div = document.createElement('div');
+        div.className = 'proj-entry';
+        div.style.cssText = 'border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;background:var(--bg)';
+        div.innerHTML = `
+          <div class="row">
+            <div class="field" style="margin-bottom:8px"><label>Name</label><input class="proj-name" value="${escapeHtmlAttr(p.name || '')}" oninput="onEditorChange()"></div>
+            <div class="field" style="margin-bottom:8px"><label>URL</label><input class="proj-url" value="${escapeHtmlAttr(p.url || '')}" oninput="onEditorChange()"></div>
+          </div>
+          <div class="field" style="margin-bottom:8px"><label>Description</label><input class="proj-desc" value="${escapeHtmlAttr(p.description || '')}" oninput="onEditorChange()"></div>
+          <div class="field" style="margin-bottom:4px"><label>Bullets (one per line)</label><textarea class="proj-bullets" rows="3" oninput="onEditorChange()">${escapeHtml((p.bullets || []).join('\n'))}</textarea></div>
+          <button class="btn btn-ghost btn-sm" onclick="this.closest('.proj-entry').remove();onEditorChange()" style="color:var(--red)">Remove</button>
+        `;
+        container.appendChild(div);
+      });
+    }
+    function addProject() {
+      const container = document.getElementById('projectsList');
+      const div = document.createElement('div');
+      div.className = 'proj-entry';
+      div.style.cssText = 'border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;background:var(--bg)';
+      div.innerHTML = `
+        <div class="row">
+          <div class="field" style="margin-bottom:8px"><label>Name</label><input class="proj-name" value="" oninput="onEditorChange()"></div>
+          <div class="field" style="margin-bottom:8px"><label>URL</label><input class="proj-url" value="" oninput="onEditorChange()"></div>
+        </div>
+        <div class="field" style="margin-bottom:8px"><label>Description</label><input class="proj-desc" value="" oninput="onEditorChange()"></div>
+        <div class="field" style="margin-bottom:4px"><label>Bullets (one per line)</label><textarea class="proj-bullets" rows="3" oninput="onEditorChange()"></textarea></div>
+        <button class="btn btn-ghost btn-sm" onclick="this.closest('.proj-entry').remove();onEditorChange()" style="color:var(--red)">Remove</button>
+      `;
+      container.appendChild(div);
+      onEditorChange();
+    }
+
+    // Certifications sub-editor
+    function readCertificationsList() {
+      const out = [];
+      document.querySelectorAll('#certificationsList .cert-entry').forEach(el => {
+        out.push({
+          name: el.querySelector('.cert-name').value || '',
+          issuer: el.querySelector('.cert-issuer').value || '',
+          date: el.querySelector('.cert-date').value || '',
+          url: el.querySelector('.cert-url').value || '',
+        });
+      });
+      return out;
+    }
+    function writeCertificationsList(certs) {
+      const container = document.getElementById('certificationsList');
+      container.innerHTML = '';
+      (certs || []).forEach(c => {
+        const div = document.createElement('div');
+        div.className = 'cert-entry';
+        div.style.cssText = 'border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;background:var(--bg)';
+        div.innerHTML = `
+          <div class="row">
+            <div class="field" style="margin-bottom:8px"><label>Name</label><input class="cert-name" value="${escapeHtmlAttr(c.name || '')}" oninput="onEditorChange()"></div>
+            <div class="field" style="margin-bottom:8px"><label>Issuer</label><input class="cert-issuer" value="${escapeHtmlAttr(c.issuer || '')}" oninput="onEditorChange()"></div>
+          </div>
+          <div class="row">
+            <div class="field" style="margin-bottom:8px"><label>Date</label><input class="cert-date" value="${escapeHtmlAttr(c.date || '')}" oninput="onEditorChange()"></div>
+            <div class="field" style="margin-bottom:8px"><label>URL</label><input class="cert-url" value="${escapeHtmlAttr(c.url || '')}" oninput="onEditorChange()"></div>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="this.closest('.cert-entry').remove();onEditorChange()" style="color:var(--red)">Remove</button>
+        `;
+        container.appendChild(div);
+      });
+    }
+    function addCertification() {
+      const container = document.getElementById('certificationsList');
+      const div = document.createElement('div');
+      div.className = 'cert-entry';
+      div.style.cssText = 'border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;background:var(--bg)';
+      div.innerHTML = `
+        <div class="row">
+          <div class="field" style="margin-bottom:8px"><label>Name</label><input class="cert-name" value="" oninput="onEditorChange()"></div>
+          <div class="field" style="margin-bottom:8px"><label>Issuer</label><input class="cert-issuer" value="" oninput="onEditorChange()"></div>
+        </div>
+        <div class="row">
+          <div class="field" style="margin-bottom:8px"><label>Date</label><input class="cert-date" value="" oninput="onEditorChange()"></div>
+          <div class="field" style="margin-bottom:8px"><label>URL</label><input class="cert-url" value="" oninput="onEditorChange()"></div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="this.closest('.cert-entry').remove();onEditorChange()" style="color:var(--red)">Remove</button>
+      `;
+      container.appendChild(div);
+      onEditorChange();
+    }
+
+    // Languages sub-editor
+    function readLanguagesList() {
+      const out = [];
+      document.querySelectorAll('#languagesList .lang-entry').forEach(el => {
+        out.push({
+          language: el.querySelector('.lang-name').value || '',
+          proficiency: el.querySelector('.lang-prof').value || '',
+        });
+      });
+      return out;
+    }
+    function writeLanguagesList(langs) {
+      const container = document.getElementById('languagesList');
+      container.innerHTML = '';
+      (langs || []).forEach(l => {
+        const div = document.createElement('div');
+        div.className = 'lang-entry';
+        div.style.cssText = 'display:flex;gap:8px;align-items:end;margin-bottom:8px';
+        div.innerHTML = `
+          <div class="field" style="margin:0;flex:1"><label>Language</label><input class="lang-name" value="${escapeHtmlAttr(l.language || '')}" oninput="onEditorChange()"></div>
+          <div class="field" style="margin:0;flex:1"><label>Proficiency</label><input class="lang-prof" value="${escapeHtmlAttr(l.proficiency || '')}" oninput="onEditorChange()" placeholder="Native, Fluent, etc."></div>
+          <button class="btn btn-ghost btn-sm" onclick="this.closest('.lang-entry').remove();onEditorChange()" style="color:var(--red);margin-bottom:14px">X</button>
+        `;
+        container.appendChild(div);
+      });
+    }
+    function addLanguage() {
+      const container = document.getElementById('languagesList');
+      const div = document.createElement('div');
+      div.className = 'lang-entry';
+      div.style.cssText = 'display:flex;gap:8px;align-items:end;margin-bottom:8px';
+      div.innerHTML = `
+        <div class="field" style="margin:0;flex:1"><label>Language</label><input class="lang-name" value="" oninput="onEditorChange()"></div>
+        <div class="field" style="margin:0;flex:1"><label>Proficiency</label><input class="lang-prof" value="" oninput="onEditorChange()" placeholder="Native, Fluent, etc."></div>
+        <button class="btn btn-ghost btn-sm" onclick="this.closest('.lang-entry').remove();onEditorChange()" style="color:var(--red);margin-bottom:14px">X</button>
+      `;
+      container.appendChild(div);
+      onEditorChange();
+    }
+
+    // References sub-editor
+    function readReferencesList() {
+      const out = [];
+      document.querySelectorAll('#referencesList .ref-entry').forEach(el => {
+        out.push({
+          name: el.querySelector('.ref-name').value || '',
+          title: el.querySelector('.ref-title').value || '',
+          company: el.querySelector('.ref-company').value || '',
+          email: el.querySelector('.ref-email').value || '',
+        });
+      });
+      return out;
+    }
+    function writeReferencesList(refs) {
+      const container = document.getElementById('referencesList');
+      container.innerHTML = '';
+      (refs || []).forEach(r => {
+        const div = document.createElement('div');
+        div.className = 'ref-entry';
+        div.style.cssText = 'border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;background:var(--bg)';
+        div.innerHTML = `
+          <div class="row">
+            <div class="field" style="margin-bottom:8px"><label>Name</label><input class="ref-name" value="${escapeHtmlAttr(r.name || '')}" oninput="onEditorChange()"></div>
+            <div class="field" style="margin-bottom:8px"><label>Title</label><input class="ref-title" value="${escapeHtmlAttr(r.title || '')}" oninput="onEditorChange()"></div>
+          </div>
+          <div class="row">
+            <div class="field" style="margin-bottom:8px"><label>Company</label><input class="ref-company" value="${escapeHtmlAttr(r.company || '')}" oninput="onEditorChange()"></div>
+            <div class="field" style="margin-bottom:8px"><label>Email</label><input class="ref-email" value="${escapeHtmlAttr(r.email || '')}" oninput="onEditorChange()"></div>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="this.closest('.ref-entry').remove();onEditorChange()" style="color:var(--red)">Remove</button>
+        `;
+        container.appendChild(div);
+      });
+    }
+    function addReference() {
+      const container = document.getElementById('referencesList');
+      const div = document.createElement('div');
+      div.className = 'ref-entry';
+      div.style.cssText = 'border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;background:var(--bg)';
+      div.innerHTML = `
+        <div class="row">
+          <div class="field" style="margin-bottom:8px"><label>Name</label><input class="ref-name" value="" oninput="onEditorChange()"></div>
+          <div class="field" style="margin-bottom:8px"><label>Title</label><input class="ref-title" value="" oninput="onEditorChange()"></div>
+        </div>
+        <div class="row">
+          <div class="field" style="margin-bottom:8px"><label>Company</label><input class="ref-company" value="" oninput="onEditorChange()"></div>
+          <div class="field" style="margin-bottom:8px"><label>Email</label><input class="ref-email" value="" oninput="onEditorChange()"></div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="this.closest('.ref-entry').remove();onEditorChange()" style="color:var(--red)">Remove</button>
       `;
       container.appendChild(div);
       onEditorChange();
@@ -492,8 +934,63 @@
           lastSavedContent = JSON.stringify(readContent());
           refreshPreview();
           showToast('CV loaded — preview updated');
+          loadCvList(); // Refresh CV list after upload
         })
         .catch(err => showToast('Error: ' + (err.message || err)));
+    }
+
+    // Base CV selection
+    let currentCvId = null;
+
+    function loadCvList() {
+      fetch(`/api/tailor/${jobId}/cvs`, { credentials: 'same-origin' })
+        .then(r => r.ok ? r.json() : Promise.reject())
+        .then(data => {
+          const select = document.getElementById('cvSelect');
+          select.innerHTML = '<option value="">Upload or select a CV...</option>';
+          (data.cvs || []).forEach(cv => {
+            const opt = document.createElement('option');
+            opt.value = cv.id;
+            opt.textContent = cv.name + (cv.is_best_match ? ' ✓ (best match)' : '');
+            if (cv.id === currentCvId) opt.selected = true;
+            select.appendChild(opt);
+          });
+        })
+        .catch(() => {});
+    }
+
+    function switchBaseCv() {
+      const select = document.getElementById('cvSelect');
+      const cvId = parseInt(select.value, 10);
+      if (!cvId || cvId === currentCvId) return;
+
+      if (lastSavedContent && lastSavedContent !== '{}') {
+        if (!confirm('Switch base CV? Your current edits will be replaced by the selected CV\'s content.')) {
+          select.value = currentCvId || '';
+          return;
+        }
+      }
+
+      fetch(`/api/tailor/${jobId}/select-cv`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cv_id: cvId })
+      })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => {
+        if (data.ok && data.cv_content) {
+          currentCvId = cvId;
+          writeContent(data.cv_content);
+          lastSavedContent = JSON.stringify(readContent());
+          refreshPreview();
+          loadSuggestions();
+          showToast(`Switched to ${data.cv_name}`);
+        }
+      })
+      .catch(err => {
+        showToast('Failed to switch CV');
+        select.value = currentCvId || '';
+      });
     }
 
     // JD comparison
@@ -570,7 +1067,7 @@
           showToast('Suggestion applied');
           if (data.cv_content) {
             writeContent(data.cv_content);
-            lastSavedContent = JSON.stringify(data.cv_content);
+            lastSavedContent = JSON.stringify(readContent());
           }
           refreshPreview();
           loadSuggestions();
@@ -592,18 +1089,53 @@
 
     // Init: load existing content from server
     (function init() {
-      fetch(`/api/tailor/${jobId}/session`)
+      // Sync accent color picker with hex input
+      document.getElementById('style-accent').addEventListener('input', function() {
+        document.getElementById('style-accent-hex').value = this.value;
+      });
+
+      // Load CV list and auto-select best match
+      fetch(`/api/tailor/${jobId}/cvs`, { credentials: 'same-origin' })
+        .then(r => r.ok ? r.json() : Promise.reject())
+        .then(data => {
+          const select = document.getElementById('cvSelect');
+          select.innerHTML = '<option value="">Upload or select a CV...</option>';
+          (data.cvs || []).forEach(cv => {
+            const opt = document.createElement('option');
+            opt.value = cv.id;
+            opt.textContent = cv.name + (cv.is_best_match ? ' ✓ (best match)' : '');
+            select.appendChild(opt);
+          });
+          return fetch(`/api/tailor/${jobId}/session`, { credentials: 'same-origin' });
+        })
         .then(r => r.ok ? r.json() : Promise.reject())
         .then(data => {
           if (data.cv_content && Object.keys(data.cv_content).length > 0) {
             writeContent(data.cv_content);
-            lastSavedContent = JSON.stringify(data.cv_content);
+            lastSavedContent = JSON.stringify({ cv_content: data.cv_content, style: data.style || {} });
+          } else {
+            fetch('/api/profile')
+              .then(r => r.ok ? r.json() : Promise.reject())
+              .then(p => {
+                if (p && Object.keys(p).length > 0) {
+                  const content = normalizeContent(p);
+                  writeContent(content);
+                  lastSavedContent = JSON.stringify({ cv_content: content, style: {} });
+                }
+              })
+              .catch(() => {});
           }
+          if (data.cv_id) {
+            currentCvId = data.cv_id;
+            document.getElementById('cvSelect').value = data.cv_id;
+          }
+          writeStyle(data.style || {});
           document.getElementById('jdText').value = data.jd_text || '';
           refreshPreview();
           loadSuggestions();
         })
         .catch(() => {
+          writeStyle({});
           refreshPreview();
           loadSuggestions();
         });

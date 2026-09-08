@@ -84,14 +84,34 @@ class AppSetting(Base):
     value = Column(String(500), default="")
 
 
+class UserCV(Base):
+    __tablename__ = "user_cvs"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    name = Column(String(200), default="Untitled CV")
+    file_path = Column(String(300), default="")  # stored filename under data/uploads
+    parsed_profile = Column(Text, default="")  # JSON from profile_from_text
+    canonical_profile = Column(Text, default="")  # JSON canonical version
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+def get_user_cvs(user_id: int, session) -> list:
+    """Return all UserCV rows for a user."""
+    return session.query(UserCV).filter_by(user_id=user_id).order_by(UserCV.created_at.desc()).all()
+
+
 class TailorSession(Base):
     __tablename__ = "tailor_sessions"
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), index=True)
     job_id = Column(Integer, ForeignKey("jobs.id"), index=True)
+    base_cv_id = Column(Integer, ForeignKey("user_cvs.id"), nullable=True)  # linked base CV
     cv_file = Column(String(300), default="")  # uploaded CV file
     cv_content = Column(Text, default="")  # parsed CV content as JSON
+    style_config = Column(Text, default="")  # style config as JSON (font, accent, spacing, etc.)
     jd_text = Column(Text, default="")  # job description text
     suggestions = Column(Text, default="")  # JSON array of suggestions
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -132,6 +152,9 @@ def _migrate_sqlite():
         ("users", "pref_roles", "TEXT DEFAULT ''"),
         ("users", "pref_days", "INTEGER DEFAULT 30"),
         ("profile", "user_id", "INTEGER REFERENCES users(id)"),
+        ("tailor_sessions", "base_cv_id", "INTEGER REFERENCES user_cvs(id)"),
+        ("tailor_sessions", "style_config", "TEXT DEFAULT ''"),
+        ("user_cvs", "updated_at", "DATETIME"),
     ]:
         _add_col_sqlite(table, col, typedef)
 
@@ -157,6 +180,9 @@ def _migrate_pg():
             ("users", "pref_roles", "TEXT DEFAULT ''"),
             ("users", "pref_days", "INTEGER DEFAULT 30"),
             ("profile", "user_id", "INTEGER REFERENCES users(id)"),
+            ("tailor_sessions", "base_cv_id", "INTEGER REFERENCES user_cvs(id)"),
+            ("tailor_sessions", "style_config", "TEXT DEFAULT ''"),
+            ("user_cvs", "updated_at", "TIMESTAMP"),
         ]:
             _add_col_pg(conn, table, col, typedef)
         conn.commit()

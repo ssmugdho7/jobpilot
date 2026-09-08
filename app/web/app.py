@@ -1,3 +1,4 @@
+from __future__ import annotations
 import os
 import re
 import json
@@ -8,7 +9,7 @@ from flask import Flask, render_template, jsonify, request, session, redirect, u
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import func, and_, or_
 
-from app.db import SessionLocal, Job, Profile, User, UserJob, TailorSession, get_user_job, profile_to_dict, get_or_create_profile
+from app.db import SessionLocal, Job, Profile, User, UserJob, UserCV, TailorSession, get_user_job, get_user_cvs, profile_to_dict, get_or_create_profile
 from app.pipeline import run_scan_async
 from app.gmail_link import (
     build_job_gmail_link, build_subject, build_body, build_gmail_link,
@@ -738,6 +739,149 @@ def api_remote_scan():
 # Tailor CV feature
 # ============================================================
 
+def _normalize_profile_to_editor(p_dict: dict) -> dict:
+    """Convert flat profile dict (from profile_to_dict) to nested editor format."""
+    pi = {
+        "full_name": p_dict.get("name", "") or "",
+        "job_title": "",
+        "email": p_dict.get("email", "") or "",
+        "phone": p_dict.get("phone", "") or "",
+        "location": "",
+        "website": {"text": "", "url": ""},
+        "linkedin": {"text": "LinkedIn", "url": p_dict.get("linkedin", "") or ""},
+        "github": {"text": "GitHub", "url": p_dict.get("github", "") or ""},
+        "portfolio": {"text": "Portfolio", "url": p_dict.get("portfolio", "") or ""},
+        "other_links": [],
+    }
+
+    summary = p_dict.get("summary", "") or ""
+    skills = p_dict.get("skills", []) or []
+    skill_groups = [{"category": "", "items": skills}] if skills else []
+
+    experience = []
+    exp_text = p_dict.get("experience", "") or ""
+    if exp_text.strip():
+        blocks = [b.strip() for b in exp_text.split("\n\n") if b.strip()]
+        if not blocks:
+            blocks = [exp_text.strip()]
+        for block in blocks:
+            lines = block.split("\n")
+            title = lines[0] if lines else ""
+            bullets = [l.strip() for l in lines[1:] if l.strip()] if len(lines) > 1 else [block]
+            experience.append({
+                "company": "",
+                "title": title,
+                "location": "",
+                "start_date": "",
+                "end_date": "",
+                "bullets": bullets,
+            })
+
+    education = []
+    edu_text = p_dict.get("education", "") or ""
+    if edu_text.strip():
+        blocks = [b.strip() for b in edu_text.split("\n\n") if b.strip()]
+        if not blocks:
+            blocks = [edu_text.strip()]
+        for block in blocks:
+            lines = block.split("\n")
+            degree = lines[0] if lines else ""
+            details = "\n".join(lines[1:]) if len(lines) > 1 else block
+            education.append({
+                "degree": degree,
+                "institution": "",
+                "start_date": "",
+                "end_date": "",
+                "details": details,
+            })
+
+    return {
+        "personal_info": pi,
+        "summary": summary,
+        "skills": skills,
+        "skill_groups": skill_groups,
+        "experience": experience,
+        "education": education,
+        "projects": [],
+        "certifications": [],
+        "extracurricular": [],
+        "languages": [],
+        "references": [],
+        "custom_sections": [],
+        "links": [],
+    }
+
+
+def _find_best_cv(job_text: str, user_cvs: list) -> "UserCV | None":
+    """Find the best matching CV for a job based on skill overlap."""
+    if not user_cvs:
+        return None
+
+    job_lower = job_text.lower()
+    job_words = set(re.findall(r"\b[a-z]{2,}\b", job_lower))
+
+    best_cv = None
+    best_score = -1
+
+    for cv in user_cvs:
+        parsed = {}
+        if cv.parsed_profile:
+            try:
+                parsed = json.loads(cv.parsed_profile)
+            except Exception:
+                pass
+        skills = parsed.get("skills", [])
+        if not skills:
+            continue
+
+        cv_words = set()
+        for skill in skills:
+            cv_words.update(re.findall(r"\b[a-z]{2,}\b", skill.lower()))
+
+        overlap = len(job_words & cv_words)
+        score = overlap / max(len(job_words), 1)
+
+        if score > best_score:
+            best_score = score
+            best_cv = cv
+
+    # Fallback: if no CV had skills, return the most recent one
+    if best_cv is None and user_cvs:
+        best_cv = user_cvs[0]
+
+    return best_cv
+
+
+def _structured_content_from_profile(parsed: dict, canonical: Optional[dict] = None) -> dict:
+    """Convert a parsed profile dict to the editor format, using canonical if available."""
+    if canonical and isinstance(canonical, dict) and canonical.get("personal_info"):
+        return canonical
+    return _normalize_profile_to_editor(parsed)
+
+
+def _style_to_css(style: dict) -> dict:
+    """Convert a style config dict to pre-computed CSS values for the template."""
+    font_family = style.get("font_family", "Inter")
+    font_scale = float(style.get("font_scale", 1))
+    spacing_scale = float(style.get("spacing_scale", 1))
+    accent = style.get("accent_color", "#1a365d")
+    page_size = style.get("page_size", "a4")
+
+    return {
+        "css_font": f"'{font_family}', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        "css_accent": accent,
+        "css_page_w": "215.9mm" if page_size == "letter" else "210mm",
+        "css_page_h": "279.4mm" if page_size == "letter" else "297mm",
+        "css_font_body": f"{10.5 * font_scale}pt",
+        "css_font_name": f"{20 * font_scale}pt",
+        "css_font_section": f"{11 * font_scale}pt",
+        "css_font_small": f"{9.5 * font_scale}pt",
+        "css_font_date": f"{9 * font_scale}pt",
+        "css_gap_section": f"{12 * spacing_scale}px",
+        "css_gap_entry": f"{8 * spacing_scale}px",
+    }
+
+
 @app.route("/tailor/<int:job_id>")
 @login_required
 def tailor_cv(job_id):
@@ -748,7 +892,6 @@ def tailor_cv(job_id):
         if not job:
             return "Job not found", 404
         
-        # Get or create tailor session
         ts = db_session.query(TailorSession).filter_by(
             user_id=session["user_id"], job_id=job_id
         ).first()
@@ -756,7 +899,6 @@ def tailor_cv(job_id):
         profile = get_or_create_profile(session["user_id"], db_session)
         p_dict = profile_to_dict(profile)
         
-        # Load existing session data if available
         cv_content = {}
         jd_text = ""
         suggestions = []
@@ -767,9 +909,8 @@ def tailor_cv(job_id):
             if ts.suggestions:
                 suggestions = json.loads(ts.suggestions)
         
-        # If no CV content in session, use profile as base
         if not cv_content:
-            cv_content = p_dict
+            cv_content = _normalize_profile_to_editor(p_dict)
         
         return render_template(
             "tailor.html",
@@ -810,9 +951,23 @@ def api_tailor_upload_cv(job_id):
     if not text.strip():
         return jsonify({"error": "could not extract text from CV"}), 400
     parsed = profile_from_text(text)
+    normalized = _normalize_profile_to_editor(parsed)
 
     db_session = SessionLocal()
     try:
+        # Create a UserCV record so this CV is reusable across jobs
+        cv_name = os.path.splitext(file.filename)[0]
+        user_cv = UserCV(
+            user_id=session["user_id"],
+            name=cv_name,
+            file_path=saved_name,
+            parsed_profile=json.dumps(parsed),
+            canonical_profile=json.dumps(normalized),
+        )
+        db_session.add(user_cv)
+        db_session.flush()
+
+        # Create/update the tailor session
         ts = db_session.query(TailorSession).filter_by(
             user_id=session["user_id"], job_id=job_id
         ).first()
@@ -820,11 +975,12 @@ def api_tailor_upload_cv(job_id):
             ts = TailorSession(user_id=session["user_id"], job_id=job_id)
             db_session.add(ts)
         ts.cv_file = saved_name
-        import json
-        ts.cv_content = json.dumps(parsed)
+        ts.cv_content = json.dumps(normalized)
+        ts.base_cv_id = user_cv.id
         ts.updated_at = datetime.utcnow()
         db_session.commit()
-        return jsonify({"ok": True, "profile": parsed})
+
+        return jsonify({"ok": True, "profile": normalized, "cv_id": user_cv.id})
     finally:
         db_session.close()
 
@@ -832,9 +988,10 @@ def api_tailor_upload_cv(job_id):
 @app.route("/api/tailor/<int:job_id>/save-content", methods=["POST"])
 @login_required
 def api_tailor_save_content(job_id):
-    """Save edited CV content."""
+    """Save edited CV content and style config."""
     data = request.get_json(silent=True) or {}
     cv_content = data.get("cv_content", {})
+    style_config = data.get("style", {})
     
     db_session = SessionLocal()
     try:
@@ -846,6 +1003,8 @@ def api_tailor_save_content(job_id):
             db_session.add(ts)
         import json
         ts.cv_content = json.dumps(cv_content)
+        if style_config:
+            ts.style_config = json.dumps(style_config)
         ts.updated_at = datetime.utcnow()
         db_session.commit()
         return jsonify({"ok": True})
@@ -1039,24 +1198,127 @@ def api_tailor_session(job_id):
         
         import json
         cv_content = {}
+        style_config = {}
         jd_text = ""
         suggestions = []
         cv_file = ""
+        base_cv_id = None
         
         if ts:
             if ts.cv_content:
                 cv_content = json.loads(ts.cv_content)
+            if ts.style_config:
+                style_config = json.loads(ts.style_config)
             jd_text = ts.jd_text or ""
             if ts.suggestions:
                 suggestions = json.loads(ts.suggestions)
             cv_file = ts.cv_file or ""
+            base_cv_id = ts.base_cv_id
         
         return jsonify({
             "ok": True,
             "cv_content": cv_content,
+            "style": style_config,
             "jd_text": jd_text,
             "suggestions": suggestions,
             "cv_file": cv_file,
+            "cv_id": base_cv_id,
+        })
+    finally:
+        db_session.close()
+
+
+@app.route("/api/tailor/<int:job_id>/cvs", methods=["GET"])
+@login_required
+def api_tailor_list_cvs(job_id):
+    """List all uploaded CVs for the current user with match scores."""
+
+    db_session = SessionLocal()
+    try:
+        job = db_session.query(Job).get(job_id)
+        if not job:
+            return jsonify({"error": "job not found"}), 404
+
+        user_cvs = get_user_cvs(session["user_id"], db_session)
+
+        # Find best matching CV
+        job_text = f"{job.title or ''} {job.company or ''} {job.snippet or ''} {job.role or ''} {job.location or ''}"
+        best_cv = _find_best_cv(job_text, user_cvs)
+
+        cv_list = []
+        for cv in user_cvs:
+            parsed = {}
+            if cv.parsed_profile:
+                try:
+                    parsed = json.loads(cv.parsed_profile)
+                except Exception:
+                    pass
+            cv_list.append({
+                "id": cv.id,
+                "name": cv.name,
+                "is_best_match": cv.id == best_cv.id if best_cv else False,
+                "skills": parsed.get("skills", []),
+            })
+
+        return jsonify({"ok": True, "cvs": cv_list, "best_match_id": best_cv.id if best_cv else None})
+    finally:
+        db_session.close()
+
+
+@app.route("/api/tailor/<int:job_id>/select-cv", methods=["POST"])
+@login_required
+def api_tailor_select_cv(job_id):
+    """Switch the base CV for a tailor session and re-seed content."""
+    data = request.get_json(silent=True) or {}
+    cv_id = data.get("cv_id")
+    user_id = session["user_id"]
+
+    db_session = SessionLocal()
+    try:
+        if not cv_id:
+            return jsonify({"error": "cv_id required"}), 400
+
+        # Verify CV belongs to user
+        cv = db_session.query(UserCV).filter_by(id=cv_id, user_id=user_id).first()
+        if not cv:
+            return jsonify({"error": "CV not found"}), 404
+
+        # Get or create tailor session
+        ts = db_session.query(TailorSession).filter_by(user_id=user_id, job_id=job_id).first()
+        if not ts:
+            ts = TailorSession(user_id=user_id, job_id=job_id)
+            db_session.add(ts)
+            db_session.flush()
+
+        # Set base CV and re-seed content from parsed profile
+        ts.base_cv_id = cv_id
+
+        # Parse the CV file to get structured content
+        parsed = {}
+        if cv.parsed_profile:
+            try:
+                parsed = json.loads(cv.parsed_profile)
+            except Exception:
+                pass
+        canonical = None
+        if cv.canonical_profile:
+            try:
+                canonical = json.loads(cv.canonical_profile)
+            except Exception:
+                pass
+        ts.cv_content = json.dumps(_structured_content_from_profile(parsed, canonical))
+
+        # Copy CV file path for download
+        if cv.file_path:
+            ts.cv_file = cv.file_path
+
+        db_session.commit()
+
+        return jsonify({
+            "ok": True,
+            "cv_id": cv_id,
+            "cv_name": cv.name,
+            "cv_content": json.loads(ts.cv_content),
         })
     finally:
         db_session.close()
@@ -1083,28 +1345,22 @@ def api_tailor_preview(job_id):
         if ts and ts.cv_content:
             cv_content = json.loads(ts.cv_content)
         else:
-            cv_content = p_dict
-        
-        # Generate ATS-tailored content
-        from app.cv.ats import generate_ats_cv
-        ats = generate_ats_cv({
-            "title": job.title,
-            "company": job.company,
-            "snippet": job.snippet,
-        }, cv_content)
-        
-        # Use uploaded CV as template if available
-        template_path = None
-        if ts and ts.cv_file:
-            from app.paths import UPLOAD_DIR
-            full_path = os.path.join(UPLOAD_DIR, ts.cv_file)
-            if os.path.exists(full_path):
-                template_path = full_path
-        
-        from app.cv.render import render_cv_pdf
-        pdf_path = render_cv_pdf(job_id, cv_content, ats, template_path=template_path)
-        
-        return send_file(pdf_path, mimetype="application/pdf", as_attachment=False)
+            cv_content = _normalize_profile_to_editor(p_dict)
+
+        style_config = {}
+        if ts and ts.style_config:
+            try:
+                style_config = json.loads(ts.style_config)
+            except Exception:
+                pass
+
+        css = _style_to_css(style_config)
+        return render_template(
+            "cv_preview.html",
+            cv_content=cv_content,
+            style=style_config,
+            **css,
+        )
     finally:
         db_session.close()
 
@@ -1112,7 +1368,11 @@ def api_tailor_preview(job_id):
 @app.route("/api/tailor/<int:job_id>/download", methods=["GET"])
 @login_required
 def api_tailor_download(job_id):
-    """Download the tailored CV as DOCX or PDF."""
+    """Download the tailored CV as DOCX or PDF.
+
+    PDF is rendered from the exact same cv_preview.html template used by the
+    live preview — guaranteeing visual parity via WeasyPrint.
+    """
     format_type = request.args.get("format", "pdf")
     
     db_session = SessionLocal()
@@ -1132,34 +1392,75 @@ def api_tailor_download(job_id):
         if ts and ts.cv_content:
             cv_content = json.loads(ts.cv_content)
         else:
-            cv_content = p_dict
-        
-        # Generate ATS-tailored content
-        from app.cv.ats import generate_ats_cv
-        ats = generate_ats_cv({
-            "title": job.title,
-            "company": job.company,
-            "snippet": job.snippet,
-        }, cv_content)
-        
-        # Use uploaded CV as template if available
-        template_path = None
-        if ts and ts.cv_file:
-            from app.paths import UPLOAD_DIR
-            full_path = os.path.join(UPLOAD_DIR, ts.cv_file)
-            if os.path.exists(full_path):
-                template_path = full_path
+            cv_content = _normalize_profile_to_editor(p_dict)
+
+        style_config = {}
+        if ts and ts.style_config:
+            try:
+                style_config = json.loads(ts.style_config)
+            except Exception:
+                pass
         
         if format_type == "docx":
+            from app.cv.ats import generate_ats_cv
+            ats = generate_ats_cv({
+                "title": job.title,
+                "company": job.company,
+                "snippet": job.snippet,
+            }, cv_content)
+            template_path = None
+            if ts and ts.cv_file:
+                from app.paths import UPLOAD_DIR
+                full_path = os.path.join(UPLOAD_DIR, ts.cv_file)
+                if os.path.exists(full_path):
+                    template_path = full_path
             from app.cv.render import render_cv_docx
             docx_path = render_cv_docx(job_id, cv_content, ats, template_path=template_path)
             return send_file(docx_path, mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document", as_attachment=True, download_name=f"Tailored_CV_{job.title.replace(' ', '_')}.docx")
-        else:
-            from app.cv.render import render_cv_pdf
-            pdf_path = render_cv_pdf(job_id, cv_content, ats, template_path=template_path)
-            return send_file(pdf_path, mimetype="application/pdf", as_attachment=True, download_name=f"Tailored_CV_{job.title.replace(' ', '_')}.pdf")
+
+        # PDF: render the same cv_preview.html template, convert via xhtml2pdf
+        css = _style_to_css(style_config)
+        html_str = render_template("cv_preview.html", cv_content=cv_content, style=style_config, **css)
+        from xhtml2pdf import pisa
+        import tempfile
+        pdf_output = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+        pisa.CreatePDF(html_str, dest=pdf_output)
+        pdf_output.close()
+        return send_file(pdf_output.name, mimetype="application/pdf", as_attachment=True,
+                         download_name=f"Tailored_CV_{job.title.replace(' ', '_')}.pdf")
     finally:
         db_session.close()
+
+
+@app.route("/cv-preview-static")
+def cv_preview_static():
+    """Standalone test page showing the CV template with sample data. No auth required."""
+    return render_template("cv_static.html")
+
+
+@app.route("/api/cv-preview-static/render")
+def api_cv_preview_static_render():
+    """Render the CV template with sample data. No auth required. Used by the static test page iframe."""
+    from app.cv.schema import SAMPLE_CV
+    css = _style_to_css({})
+    return render_template("cv_preview.html", cv_content=SAMPLE_CV, style={}, **css)
+
+
+@app.route("/api/cv/render", methods=["POST"])
+def api_cv_render():
+    """Render the CV template from JSON and return the full HTML document.
+
+    Accepts POST with JSON body:
+        { "cv_content": {...}, "style": {...} }
+
+    Returns: rendered HTML string (the full cv_preview.html document).
+    Used by the tailor page for live preview via srcdoc.
+    """
+    data = request.get_json(silent=True) or {}
+    cv_content = data.get("cv_content", {})
+    style = data.get("style", {})
+    css = _style_to_css(style)
+    return render_template("cv_preview.html", cv_content=cv_content, style=style, **css)
 
 
 if __name__ == "__main__":

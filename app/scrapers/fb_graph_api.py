@@ -15,7 +15,7 @@ Token: Use a Page Access Token or User Access Token with pages_read_engagement.
 import os
 import re
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, Optional
 
 import requests
 
@@ -33,7 +33,7 @@ def _get_access_token() -> str:
     return (token or "").strip()
 
 
-def _get_page_posts(page_id: str, token: str, page_type: str = "page", limit: int = 25, since: datetime | None = None) -> list[dict]:
+def _get_page_posts(page_id: str, token: str, page_type: str = "page", limit: int = 25, since: Optional[datetime] = None) -> list[dict]:
     """Get recent posts from a Facebook page or group."""
     # For groups, we need to use /group_id/feed instead of /page_id/posts
     if page_type == "group":

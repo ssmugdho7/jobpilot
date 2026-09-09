@@ -54,6 +54,14 @@ ROLE_KEYWORDS = {
 
 ROLE_ORDER = list(ROLE_KEYWORDS.keys())
 
+# Skills that are in-demand and should boost relevance score
+HIGH_DEMAND_SKILLS = [
+    "react", "node.js", "python", "typescript", "javascript", "aws", "docker",
+    "kubernetes", "machine learning", "ai", "flutter", "golang", "rust",
+    "vue.js", "angular", "django", "fastapi", "spring boot", "postgresql",
+    "mongodb", "redis", "graphql", "rest api", "microservices",
+]
+
 
 def _get_all_roles() -> dict:
     """Return all roles including custom ones from config."""
@@ -122,6 +130,12 @@ def score_job(job: dict) -> float:
     for kw in role_kw:
         if kw in title:
             score += 0.3
+    
+    # Bonus for high-demand skills
+    for skill in HIGH_DEMAND_SKILLS:
+        if skill in text:
+            score += 0.05
+    
     return round(min(score, 1.0), 2)
 
 

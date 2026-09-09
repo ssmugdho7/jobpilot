@@ -245,6 +245,21 @@
           </div>
 
           <div id="tab-customize" class="tab-panel" style="display:none">
+            <!-- Template Section -->
+            <div style="margin-bottom:16px">
+              <label style="font-weight:600;font-size:13px;display:block;margin-bottom:8px">CV Template</label>
+              <div class="field">
+                <label>Template Style</label>
+                <select id="style-template" onchange="onStyleChange()">
+                  <option value="professional" selected>Professional (Clean)</option>
+                  <option value="modern">Modern (Accent Colors)</option>
+                  <option value="minimal">Minimal (Simple)</option>
+                  <option value="executive">Executive (Formal)</option>
+                </select>
+              </div>
+              <p style="font-size:11px;color:var(--muted);margin-top:4px">Choose a template style for your CV layout</p>
+            </div>
+
             <!-- Typography Section -->
             <div style="margin-bottom:16px">
               <label style="font-weight:600;font-size:13px;display:block;margin-bottom:8px">Typography</label>
@@ -411,9 +426,11 @@
         <div class="panel-header">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           Live Preview
+          <button class="btn btn-ghost btn-sm" onclick="refreshPreview()" style="margin-left:auto;font-size:11px;padding:4px 8px">Refresh</button>
         </div>
-        <div class="panel-body" style="padding:0">
-          <iframe id="previewFrame" class="preview-frame" src="/api/tailor/{{ job.id }}/preview"></iframe>
+        <div class="panel-body" style="padding:0;position:relative">
+          <div id="previewLoading" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--muted);font-size:13px;display:none">Loading preview...</div>
+          <iframe id="previewFrame" class="preview-frame" src="/api/tailor/{{ job.id }}/preview" onload="document.getElementById('previewLoading').style.display='none'" onerror="document.getElementById('previewLoading').textContent='Preview failed to load';document.getElementById('previewLoading').style.display='block'"></iframe>
         </div>
       </div>
     </div>
@@ -545,6 +562,7 @@
         });
       });
       return {
+        template: document.getElementById('style-template').value,
         font_family: document.getElementById('style-font').value,
         name_size: parseInt(document.getElementById('style-name-size').value),
         section_title_size: parseInt(document.getElementById('style-section-size').value),
@@ -593,6 +611,9 @@
 
     function writeStyle(style) {
       if (!style) return;
+      if (style.template) {
+        document.getElementById('style-template').value = style.template;
+      }
       if (style.font_family) {
         document.getElementById('style-font').value = style.font_family;
         loadGoogleFont(style.font_family);
@@ -723,6 +744,10 @@
       abortController = new AbortController();
       content = content || readContent();
       style = style || readStyle();
+      
+      const loadingEl = document.getElementById('previewLoading');
+      if (loadingEl) loadingEl.style.display = 'block';
+      
       fetch('/api/cv/render', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cv_content: content, style }),
@@ -732,8 +757,16 @@
       .then(html => {
         const frame = document.getElementById('previewFrame');
         if (frame) frame.srcdoc = html;
+        if (loadingEl) loadingEl.style.display = 'none';
       })
-      .catch(e => { if (e.name !== 'AbortError') console.error('Preview render failed:', e); });
+      .catch(e => { 
+        if (e.name !== 'AbortError') {
+          console.error('Preview render failed:', e);
+          if (loadingEl) {
+            loadingEl.textContent = 'Preview failed to load';
+          }
+        }
+      });
     }
 
     const loadedFonts = new Set();
@@ -1380,17 +1413,26 @@
           }
           writeStyle(data.style || {});
           document.getElementById('jdText').value = data.jd_text || '';
-          refreshPreview();
+          // Delay preview refresh to ensure content is fully written to DOM
+          setTimeout(() => refreshPreview(), 100);
           loadSuggestions();
         })
         .catch(() => {
           writeStyle({});
-          refreshPreview();
+          setTimeout(() => refreshPreview(), 100);
           loadSuggestions();
         });
 
       // Auto-fetch job suggestions after page load
       setTimeout(fetchJobSuggestions, 1000);
+      
+      // Ensure preview loads after initial page load
+      setTimeout(() => {
+        const frame = document.getElementById('previewFrame');
+        if (frame && (!frame.srcdoc || frame.srcdoc.trim() === '')) {
+          refreshPreview();
+        }
+      }, 2000);
     })();
   </script>
 </body>

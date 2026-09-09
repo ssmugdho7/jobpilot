@@ -439,6 +439,39 @@
           {% endfor %}
         </div>
       </div>
+      <div class="sidebar-card">
+        <div class="label">Recommended Keywords</div>
+        <div class="filter-list" style="max-height:300px;overflow-y:auto">
+          <div id="keywordFilters">
+            {% set recommended_keywords = ['Laravel', 'React', 'Node.js', 'Python', 'Django', 'Flask', 'Vue.js', 'Angular', 'TypeScript', 'Rust', 'Go', 'Java', 'Spring Boot', 'AWS', 'Docker', 'Kubernetes', 'Machine Learning', 'Computer Vision', 'NLP', 'Data Science', 'PostgreSQL', 'MySQL', 'MongoDB', 'Redis', 'GraphQL', 'REST API', 'CI/CD', 'Git', 'Linux', 'WordPress'] %}
+            {% for kw in recommended_keywords %}
+            <label class="keyword-checkbox" style="display:flex;align-items:center;gap:6px;padding:4px 8px;font-size:12px;cursor:pointer;border-radius:6px;transition:background .15s">
+              <input type="checkbox" value="{{ kw }}" {% if kw in active_keywords %}checked{% endif %} onchange="toggleKeyword('{{ kw }}')" style="accent-color:var(--blue)">
+              {{ kw }}
+            </label>
+            {% endfor %}
+          </div>
+          <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+            <div style="display:flex;gap:4px">
+              <input type="text" id="customKeywordInput" placeholder="Add custom keyword..." style="flex:1;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--bg);color:var(--text)">
+              <button class="btn btn-ghost btn-sm" onclick="addCustomKeyword()" style="padding:4px 8px;font-size:11px">Add</button>
+            </div>
+            <div id="customKeywordsList" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px">
+              {% for kw in active_keywords %}
+                {% if kw not in recommended_keywords %}
+                <span class="custom-keyword-tag" style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:var(--blue-light);color:var(--blue);border-radius:999px;font-size:11px;font-weight:600">
+                  {{ kw }}
+                  <button onclick="removeCustomKeyword('{{ kw }}')" style="background:none;border:none;color:var(--blue);cursor:pointer;font-size:12px;padding:0;line-height:1">&times;</button>
+                </span>
+                {% endif %}
+              {% endfor %}
+            </div>
+          </div>
+          {% if active_keywords %}
+          <a class="filter-pill" href="/dashboard?status={{ active_status }}&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}" style="margin-top:8px;font-size:11px;color:var(--red)">Clear all keywords</a>
+          {% endif %}
+        </div>
+      </div>
     </div>
 
     <!-- Content -->
@@ -557,10 +590,6 @@
               {% if job.posting_url %}
                 <a class="btn btn-ghost" href="{{ job.posting_url }}" target="_blank" rel="noopener" style="font-size:13px" onclick="trackView({{ job.id }})">View posting</a>
               {% endif %}
-              <a class="btn btn-primary btn-sm" href="/tailor/{{ job.id }}" style="font-size:13px" title="Tailor your CV for this job">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                Tailor CV
-              </a>
               <select class="status-select" onchange="setStatus({{ job.id }}, this.value)">
                 <option value="new" {{ 'selected' if job.status == 'new' }}>New</option>
                 <option value="applied" {{ 'selected' if job.status == 'applied' }}>Applied</option>
@@ -704,6 +733,51 @@
       const hide = raw === null ? true : raw === '1';
       toggle.checked = hide;
       applyHideMissing(hide);
+    }
+
+    // ── Keyword filter functions ──
+    function toggleKeyword(kw) {
+      const params = new URLSearchParams(window.location.search);
+      let keywords = params.get('keywords') ? params.get('keywords').split(',') : [];
+      if (keywords.includes(kw)) {
+        keywords = keywords.filter(k => k !== kw);
+      } else {
+        keywords.push(kw);
+      }
+      if (keywords.length > 0) {
+        params.set('keywords', keywords.join(','));
+      } else {
+        params.delete('keywords');
+      }
+      params.delete('page');
+      window.location.href = '/dashboard?' + params.toString();
+    }
+
+    function addCustomKeyword() {
+      const input = document.getElementById('customKeywordInput');
+      const kw = input.value.trim();
+      if (!kw) return;
+      const params = new URLSearchParams(window.location.search);
+      let keywords = params.get('keywords') ? params.get('keywords').split(',') : [];
+      if (!keywords.includes(kw)) {
+        keywords.push(kw);
+      }
+      params.set('keywords', keywords.join(','));
+      params.delete('page');
+      window.location.href = '/dashboard?' + params.toString();
+    }
+
+    function removeCustomKeyword(kw) {
+      const params = new URLSearchParams(window.location.search);
+      let keywords = params.get('keywords') ? params.get('keywords').split(',') : [];
+      keywords = keywords.filter(k => k !== kw);
+      if (keywords.length > 0) {
+        params.set('keywords', keywords.join(','));
+      } else {
+        params.delete('keywords');
+      }
+      params.delete('page');
+      window.location.href = '/dashboard?' + params.toString();
     }
 
     function openDrawer() {

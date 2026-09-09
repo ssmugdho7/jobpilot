@@ -5,10 +5,14 @@ from app.cv.parse import extract_contact, first_line_name
 from app.gemini import generate_json, gemini_available
 
 SECTION_ALIASES = {
-    "summary": ["professional summary", "summary", "profile", "about", "objective", "career objective", "overview"],
-    "experience": ["work experience", "professional experience", "experience", "employment", "work history", "internship"],
-    "education": ["education", "academic", "academics", "qualification", "qualifications"],
-    "skills": ["technical skills", "skills", "core skills", "key skills", "technologies", "tools", "competencies"],
+    "summary": ["professional summary", "summary", "profile", "about", "objective", "career objective", "overview", "career summary"],
+    "experience": ["work experience", "professional experience", "experience", "employment", "work history", "internship", "internships"],
+    "education": ["education", "academic", "academics", "qualification", "qualifications", "educational background"],
+    "skills": ["technical skills", "skills", "core skills", "key skills", "technologies", "tools", "competencies", "tech stack"],
+    "projects": ["projects", "personal projects", "key projects", "project experience", "notable projects"],
+    "certifications": ["certifications", "certificates", "licenses", "professional certifications", "credentials"],
+    "languages": ["languages", "foreign languages", "language skills", "linguistic skills"],
+    "references": ["references", "professional references", "referees"],
 }
 
 PROFILE_SCHEMA = {
@@ -25,6 +29,9 @@ PROFILE_SCHEMA = {
         "education": {"type": "string"},
         "experience": {"type": "string"},
         "skills": {"type": "array", "items": {"type": "string"}},
+        "projects": {"type": "array", "items": {"type": "object", "properties": {"name": {"type": "string"}, "description": {"type": "string"}, "bullets": {"type": "array", "items": {"type": "string"}}}}},
+        "certifications": {"type": "array", "items": {"type": "object", "properties": {"name": {"type": "string"}, "issuer": {"type": "string"}, "date": {"type": "string"}}}},
+        "languages": {"type": "array", "items": {"type": "object", "properties": {"language": {"type": "string"}, "proficiency": {"type": "string"}}}},
     },
     "required": ["name", "email", "phone", "linkedin", "github", "website", "portfolio",
                  "summary", "education", "experience", "skills"],
@@ -39,7 +46,10 @@ Rules:
 - education: degrees + institutions.
 - skills: list of concrete technical skills (languages, frameworks, tools).
 - website: personal website URL (not LinkedIn, GitHub, or portfolio).
-- If a field is absent, use empty string (or empty list for skills).
+- projects: list of projects with name, description, and bullet points if available.
+- certifications: list of certifications with name, issuer, and date if available.
+- languages: list of languages with proficiency level if available.
+- If a field is absent, use empty string (or empty list for array fields).
 - Do NOT invent information.
 
 Return ONLY valid JSON matching this schema:
@@ -91,6 +101,40 @@ def _fallback_profile(text: str, existing: dict | None = None) -> dict:
     if skills_text:
         skills = [s.strip().rstrip(",;") for s in re.split(r"[,\n|]+", skills_text) if s.strip()]
 
+    # Parse projects from sections
+    projects = []
+    projects_text = join("projects")
+    if projects_text:
+        blocks = [b.strip() for b in projects_text.split("\n\n") if b.strip()]
+        if not blocks:
+            blocks = [projects_text]
+        for block in blocks:
+            lines = block.split("\n")
+            name = lines[0] if lines else ""
+            description = " ".join(lines[1:]) if len(lines) > 1 else ""
+            projects.append({"name": name, "description": description, "bullets": []})
+
+    # Parse certifications from sections
+    certifications = []
+    certs_text = join("certifications")
+    if certs_text:
+        for line in certs_text.split("\n"):
+            line = line.strip()
+            if line:
+                certifications.append({"name": line, "issuer": "", "date": ""})
+
+    # Parse languages from sections
+    languages = []
+    langs_text = join("languages")
+    if langs_text:
+        for line in langs_text.split("\n"):
+            line = line.strip()
+            if line:
+                parts = re.split(r"[-–—]", line, maxsplit=1)
+                lang = parts[0].strip()
+                prof = parts[1].strip() if len(parts) > 1 else ""
+                languages.append({"language": lang, "proficiency": prof})
+
     fallback = {
         "name": first_line_name(text),
         "email": contact["email"],
@@ -103,6 +147,9 @@ def _fallback_profile(text: str, existing: dict | None = None) -> dict:
         "education": join("education"),
         "experience": join("experience"),
         "skills": skills,
+        "projects": projects,
+        "certifications": certifications,
+        "languages": languages,
     }
 
     if existing:
@@ -136,6 +183,11 @@ def profile_from_text(cv_text: str, existing: dict | None = None) -> dict:
             if not isinstance(skills, list):
                 skills = []
             fallback[key] = [str(s).strip() for s in skills if str(s).strip()]
+        elif key in ("projects", "certifications", "languages"):
+            # Handle array of objects
+            items = data.get(key) or []
+            if isinstance(items, list) and items:
+                fallback[key] = items
         else:
             val = str(data.get(key, "") or "").strip()
             if val:

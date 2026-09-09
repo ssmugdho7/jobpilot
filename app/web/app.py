@@ -212,6 +212,8 @@ def dashboard():
     role_filter = request.args.get("role", "").strip().lower()
     exp_filter = request.args.get("exp", "").strip()
     sort = (request.args.get("sort", "newonly") or "newonly").strip().lower()
+    keywords_param = request.args.get("keywords", "").strip()
+    active_keywords = [k.strip() for k in keywords_param.split(",") if k.strip()] if keywords_param else []
     if sort not in ("newonly", "applied", "deadline", "all"):
         sort = "newonly"
 
@@ -320,6 +322,16 @@ def dashboard():
         else:
             all_jobs.sort(key=lambda j: j.posted_date or _EPOCH, reverse=True)
 
+        # Apply keyword filtering
+        if active_keywords:
+            filtered_jobs = []
+            for job in all_jobs:
+                job_text = f"{(job.title or '').lower()} {(job.snippet or '').lower()} {(job.company or '').lower()}"
+                # Check if any keyword matches (OR logic)
+                if any(kw.lower() in job_text for kw in active_keywords):
+                    filtered_jobs.append(job)
+            all_jobs = filtered_jobs
+
         jobs = all_jobs[offset:offset + PER_PAGE]
 
         search_cfg = load_search_config()
@@ -345,6 +357,7 @@ def dashboard():
             onboarding_done=onboarding_done,
             has_skills=bool(p_dict.get("skills")),
             bdjobs_jobfairs=get_bdjobs_jobfairs(),
+            active_keywords=active_keywords,
         )
     finally:
         db_session.close()
@@ -743,10 +756,10 @@ def _normalize_profile_to_editor(p_dict: dict) -> dict:
     """Convert flat profile dict (from profile_to_dict) to nested editor format."""
     pi = {
         "full_name": p_dict.get("name", "") or "",
-        "job_title": "",
+        "job_title": p_dict.get("job_title", "") or "",
         "email": p_dict.get("email", "") or "",
         "phone": p_dict.get("phone", "") or "",
-        "location": "",
+        "location": p_dict.get("location", "") or "",
         "website": {"text": "Website", "url": p_dict.get("website", "") or ""},
         "linkedin": {"text": "LinkedIn", "url": p_dict.get("linkedin", "") or ""},
         "github": {"text": "GitHub", "url": p_dict.get("github", "") or ""},
@@ -756,6 +769,8 @@ def _normalize_profile_to_editor(p_dict: dict) -> dict:
 
     summary = p_dict.get("summary", "") or ""
     skills = p_dict.get("skills", []) or []
+    if isinstance(skills, str):
+        skills = [s.strip() for s in skills.split(",") if s.strip()]
     skill_groups = [{"category": "", "items": skills}] if skills else []
 
     experience = []
@@ -795,6 +810,72 @@ def _normalize_profile_to_editor(p_dict: dict) -> dict:
                 "details": details,
             })
 
+    # Handle projects - could be list of objects or text
+    projects = p_dict.get("projects", []) or []
+    if isinstance(projects, str):
+        projects = [{"name": projects, "description": "", "bullets": []}]
+    elif isinstance(projects, list):
+        normalized_projects = []
+        for p in projects:
+            if isinstance(p, dict):
+                normalized_projects.append({
+                    "name": p.get("name", ""),
+                    "url": p.get("url", ""),
+                    "description": p.get("description", ""),
+                    "bullets": p.get("bullets", []),
+                })
+            elif isinstance(p, str):
+                normalized_projects.append({"name": p, "description": "", "bullets": []})
+        projects = normalized_projects
+
+    # Handle certifications - could be list of objects or text
+    certifications = p_dict.get("certifications", []) or []
+    if isinstance(certifications, str):
+        certifications = [{"name": certifications, "issuer": "", "date": ""}]
+    elif isinstance(certifications, list):
+        normalized_certs = []
+        for c in certifications:
+            if isinstance(c, dict):
+                normalized_certs.append({
+                    "name": c.get("name", ""),
+                    "issuer": c.get("issuer", ""),
+                    "date": c.get("date", ""),
+                    "url": c.get("url", ""),
+                })
+            elif isinstance(c, str):
+                normalized_certs.append({"name": c, "issuer": "", "date": ""})
+        certifications = normalized_certs
+
+    # Handle languages - could be list of objects or text
+    languages = p_dict.get("languages", []) or []
+    if isinstance(languages, str):
+        languages = [{"language": languages, "proficiency": ""}]
+    elif isinstance(languages, list):
+        normalized_langs = []
+        for l in languages:
+            if isinstance(l, dict):
+                normalized_langs.append({
+                    "language": l.get("language", l.get("name", "")),
+                    "proficiency": l.get("proficiency", l.get("level", "")),
+                })
+            elif isinstance(l, str):
+                normalized_langs.append({"language": l, "proficiency": ""})
+        languages = normalized_langs
+
+    # Handle references
+    references = p_dict.get("references", []) or []
+    if isinstance(references, list):
+        normalized_refs = []
+        for r in references:
+            if isinstance(r, dict):
+                normalized_refs.append({
+                    "name": r.get("name", ""),
+                    "title": r.get("title", ""),
+                    "company": r.get("company", ""),
+                    "email": r.get("email", ""),
+                })
+        references = normalized_refs
+
     return {
         "personal_info": pi,
         "summary": summary,
@@ -802,11 +883,11 @@ def _normalize_profile_to_editor(p_dict: dict) -> dict:
         "skill_groups": skill_groups,
         "experience": experience,
         "education": education,
-        "projects": [],
-        "certifications": [],
+        "projects": projects,
+        "certifications": certifications,
         "extracurricular": [],
-        "languages": [],
-        "references": [],
+        "languages": languages,
+        "references": references,
         "custom_sections": [],
         "links": [],
     }
@@ -864,6 +945,7 @@ def _style_to_css(style: dict) -> dict:
     font_scale = float(style.get("font_scale", 1))
     spacing_scale = float(style.get("spacing_scale", 1))
     page_size = style.get("page_size", "a4")
+    template = style.get("template", "professional")
 
     _FONT_STACKS = {
         "Inter": "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
@@ -878,20 +960,73 @@ def _style_to_css(style: dict) -> dict:
     raw_font = style.get("font_family", "Inter")
     css_font_family = _FONT_STACKS.get(raw_font, f"'{raw_font}', sans-serif")
 
+    # Template-specific defaults
+    template_defaults = {
+        "professional": {
+            "accent_color": "#1a365d",
+            "text_color": "#333333",
+            "name_size": 22,
+            "section_title_size": 13,
+            "body_size": 10,
+            "role_size": 12,
+            "breaker_size": 1,
+        },
+        "modern": {
+            "accent_color": "#2563eb",
+            "text_color": "#374151",
+            "name_size": 24,
+            "section_title_size": 14,
+            "body_size": 10,
+            "role_size": 13,
+            "breaker_size": 2,
+        },
+        "minimal": {
+            "accent_color": "#555555",
+            "text_color": "#444444",
+            "name_size": 20,
+            "section_title_size": 12,
+            "body_size": 10,
+            "role_size": 11,
+            "breaker_size": 0,
+        },
+        "executive": {
+            "accent_color": "#1f2937",
+            "text_color": "#1f2937",
+            "name_size": 26,
+            "section_title_size": 14,
+            "body_size": 10,
+            "role_size": 12,
+            "breaker_size": 1,
+        },
+    }
+    defaults = template_defaults.get(template, template_defaults["professional"])
+
     def _pt(key, default):
         v = style.get(key)
-        return f"{float(v)}pt" if v is not None else f"{default * font_scale}pt"
+        if v is not None:
+            return f"{float(v)}pt"
+        # Use template defaults if available
+        template_val = defaults.get(key)
+        if template_val is not None:
+            return f"{template_val * font_scale}pt"
+        return f"{default * font_scale}pt"
 
     def _px(key, default):
         v = style.get(key)
-        return str(int(float(v))) if v is not None else str(int(default * spacing_scale))
+        if v is not None:
+            return str(int(float(v)))
+        # Use template defaults if available
+        template_val = defaults.get(key)
+        if template_val is not None:
+            return str(int(template_val * spacing_scale))
+        return str(int(default * spacing_scale))
 
     return {
         "css_font_family": css_font_family,
         "css_page_w": "215.9mm" if page_size == "letter" else "210mm",
         "css_page_h": "279.4mm" if page_size == "letter" else "297mm",
-        "css_accent": style.get("accent_color", "#1a365d"),
-        "css_text": style.get("text_color", "#555555"),
+        "css_accent": style.get("accent_color") or defaults.get("accent_color", "#1a365d"),
+        "css_text": style.get("text_color") or defaults.get("text_color", "#555555"),
         "css_light": style.get("light_color", "#888888"),
         "css_border": style.get("border_color", "#e0e0e0"),
         "css_link_color": style.get("link_color", "#1a365d"),
@@ -1582,6 +1717,7 @@ def api_cv_preview_static_render():
 
 
 @app.route("/api/cv/render", methods=["POST"])
+@login_required
 def api_cv_render():
     """Render the CV template from JSON and return the full HTML document.
 

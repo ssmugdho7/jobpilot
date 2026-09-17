@@ -207,14 +207,15 @@ def dashboard():
     finally:
         db_session.close()
 
-    status = request.args.get("status", "").strip()
+status = request.args.get("status", "").strip()
     days = request.args.get("days", "")
     page = request.args.get("page", "1")
     role_filter = request.args.get("role", "").strip().lower()
     exp_filter = request.args.get("exp", "").strip()
+    trendy_filter = request.args.get("trendy", "").strip().lower()
     sort = (request.args.get("sort", "all") or "all").strip().lower()
     if sort not in ("newonly", "applied", "deadline", "all"):
-        sort = "newonly"
+        sort = "all"
 
     # Use user preferences as defaults if no filter specified
     if not days and onboarding_done:
@@ -244,6 +245,15 @@ def dashboard():
             q = q.filter(Job.role == role_filter)
         if exp_filter and exp_filter in ("fresher", "2y", "3y", "3y_plus"):
             q = q.filter(Job.experience_level == exp_filter)
+        if trendy_filter == "php_laravel":
+            q = q.filter(or_(
+                Job.title.ilike("%php%"),
+                Job.title.ilike("%laravel%"),
+                Job.snippet.ilike("%php%"),
+                Job.snippet.ilike("%laravel%"),
+                Job.skills.ilike("%php%"),
+                Job.skills.ilike("%laravel%"),
+            ))
         q = q.filter(effective_date >= cutoff)
 
         if status in ("applied", "dismissed"):
@@ -259,8 +269,8 @@ def dashboard():
 
         total = q.count()
         logger.warning(
-            "Dashboard filter: days=%s, cutoff=%s, total=%d, sort=%s, status=%s, role=%s",
-            days, cutoff, total, sort, status, role_filter,
+            "Dashboard filter: days=%s, cutoff=%s, total=%d, sort=%s, status=%s, role=%s, trendy=%s",
+            days, cutoff, total, sort, status, role_filter, trendy_filter,
         )
         # Debug: check created_at and posted_date
         _debug = db_session.query(
@@ -278,6 +288,15 @@ def dashboard():
                 q = q.filter(Job.role == role_filter)
             if exp_filter and exp_filter in ("fresher", "2y", "3y", "3y_plus"):
                 q = q.filter(Job.experience_level == exp_filter)
+            if trendy_filter == "php_laravel":
+                q = q.filter(or_(
+                    Job.title.ilike("%php%"),
+                    Job.title.ilike("%laravel%"),
+                    Job.snippet.ilike("%php%"),
+                    Job.snippet.ilike("%laravel%"),
+                    Job.skills.ilike("%php%"),
+                    Job.skills.ilike("%laravel%"),
+                ))
             q = q.filter(effective_date >= cutoff)
             total = q.count()
             if total > 0:
@@ -291,6 +310,15 @@ def dashboard():
                     q = q.filter(Job.role == role_filter)
                 if exp_filter and exp_filter in ("fresher", "2y", "3y", "3y_plus"):
                     q = q.filter(Job.experience_level == exp_filter)
+                if trendy_filter == "php_laravel":
+                    q = q.filter(or_(
+                        Job.title.ilike("%php%"),
+                        Job.title.ilike("%laravel%"),
+                        Job.snippet.ilike("%php%"),
+                        Job.snippet.ilike("%laravel%"),
+                        Job.skills.ilike("%php%"),
+                        Job.skills.ilike("%laravel%"),
+                    ))
                 q = q.filter(effective_date >= cutoff)
                 total = q.count()
                 fallback_notice = f"No jobs posted in the last {days} day{'s' if days != 1 else ''}. Showing all available jobs instead."
@@ -371,6 +399,7 @@ def dashboard():
             active_days=str(days),
             active_role=role_filter,
             active_exp=exp_filter,
+            active_trendy=trendy_filter,
             active_sort=sort,
             active_page=page,
             total_pages=total_pages,

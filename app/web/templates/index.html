@@ -368,6 +368,11 @@
         <a class="drawer-link {{ 'active' if active_role == cr }}" href="/dashboard?status={{ active_status }}&days={{ active_days }}&role={{ cr }}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">{{ cr }}</a>
         {% endfor %}
       </div>
+      <div class="drawer-section">
+        <div class="drawer-label">Trendy</div>
+        <a class="drawer-link {{ 'active' if not active_trendy }}" href="/dashboard?status={{ active_status }}&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">All</a>
+        <a class="drawer-link {{ 'active' if active_trendy == 'php_laravel' }}" href="/dashboard?status={{ active_status }}&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}&trendy=php_laravel">PHP / Laravel</a>
+      </div>
       <div style="height:1px;background:var(--border);margin:4px 0"></div>
       <a class="drawer-link" href="/learning">Learning</a>
       <a class="drawer-link" href="/profile">Profile</a>
@@ -400,39 +405,46 @@
       <div class="sidebar-card">
         <div class="label">Status</div>
         <div class="filter-list">
-          <a class="filter-pill {{ 'active' if active_status == '' }}" href="/dashboard?days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">All CSE Jobs<span class="count">{{ counts.all }}</span></a>
-          <a class="filter-pill {{ 'active' if active_status == 'new' }}" href="/dashboard?status=new&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">New<span class="count">{{ counts.new }}</span></a>
-          <a class="filter-pill {{ 'active' if active_status == 'applied' }}" href="/dashboard?status=applied&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">Applied<span class="count">{{ counts.applied }}</span></a>
-          <a class="filter-pill {{ 'active' if active_status == 'dismissed' }}" href="/dashboard?status=dismissed&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">Dismissed<span class="count">{{ counts.dismissed }}</span></a>
+          <a class="filter-pill {{ 'active' if active_status == '' }}" href="/dashboard?days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}{% if active_trendy %}&trendy={{ active_trendy }}{% endif %}&sort={{ active_sort }}">All CSE Jobs<span class="count">{{ counts.all }}</span></a>
+          <a class="filter-pill {{ 'active' if active_status == 'new' }}" href="/dashboard?status=new&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}{% if active_trendy %}&trendy={{ active_trendy }}{% endif %}&sort={{ active_sort }}">New<span class="count">{{ counts.new }}</span></a>
+          <a class="filter-pill {{ 'active' if active_status == 'applied' }}" href="/dashboard?status=applied&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}{% if active_trendy %}&trendy={{ active_trendy }}{% endif %}&sort={{ active_sort }}">Applied<span class="count">{{ counts.applied }}</span></a>
+          <a class="filter-pill {{ 'active' if active_status == 'dismissed' }}" href="/dashboard?status=dismissed&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}{% if active_trendy %}&trendy={{ active_trendy }}{% endif %}&sort={{ active_sort }}">Dismissed<span class="count">{{ counts.dismissed }}</span></a>
         </div>
       </div>
       <div class="sidebar-card">
         <div class="label">Posted</div>
         <div class="filter-list">
           {% for value, label in days_options %}
-          <a class="filter-pill {{ 'active' if active_days == value }}" href="/dashboard?status={{ active_status }}&days={{ value }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">{{ label }}</a>
+          <a class="filter-pill {{ 'active' if active_days == value }}" href="/dashboard?status={{ active_status }}&days={{ value }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}{% if active_trendy %}&trendy={{ active_trendy }}{% endif %}&sort={{ active_sort }}">{{ label }}</a>
           {% endfor %}
         </div>
       </div>
       <div class="sidebar-card">
         <div class="label">Experience</div>
         <div class="filter-list">
-          <a class="filter-pill {{ 'active' if not active_exp }}" href="/dashboard?status={{ active_status }}&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}&sort={{ active_sort }}">All</a>
+          <a class="filter-pill {{ 'active' if not active_exp }}" href="/dashboard?status={{ active_status }}&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_trendy %}&trendy={{ active_trendy }}{% endif %}&sort={{ active_sort }}">All</a>
           {% for value, label in experience_options %}
-          <a class="filter-pill {{ 'active' if active_exp == value }}" href="/dashboard?status={{ active_status }}&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}&exp={{ value }}&sort={{ active_sort }}">{{ label }}</a>
+          <a class="filter-pill {{ 'active' if active_exp == value }}" href="/dashboard?status={{ active_status }}&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_trendy %}&trendy={{ active_trendy }}{% endif %}&exp={{ value }}&sort={{ active_sort }}">{{ label }}</a>
           {% endfor %}
         </div>
       </div>
       <div class="sidebar-card">
         <div class="label">Role</div>
         <div class="filter-list">
-          <a class="filter-pill {{ 'active' if not active_role }}" href="/dashboard?status={{ active_status }}&days={{ active_days }}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">All CSE Jobs</a>
+          <a class="filter-pill {{ 'active' if not active_role }}" href="/dashboard?status={{ active_status }}&days={{ active_days }}{% if active_exp %}&exp={{ active_exp }}{% endif %}{% if active_trendy %}&trendy={{ active_trendy }}{% endif %}&sort={{ active_sort }}">All CSE Jobs</a>
           {% for r in roles %}
-          <a class="filter-pill {{ 'active' if active_role == r }}" href="/dashboard?status={{ active_status }}&days={{ active_days }}&role={{ r }}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">{{ r }}</a>
+          <a class="filter-pill {{ 'active' if active_role == r }}" href="/dashboard?status={{ active_status }}&days={{ active_days }}&role={{ r }}{% if active_exp %}&exp={{ active_exp }}{% endif %}{% if active_trendy %}&trendy={{ active_trendy }}{% endif %}&sort={{ active_sort }}">{{ r }}</a>
           {% endfor %}
           {% for cr in custom_roles %}
-          <a class="filter-pill {{ 'active' if active_role == cr }}" href="/dashboard?status={{ active_status }}&days={{ active_days }}&role={{ cr }}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">{{ cr }}</a>
+          <a class="filter-pill {{ 'active' if active_role == cr }}" href="/dashboard?status={{ active_status }}&days={{ active_days }}&role={{ cr }}{% if active_exp %}&exp={{ active_exp }}{% endif %}{% if active_trendy %}&trendy={{ active_trendy }}{% endif %}&sort={{ active_sort }}">{{ cr }}</a>
           {% endfor %}
+        </div>
+      </div>
+      <div class="sidebar-card">
+        <div class="label">Trendy</div>
+        <div class="filter-list">
+          <a class="filter-pill {{ 'active' if not active_trendy }}" href="/dashboard?status={{ active_status }}&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">All</a>
+          <a class="filter-pill {{ 'active' if active_trendy == 'php_laravel' }}" href="/dashboard?status={{ active_status }}&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}&trendy=php_laravel">PHP / Laravel</a>
         </div>
       </div>
     </div>
@@ -587,20 +599,20 @@
         {% if total_pages > 1 %}
         <div class="pagination">
           {% if active_page > 1 %}
-            <a class="page-link" href="/dashboard?status={{ active_status }}&days={{ active_days }}&role={{ active_role }}&exp={{ active_exp }}&sort={{ active_sort }}&page={{ active_page - 1 }}">&laquo;</a>
+            <a class="page-link" href="/dashboard?status={{ active_status }}&days={{ active_days }}&role={{ active_role }}&exp={{ active_exp }}&sort={{ active_sort }}{% if active_trendy %}&trendy={{ active_trendy }}{% endif %}&page={{ active_page - 1 }}">&laquo;</a>
           {% endif %}
           <span class="page-link page-current current">{{ active_page }}</span>
           {% for p in range(1, total_pages + 1) %}
             {% if p != active_page %}
               {% if p == 1 or p == total_pages or (p >= active_page - 1 and p <= active_page + 1) %}
-                <a class="page-link page-num" href="/dashboard?status={{ active_status }}&days={{ active_days }}&role={{ active_role }}&exp={{ active_exp }}&sort={{ active_sort }}&page={{ p }}">{{ p }}</a>
+                <a class="page-link page-num" href="/dashboard?status={{ active_status }}&days={{ active_days }}&role={{ active_role }}&exp={{ active_exp }}&sort={{ active_sort }}{% if active_trendy %}&trendy={{ active_trendy }}{% endif %}&page={{ p }}">{{ p }}</a>
               {% elif p == active_page - 2 or p == active_page + 2 %}
                 <span class="page-link ellipsis page-num">&hellip;</span>
               {% endif %}
             {% endif %}
           {% endfor %}
           {% if active_page < total_pages %}
-            <a class="page-link" href="/dashboard?status={{ active_status }}&days={{ active_days }}&role={{ active_role }}&exp={{ active_exp }}&sort={{ active_sort }}&page={{ active_page + 1 }}">&raquo;</a>
+            <a class="page-link" href="/dashboard?status={{ active_status }}&days={{ active_days }}&role={{ active_role }}&exp={{ active_exp }}&sort={{ active_sort }}{% if active_trendy %}&trendy={{ active_trendy }}{% endif %}&page={{ active_page + 1 }}">&raquo;</a>
           {% endif %}
         </div>
         {% endif %}
@@ -612,9 +624,9 @@
           <h3>No jobs match your filters</h3>
           <p>Try widening the date range, switching role, or scanning now for fresh postings.</p>
           <div class="empty-suggestions">
-            <a href="/dashboard?days=30&sort={{ active_sort }}">Last 30 days</a>
-            <a href="/dashboard?status=&days={{ active_days }}&sort={{ active_sort }}">All statuses</a>
-            <a href="/dashboard?days={{ active_days }}&role=&sort={{ active_sort }}">All roles</a>
+            <a href="/dashboard?days=30&sort={{ active_sort }}{% if active_trendy %}&trendy={{ active_trendy }}{% endif %}">Last 30 days</a>
+            <a href="/dashboard?status=&days={{ active_days }}&sort={{ active_sort }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}{% if active_trendy %}&trendy={{ active_trendy }}{% endif %}">All statuses</a>
+            <a href="/dashboard?days={{ active_days }}&role=&sort={{ active_sort }}{% if active_status %}&status={{ active_status }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}{% if active_trendy %}&trendy={{ active_trendy }}{% endif %}">All roles</a>
           </div>
           <button class="btn btn-primary" onclick="runScan()">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>

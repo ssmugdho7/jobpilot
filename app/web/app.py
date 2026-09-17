@@ -271,7 +271,7 @@ def dashboard():
         logger.warning("DB counts: total=%s, posted_date_not_null=%s, created_at_not_null=%s", _debug[0], _debug[1], _debug[2])
         fallback_notice = ""
         if total == 0 and days < 30:
-            cutoff = datetime.utcnow() - timedelta(days=30)
+            # Try same date range without status/sort filter first
             effective_date = func.coalesce(Job.posted_date, Job.created_at)
             q = db_session.query(Job)
             if role_filter:
@@ -280,8 +280,21 @@ def dashboard():
                 q = q.filter(Job.experience_level == exp_filter)
             q = q.filter(effective_date >= cutoff)
             total = q.count()
-            logger.warning("Fallback query: days=30, total=%d", total)
-            fallback_notice = f"No jobs posted in the last {days} day{'s' if days != 1 else ''}. Showing all available jobs instead."
+            if total > 0:
+                sort = "all"
+                fallback_notice = f"All {days}-day jobs have been reviewed. Showing all statuses."
+            else:
+                # Widen to 30 days
+                cutoff = datetime.utcnow() - timedelta(days=30)
+                q = db_session.query(Job)
+                if role_filter:
+                    q = q.filter(Job.role == role_filter)
+                if exp_filter and exp_filter in ("fresher", "2y", "3y", "3y_plus"):
+                    q = q.filter(Job.experience_level == exp_filter)
+                q = q.filter(effective_date >= cutoff)
+                total = q.count()
+                fallback_notice = f"No jobs posted in the last {days} day{'s' if days != 1 else ''}. Showing all available jobs instead."
+            logger.warning("Fallback query: total=%d", total)
 
         PER_PAGE = 5
         total_pages = max(1, (total + PER_PAGE - 1) // PER_PAGE)

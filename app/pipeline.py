@@ -154,7 +154,7 @@ def run_scan(verbose: bool = True) -> int:
                 experience_level=job["experience_level"],
                 hr_email=job["hr_email"],
                 gmail_link=job["gmail_link"],
-                posted_date=job["posted_date"],
+                posted_date=job["posted_date"] or datetime.utcnow(),
                 deadline=job["deadline"],
                 created_at=datetime.utcnow(),
             )

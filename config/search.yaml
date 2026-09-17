@@ -9,8 +9,42 @@ roles:
 - app developer
 custom_roles:
 - management trainee officer
+- python developer
+- java developer
+- c# developer
+- react developer
+- nodejs developer
+- golang developer
+- backend developer
+- frontend developer
+- full stack developer
+- mobile app developer
+- flutter developer
+- android developer
+- ios developer
+- machine learning engineer
+- data scientist
+- data engineer
+- devops engineer
+- cloud engineer
+- site reliability engineer
+- qa engineer
+- software tester
+- database administrator
+- system administrator
+- network engineer
+- cybersecurity analyst
+- security engineer
+- blockchain developer
+- embedded systems engineer
+- firmware engineer
+- game developer
+- ui ux designer
+- technical lead
+- engineering manager
+- cto
 location: Bangladesh
-bdjobs_max_pages: 3
+bdjobs_max_pages: 5
 max_age_days: 30
 min_relevance_score: 0.0
 facebook_groups: null

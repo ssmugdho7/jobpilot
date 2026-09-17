@@ -85,6 +85,23 @@ def init_db():
     else:
         _migrate_sqlite()
 
+    _backfill_dates()
+
+
+def _backfill_dates():
+    """One-time backfill: set created_at and posted_date for existing rows."""
+    cols = _col_names("jobs")
+    if "created_at" not in cols:
+        return
+    with engine.connect() as conn:
+        if IS_POSTGRES:
+            conn.exec_driver_sql("UPDATE jobs SET created_at = NOW() WHERE created_at IS NULL")
+            conn.exec_driver_sql("UPDATE jobs SET posted_date = created_at WHERE posted_date IS NULL AND created_at IS NOT NULL")
+        else:
+            conn.exec_driver_sql("UPDATE jobs SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL")
+            conn.exec_driver_sql("UPDATE jobs SET posted_date = created_at WHERE posted_date IS NULL AND created_at IS NOT NULL")
+        conn.commit()
+
 
 def _col_names(table: str) -> list[str]:
     return [col["name"] for col in inspect(engine).get_columns(table)]

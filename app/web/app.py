@@ -1,7 +1,10 @@
+import logging
 import os
 import re
 from datetime import datetime, timedelta
 from functools import wraps
+
+logger = logging.getLogger(__name__)
 
 from flask import Flask, render_template, jsonify, request, session, redirect, url_for
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -46,8 +49,8 @@ def _startup_scan():
             threading.Event().wait(6 * 3600)
             try:
                 run_scan_async()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("Periodic scan failed: %s", e)
 
     threading.Thread(target=_scan, daemon=True).start()
     threading.Thread(target=_periodic, daemon=True).start()
@@ -55,8 +58,8 @@ def _startup_scan():
 
 try:
     _startup_scan()
-except Exception:
-    pass
+except Exception as e:
+    logger.warning("Startup scan failed: %s", e)
 
 # Emails that are NOT a real HR/person contact — skip for Gmail compose
 JUNK_EMAILS = {
@@ -254,6 +257,18 @@ def dashboard():
             q = q.filter(or_(UserJob.status == "new", UserJob.status.is_(None)))
 
         total = q.count()
+        fallback_notice = ""
+        if total == 0 and days < 30:
+            cutoff = datetime.utcnow() - timedelta(days=30)
+            q = db_session.query(Job)
+            if role_filter:
+                q = q.filter(Job.role == role_filter)
+            if exp_filter and exp_filter in ("fresher", "2y", "3y", "3y_plus"):
+                q = q.filter(Job.experience_level == exp_filter)
+            q = q.filter((Job.posted_date.is_(None)) | (Job.posted_date >= cutoff))
+            total = q.count()
+            fallback_notice = f"No jobs posted in the last {days} day{'s' if days != 1 else ''}. Showing all available jobs instead."
+
         PER_PAGE = 5
         total_pages = max(1, (total + PER_PAGE - 1) // PER_PAGE)
         if page > total_pages:
@@ -343,6 +358,7 @@ def dashboard():
             onboarding_done=onboarding_done,
             has_skills=bool(p_dict.get("skills")),
             bdjobs_jobfairs=get_bdjobs_jobfairs(),
+            fallback_notice=fallback_notice,
         )
     finally:
         db_session.close()

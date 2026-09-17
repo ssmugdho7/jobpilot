@@ -262,6 +262,13 @@ def dashboard():
             "Dashboard filter: days=%s, cutoff=%s, total=%d, sort=%s, status=%s, role=%s",
             days, cutoff, total, sort, status, role_filter,
         )
+        # Debug: check created_at and posted_date
+        _debug = db_session.query(
+            func.count(Job.id),
+            func.count(Job.posted_date),
+            func.count(Job.created_at),
+        ).first()
+        logger.warning("DB counts: total=%s, posted_date_not_null=%s, created_at_not_null=%s", _debug[0], _debug[1], _debug[2])
         fallback_notice = ""
         if total == 0 and days < 30:
             cutoff = datetime.utcnow() - timedelta(days=30)

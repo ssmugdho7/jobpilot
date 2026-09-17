@@ -207,7 +207,7 @@ def dashboard():
     finally:
         db_session.close()
 
-status = request.args.get("status", "").strip()
+    status = request.args.get("status", "").strip()
     days = request.args.get("days", "")
     page = request.args.get("page", "1")
     role_filter = request.args.get("role", "").strip().lower()

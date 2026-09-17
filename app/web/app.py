@@ -212,7 +212,7 @@ def dashboard():
     page = request.args.get("page", "1")
     role_filter = request.args.get("role", "").strip().lower()
     exp_filter = request.args.get("exp", "").strip()
-    sort = (request.args.get("sort", "newonly") or "newonly").strip().lower()
+    sort = (request.args.get("sort", "all") or "all").strip().lower()
     if sort not in ("newonly", "applied", "deadline", "all"):
         sort = "newonly"
 
@@ -480,6 +480,39 @@ def api_debug():
             db_session.close()
     except Exception as e:
         return jsonify({"ok": False, "error": str(e), "db_type": "postgres" if IS_POSTGRES else "sqlite"})
+
+
+@app.route("/api/debug/statuses")
+@login_required
+def api_debug_statuses():
+    """Show UserJob status distribution for the logged-in user."""
+    user_id = session["user_id"]
+    db_session = SessionLocal()
+    try:
+        rows = db_session.query(UserJob.status, func.count(UserJob.job_id)).filter(UserJob.user_id == user_id).group_by(UserJob.status).all()
+        total_user_jobs = db_session.query(UserJob).filter(UserJob.user_id == user_id).count()
+        total_jobs = db_session.query(Job).count()
+        return jsonify({
+            "total_jobs": total_jobs,
+            "total_user_jobs": total_user_jobs,
+            "by_status": {st: cnt for st, cnt in rows},
+        })
+    finally:
+        db_session.close()
+
+
+@app.route("/api/debug/reset-statuses", methods=["POST"])
+@login_required
+def api_reset_statuses():
+    """Reset all UserJob records for this user back to 'new'."""
+    user_id = session["user_id"]
+    db_session = SessionLocal()
+    try:
+        updated = db_session.query(UserJob).filter(UserJob.user_id == user_id, UserJob.status != "new").update({"status": "new"})
+        db_session.commit()
+        return jsonify({"ok": True, "reset_count": updated})
+    finally:
+        db_session.close()
 
 
 @app.route("/api/jobs/<int:job_id>/status", methods=["POST"])

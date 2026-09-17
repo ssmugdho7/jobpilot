@@ -501,7 +501,7 @@ def api_debug_statuses():
         db_session.close()
 
 
-@app.route("/api/debug/reset-statuses", methods=["POST"])
+@app.route("/api/debug/reset-statuses", methods=["POST", "GET"])
 @login_required
 def api_reset_statuses():
     """Reset all UserJob records for this user back to 'new'."""

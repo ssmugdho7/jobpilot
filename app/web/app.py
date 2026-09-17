@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 from flask import Flask, render_template, jsonify, request, session, redirect, url_for
 from werkzeug.security import generate_password_hash, check_password_hash
-from sqlalchemy import func, and_, or_
+from sqlalchemy import func, and_, or_, case
 
 from app.db import SessionLocal, Job, Profile, User, UserJob, get_user_job, profile_to_dict, get_or_create_profile
 from app.pipeline import run_scan_async
@@ -238,12 +238,13 @@ def dashboard():
 
     db_session = SessionLocal()
     try:
+        effective_date = func.coalesce(Job.posted_date, Job.created_at)
         q = db_session.query(Job)
         if role_filter:
             q = q.filter(Job.role == role_filter)
         if exp_filter and exp_filter in ("fresher", "2y", "3y", "3y_plus"):
             q = q.filter(Job.experience_level == exp_filter)
-        q = q.filter((Job.posted_date.is_(None)) | (Job.posted_date >= cutoff))
+        q = q.filter(effective_date >= cutoff)
 
         if status in ("applied", "dismissed"):
             q = q.join(UserJob, and_(UserJob.job_id == Job.id, UserJob.user_id == user_id, UserJob.status == status))
@@ -261,21 +262,16 @@ def dashboard():
             "Dashboard filter: days=%s, cutoff=%s, total=%d, sort=%s, status=%s, role=%s",
             days, cutoff, total, sort, status, role_filter,
         )
-        # Debug: show latest job date in DB
-        _debug_job = db_session.query(Job).order_by(Job.posted_date.desc()).first()
-        if _debug_job:
-            logger.warning("Latest job in DB: id=%s, posted_date=%s, title=%s", _debug_job.id, _debug_job.posted_date, _debug_job.title[:50])
-        else:
-            logger.warning("No jobs found in DB at all")
         fallback_notice = ""
         if total == 0 and days < 30:
             cutoff = datetime.utcnow() - timedelta(days=30)
+            effective_date = func.coalesce(Job.posted_date, Job.created_at)
             q = db_session.query(Job)
             if role_filter:
                 q = q.filter(Job.role == role_filter)
             if exp_filter and exp_filter in ("fresher", "2y", "3y", "3y_plus"):
                 q = q.filter(Job.experience_level == exp_filter)
-            q = q.filter((Job.posted_date.is_(None)) | (Job.posted_date >= cutoff))
+            q = q.filter(effective_date >= cutoff)
             total = q.count()
             logger.warning("Fallback query: days=30, total=%d", total)
             fallback_notice = f"No jobs posted in the last {days} day{'s' if days != 1 else ''}. Showing all available jobs instead."
@@ -376,7 +372,8 @@ def dashboard():
 
 
 def _status_counts(db_session, user_id, cutoff, role_filter="", exp_filter="") -> dict:
-    base_q = db_session.query(Job).filter((Job.posted_date.is_(None)) | (Job.posted_date >= cutoff))
+    effective_date = func.coalesce(Job.posted_date, Job.created_at)
+    base_q = db_session.query(Job).filter(effective_date >= cutoff)
     if role_filter:
         base_q = base_q.filter(Job.role == role_filter)
     if exp_filter and exp_filter in ("fresher", "2y", "3y", "3y_plus"):

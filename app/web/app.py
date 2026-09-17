@@ -257,6 +257,16 @@ def dashboard():
             q = q.filter(or_(UserJob.status == "new", UserJob.status.is_(None)))
 
         total = q.count()
+        logger.warning(
+            "Dashboard filter: days=%s, cutoff=%s, total=%d, sort=%s, status=%s, role=%s",
+            days, cutoff, total, sort, status, role_filter,
+        )
+        # Debug: show latest job date in DB
+        _debug_job = db_session.query(Job).order_by(Job.posted_date.desc()).first()
+        if _debug_job:
+            logger.warning("Latest job in DB: id=%s, posted_date=%s, title=%s", _debug_job.id, _debug_job.posted_date, _debug_job.title[:50])
+        else:
+            logger.warning("No jobs found in DB at all")
         fallback_notice = ""
         if total == 0 and days < 30:
             cutoff = datetime.utcnow() - timedelta(days=30)
@@ -267,6 +277,7 @@ def dashboard():
                 q = q.filter(Job.experience_level == exp_filter)
             q = q.filter((Job.posted_date.is_(None)) | (Job.posted_date >= cutoff))
             total = q.count()
+            logger.warning("Fallback query: days=30, total=%d", total)
             fallback_notice = f"No jobs posted in the last {days} day{'s' if days != 1 else ''}. Showing all available jobs instead."
 
         PER_PAGE = 5

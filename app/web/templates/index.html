@@ -305,7 +305,9 @@
     <div class="header-right">
       <div class="nav">
         <a href="/dashboard" class="{{ 'active' if not active_trendy }}">Jobs</a>
+        {% if is_admin %}
         <a href="/dashboard?trendy=php_laravel&days=30&sort=all" class="{{ 'active' if active_trendy == 'php_laravel' }}">Trendy</a>
+        {% endif %}
         <a href="/learning">Learning</a>
         <a href="/profile">Profile</a>
       </div>
@@ -369,11 +371,13 @@
         <a class="drawer-link {{ 'active' if active_role == cr }}" href="/dashboard?status={{ active_status }}&days={{ active_days }}&role={{ cr }}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">{{ cr }}</a>
         {% endfor %}
       </div>
+      {% if is_admin %}
       <div class="drawer-section">
         <div class="drawer-label">Trendy</div>
         <a class="drawer-link {{ 'active' if not active_trendy }}" href="/dashboard?status={{ active_status }}&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">All</a>
         <a class="drawer-link {{ 'active' if active_trendy == 'php_laravel' }}" href="/dashboard?status={{ active_status }}&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}&trendy=php_laravel">PHP / Laravel</a>
       </div>
+      {% endif %}
       <div style="height:1px;background:var(--border);margin:4px 0"></div>
       <a class="drawer-link" href="/learning">Learning</a>
       <a class="drawer-link" href="/profile">Profile</a>
@@ -441,13 +445,15 @@
           {% endfor %}
         </div>
       </div>
+      {% if is_admin %}
       <div class="sidebar-card">
         <div class="label">Trendy</div>
         <div class="filter-list">
-          <a class="filter-pill {{ 'active' if not active_trendy }}" href="/dashboard?status={{ active_status }}&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">All</a>
-          <a class="filter-pill {{ 'active' if active_trendy == 'php_laravel' }}" href="/dashboard?status={{ active_status }}&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}&trendy=php_laravel">PHP / Laravel</a>
+          <a class="filter-pill {{ 'active' if not active_trendy }}" href="/dashboard?status={{ active_status }}&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}{% if active_trendy %}&trendy={{ active_trendy }}{% endif %}&sort={{ active_sort }}">All</a>
+          <a class="filter-pill {{ 'active' if active_trendy == 'php_laravel' }}" href="/dashboard?status={{ active_status }}&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}{% if active_trendy %}&trendy={{ active_trendy }}{% endif %}&sort={{ active_sort }}&trendy=php_laravel">PHP / Laravel</a>
         </div>
       </div>
+      {% endif %}
     </div>
 
     <!-- Content -->

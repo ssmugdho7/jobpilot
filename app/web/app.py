@@ -207,12 +207,14 @@ def dashboard():
     finally:
         db_session.close()
 
+    is_admin = (user_id == 1)
+
     status = request.args.get("status", "").strip()
     days = request.args.get("days", "")
     page = request.args.get("page", "1")
     role_filter = request.args.get("role", "").strip().lower()
     exp_filter = request.args.get("exp", "").strip()
-    trendy_filter = request.args.get("trendy", "").strip().lower()
+    trendy_filter = request.args.get("trendy", "").strip().lower() if is_admin else ""
     sort = (request.args.get("sort", "all") or "all").strip().lower()
     if sort not in ("newonly", "applied", "deadline", "all"):
         sort = "all"
@@ -415,6 +417,7 @@ def dashboard():
             has_skills=bool(p_dict.get("skills")),
             bdjobs_jobfairs=get_bdjobs_jobfairs(),
             fallback_notice=fallback_notice,
+            is_admin=is_admin,
         )
     finally:
         db_session.close()

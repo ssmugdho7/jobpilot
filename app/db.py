@@ -53,6 +53,7 @@ class Job(Base):
     posted_date = Column(DateTime)
     deadline = Column(DateTime)
     created_at = Column(DateTime)
+    skills = Column(Text, default="")  # comma-separated
 
     __table_args__ = (
         UniqueConstraint("source_site", "posting_url", name="uq_job_source_url"),

@@ -558,7 +558,7 @@
               {% if job.posting_url %}
                 <a class="btn btn-ghost" href="{{ job.posting_url }}" target="_blank" rel="noopener" style="font-size:13px" onclick="trackView({{ job.id }})">View posting</a>
               {% endif %}
-              <select class="status-select" onchange="setStatus({{ job.id }}, this.value)">
+              <select class="status-select" onchange="setStatus({{ job.id }}, this.value)" data-job-id="{{ job.id }}">
                 <option value="new" {{ 'selected' if job.status == 'new' }}>New</option>
                 <option value="applied" {{ 'selected' if job.status == 'applied' }}>Applied</option>
                 <option value="dismissed" {{ 'selected' if job.status == 'dismissed' }}>Dismissed</option>
@@ -756,6 +756,11 @@
     }
 
     async function setStatus(id, value) {
+      if (value === 'dismissed' && !confirm('Mark this job as Dismissed? This will hide it from New view.')) {
+        const sel = document.querySelector(`select[data-job-id="${id}"]`);
+        if (sel) sel.value = 'new';
+        return;
+      }
       try {
         await fetch('/api/jobs/' + id + '/status', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },

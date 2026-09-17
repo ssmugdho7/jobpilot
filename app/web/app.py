@@ -522,6 +522,7 @@ def api_update_status(job_id):
     new_status = data.get("status")
     if new_status not in ("new", "applied", "dismissed"):
         return jsonify({"error": "invalid status"}), 400
+    logger.info(f"Status change: user={session['user_id']} job={job_id} status={new_status}")
     db_session = SessionLocal()
     try:
         job = db_session.query(Job).get(job_id)

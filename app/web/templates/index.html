@@ -304,7 +304,8 @@
     <div class="logo"><a href="/dashboard" style="color:var(--blue);text-decoration:none">Job<span style="color:var(--text)">Pilot</span></a></div>
     <div class="header-right">
       <div class="nav">
-        <a href="/dashboard" class="active">Jobs</a>
+        <a href="/dashboard" class="{{ 'active' if not active_trendy }}">Jobs</a>
+        <a href="/dashboard?trendy=php_laravel&days=30&sort=all" class="{{ 'active' if active_trendy == 'php_laravel' }}">Trendy</a>
         <a href="/learning">Learning</a>
         <a href="/profile">Profile</a>
       </div>

@@ -1034,9 +1034,175 @@ def fetch_careers() -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
+# bdjobstoday.com — traditional PHP site with IT/Telecom category
+# ---------------------------------------------------------------------------
+
+_BDJOBSTODAY_CAT_URL = "https://bdjobstoday.com/jobsbycategory.php"
+
+
+def _fetch_bdjobstoday_category(cat_id: int, cat_name: str, max_pages: int = 3) -> list[dict]:
+    """Fetch jobs from a bdjobstoday category."""
+    results: list[dict] = []
+    seen = set()
+
+    for page in range(1, max_pages + 1):
+        try:
+            resp = requests.get(
+                _BDJOBSTODAY_CAT_URL,
+                params={"cat": cat_id, "cat_name": cat_name, "page": page},
+                headers=HEADERS,
+                timeout=20,
+            )
+            if resp.status_code != 200:
+                break
+        except Exception as e:
+            print(f"  [bdjobstoday:{cat_name}] page {page} failed: {e}")
+            break
+
+        soup = BeautifulSoup(resp.content, "html.parser")
+        job_links = soup.select('a[href*="jobs_details.php?id="]')
+        if not job_links:
+            break
+
+        for link in job_links:
+            href = link.get("href", "")
+            job_id = href.split("id=")[-1].split("&")[0]
+            if job_id in seen:
+                continue
+            seen.add(job_id)
+
+            posting_url = urljoin(_BDJOBSTODAY_CAT_URL, href)
+            title = _norm(link.get_text())
+
+            if not title or len(title) < 4:
+                continue
+
+            results.append({
+                "title": title,
+                "company": "",
+                "location": "Bangladesh",
+                "source_site": "bdjobstoday.com",
+                "posting_url": posting_url,
+                "snippet": title,
+                "posted_date": None,
+                "deadline": None,
+                "salary": None,
+            })
+
+    return results
+
+
+def fetch_bdjobstoday(max_pages: int = 3) -> list[dict]:
+    """Fetch IT/Telecom jobs from bdjobstoday.com."""
+    # Category 3 = IT/Telecom/Creative Design, Category 11 = ICT/Telecommunication
+    cat_ids = [
+        (3, "IT/Telecom/Creative Design"),
+        (11, "ICT/Telecommunication"),
+    ]
+    results: list[dict] = []
+    seen = set()
+
+    for cat_id, cat_name in cat_ids:
+        try:
+            jobs = _fetch_bdjobstoday_category(cat_id, cat_name, max_pages)
+            for job in jobs:
+                if job["posting_url"] in seen:
+                    continue
+                seen.add(job["posting_url"])
+                results.append(job)
+        except Exception as e:
+            print(f"  [bdjobstoday:{cat_name}] failed: {e}")
+
+    if results:
+        print(f"  [bdjobstoday] collected {len(results)} jobs")
+    return results
+
+
+# ---------------------------------------------------------------------------
+# bikroy.com (jiji/olx platform) — Computing & IT jobs
+# ---------------------------------------------------------------------------
+
+_BIKROY_IT_URL = "https://bikroy.com/en/ads/bangladesh/computing-and-it-jobs"
+
+
+def _fetch_bikroy_it_page(url: str) -> list[dict]:
+    """Fetch one page of bikroy IT jobs."""
+    try:
+        resp = requests.get(url, headers=HEADERS, timeout=20)
+        if resp.status_code != 200:
+            return []
+    except Exception as e:
+        print(f"  [bikroy] page failed: {e}")
+        return []
+
+    soup = BeautifulSoup(resp.content, "html.parser")
+    cards = soup.select('a[href*="/computing-and-it-jobs/"]')
+    results: list[dict] = []
+
+    for card in cards:
+        try:
+            href = card.get("href", "")
+            if not href or not href.startswith("/"):
+                continue
+            posting_url = urljoin("https://bikroy.com", href.split("?")[0])
+
+            title_el = card.select_one("h2, h3, .heading--2eONr, .title--3yncE")
+            title = _norm(title_el.get_text(" ", strip=True)) if title_el else ""
+
+            if not title or len(title) < 4:
+                continue
+
+            # Extract location/salary from card text
+            card_text = card.get_text(" ", strip=True)
+            location = "Bangladesh"
+            salary = None
+
+            results.append({
+                "title": title,
+                "company": "",
+                "location": location,
+                "source_site": "bikroy.com",
+                "posting_url": posting_url,
+                "snippet": _norm(card_text)[:400],
+                "posted_date": None,
+                "deadline": None,
+                "salary": salary,
+            })
+        except Exception:
+            continue
+
+    return results
+
+
+def fetch_bikroy_it(max_pages: int = 5) -> list[dict]:
+    """Fetch Computing & IT jobs from bikroy.com."""
+    results: list[dict] = []
+    seen = set()
+
+    for page in range(1, max_pages + 1):
+        url = _BIKROY_IT_URL if page == 1 else f"{_BIKROY_IT_URL}?page={page}"
+        try:
+            jobs = _fetch_bikroy_it_page(url)
+            for job in jobs:
+                if job["posting_url"] in seen:
+                    continue
+                seen.add(job["posting_url"])
+                results.append(job)
+            if not jobs:
+                break
+        except Exception as e:
+            print(f"  [bikroy] page {page} failed: {e}")
+            break
+
+    if results:
+        print(f"  [bikroy] collected {len(results)} jobs")
+    return results
+
+
+# ---------------------------------------------------------------------------
 
 def fetch_bangladesh_jobs(max_age_days: int | None = None) -> list[dict]:
-    """Collect Bangladesh IT jobs from BDJobs + LinkedIn (BD) + NextJobz + company career pages + Facebook."""
+    """Collect Bangladesh IT jobs from BDJobs + LinkedIn (BD) + NextJobz + company career pages + Facebook + bdjobstoday + bikroy."""
     if max_age_days is None:
         cfg = load_search_config()
         max_age_days = int(cfg.get("max_age_days", 30))
@@ -1045,4 +1211,6 @@ def fetch_bangladesh_jobs(max_age_days: int | None = None) -> list[dict]:
     jobs.extend(fetch_nextjobz())
     jobs.extend(fetch_careers())
     jobs.extend(fetch_facebook())
+    jobs.extend(fetch_bdjobstoday())
+    jobs.extend(fetch_bikroy_it())
     return jobs

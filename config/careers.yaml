@@ -380,12 +380,6 @@ companies:
     type: html
     location: "Bangladesh"
 
-  - name: "JobsYo"
-    site: "jobsyo.com"
-    careers_url: "https://jobsyo.com/jobs"
-    type: html
-    location: "Bangladesh"
-
   # ---- Large corporations / MNCs / Banks / FMCG (management trainee + IT roles) ----
   - name: "Unilever Bangladesh"
     site: "unilever.com.bd"

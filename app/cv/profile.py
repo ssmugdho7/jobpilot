@@ -1,5 +1,6 @@
 import json
 import re
+from typing import Optional, Dict, Any
 
 from app.cv.parse import extract_contact, first_line_name
 from app.gemini import generate_json, gemini_available
@@ -77,7 +78,7 @@ def _split_sections(text: str) -> dict:
     return sections
 
 
-def _fallback_profile(text: str, existing: dict | None = None) -> dict:
+def _fallback_profile(text: str, existing: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     contact = extract_contact(text)
     sections = _split_sections(text)
 
@@ -109,7 +110,7 @@ def _fallback_profile(text: str, existing: dict | None = None) -> dict:
     return fallback
 
 
-def profile_from_text(cv_text: str, existing: dict | None = None) -> dict:
+def profile_from_text(cv_text: str, existing: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     fallback = _fallback_profile(cv_text, existing)
 
     if not gemini_available():

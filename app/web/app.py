@@ -242,8 +242,11 @@ def dashboard():
             q = q.filter(Job.experience_level == exp_filter)
         q = q.filter((Job.posted_date.is_(None)) | (Job.posted_date >= cutoff))
 
-        if status in ("applied", "dismissed"):
-            q = q.join(UserJob, and_(UserJob.job_id == Job.id, UserJob.user_id == user_id, UserJob.status == status))
+        if status in ("applied", "dismissed", "saved"):
+            if status == "saved":
+                q = q.join(UserJob, and_(UserJob.job_id == Job.id, UserJob.user_id == user_id, UserJob.is_saved == 1))
+            else:
+                q = q.join(UserJob, and_(UserJob.job_id == Job.id, UserJob.user_id == user_id, UserJob.status == status))
         elif status == "new":
             q = q.outerjoin(UserJob, and_(UserJob.job_id == Job.id, UserJob.user_id == user_id))
             q = q.filter(or_(UserJob.status == "new", UserJob.status.is_(None)))
@@ -269,6 +272,7 @@ def dashboard():
         for job in all_jobs:
             uj = get_user_job(user_id, job.id, db_session)
             job.status = uj.status
+            job.is_saved = bool(uj.is_saved)
 
             # HR email: use the stored one from DB
             hr_email = job.hr_email or ""
@@ -357,20 +361,24 @@ def _status_counts(db_session, user_id, cutoff, role_filter="", exp_filter="") -
     total_jobs = base_q.count()
 
     subq = base_q.subquery()
-    rows = db_session.query(UserJob.status, func.count(UserJob.job_id)).join(subq, UserJob.job_id == subq.c.id).filter(UserJob.user_id == user_id).group_by(UserJob.status).all()
+    rows = db_session.query(UserJob.status, UserJob.is_saved, func.count(UserJob.job_id)).join(subq, UserJob.job_id == subq.c.id).filter(UserJob.user_id == user_id).group_by(UserJob.status, UserJob.is_saved).all()
 
     applied = 0
     dismissed = 0
-    for st, cnt in rows:
+    saved = 0
+    for st, is_saved, cnt in rows:
         if st == "applied":
             applied = cnt
         elif st == "dismissed":
             dismissed = cnt
+        if is_saved:
+            saved = cnt
     new_count = max(0, total_jobs - applied - dismissed)
     return {
         "new": new_count,
         "applied": applied,
         "dismissed": dismissed,
+        "saved": saved,
         "all": total_jobs,
     }
 
@@ -458,6 +466,23 @@ def api_update_status(job_id):
             uj.follow_up_at = None
         db_session.commit()
         return jsonify({"ok": True, "status": new_status})
+    finally:
+        db_session.close()
+
+
+@app.route("/api/jobs/<int:job_id>/save", methods=["POST"])
+@login_required
+def api_toggle_save(job_id):
+    """Toggle save/bookmark status for a job."""
+    db_session = SessionLocal()
+    try:
+        job = db_session.query(Job).get(job_id)
+        if not job:
+            return jsonify({"error": "not found"}), 404
+        uj = get_user_job(session["user_id"], job_id, db_session)
+        uj.is_saved = 1 - (uj.is_saved or 0)
+        db_session.commit()
+        return jsonify({"ok": True, "is_saved": bool(uj.is_saved)})
     finally:
         db_session.close()
 

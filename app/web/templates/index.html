@@ -83,13 +83,14 @@
     .content { flex: 1; min-width: 0; }
 
     /* ── Stats row ── */
-    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+    .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px; }
     .stat { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow-sm); }
     .stat .num { font-size: 24px; font-weight: 800; color: var(--text); line-height: 1; }
     .stat .label { font-size: 12px; color: var(--muted); margin-top: 4px; font-weight: 500; }
     .stat.blue .num { color: var(--blue); }
     .stat.green .num { color: var(--green); }
     .stat.red .num { color: var(--red); }
+    .stat.purple .num { color: #7c3aed; }
 
     /* ── Toolbar ── */
     .toolbar { display: flex; flex-direction: column; align-items: stretch; gap: 8px; margin-bottom: 16px; }
@@ -135,6 +136,8 @@
     [data-theme="dark"] .followup-badge { border-color: var(--orange); }
     .early-badge { background: #fff7ed; color: #c2410c; border: 1px solid #fdba74; font-weight: 700; }
     [data-theme="dark"] .early-badge { background: #431407; color: #fdba74; border-color: #7c2d12; }
+    .saved-badge { background: #f5f3ff; color: #7c3aed; border: 1px solid #ddd6fe; }
+    [data-theme="dark"] .saved-badge { background: #2e1065; color: #c4b5fd; border-color: #5b21b6; }
 
     /* ── Action buttons ── */
     .gmail-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 18px; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; background: #1a73e8; color: #fff; border: none; cursor: pointer; min-height: 44px; transition: all .15s; font-family: inherit; }
@@ -142,6 +145,12 @@
     .apply-now { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 20px; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; background: var(--green); color: #fff; border: none; cursor: pointer; min-height: 44px; animation: pulse-green 2s infinite; font-family: inherit; transition: all .15s; }
     .apply-now:hover { background: #15803d; color: #fff; transform: translateY(-1px); }
     @keyframes pulse-green { 0%, 100% { box-shadow: 0 0 0 0 rgba(22,163,74,.4); } 50% { box-shadow: 0 0 0 8px rgba(22,163,74,0); } }
+    .save-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 14px; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; background: var(--card); color: var(--muted); border: 1.5px solid var(--border); cursor: pointer; min-height: 44px; transition: all .15s; font-family: inherit; }
+    .save-btn:hover { background: var(--bg); color: var(--text); border-color: var(--muted); }
+    .save-btn.saved { background: #f5f3ff; color: #7c3aed; border-color: #ddd6fe; }
+    [data-theme="dark"] .save-btn.saved { background: #2e1065; color: #c4b5fd; border-color: #5b21b6; }
+    .save-btn.saved:hover { background: #ede9fe; border-color: #c4b5fd; }
+    [data-theme="dark"] .save-btn.saved:hover { background: #3f1a7a; }
 
     /* ── Skill gap ── */
     .skill-gap { margin: 10px 0 14px; font-size: 12px; }
@@ -254,7 +263,7 @@
       .hamburger { display: flex; }
       .nav { display: none; }
       .user-pill { display: none; }
-      .stats { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+      .stats { grid-template-columns: repeat(3, 1fr); gap: 8px; }
       .stat { padding: 12px; }
       .stat .num { font-size: 20px; }
       .job { padding: 14px; border-radius: var(--radius); }
@@ -343,6 +352,7 @@
         <a class="drawer-link {{ 'active' if active_status == '' }}" href="/dashboard?days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">All CSE Jobs<span class="count">{{ counts.all }}</span></a>
         <a class="drawer-link {{ 'active' if active_status == 'new' }}" href="/dashboard?status=new&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">New<span class="count">{{ counts.new }}</span></a>
         <a class="drawer-link {{ 'active' if active_status == 'applied' }}" href="/dashboard?status=applied&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">Applied<span class="count">{{ counts.applied }}</span></a>
+        <a class="drawer-link {{ 'active' if active_status == 'saved' }}" href="/dashboard?status=saved&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">Saved<span class="count">{{ counts.saved }}</span></a>
         <a class="drawer-link {{ 'active' if active_status == 'dismissed' }}" href="/dashboard?status=dismissed&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">Dismissed<span class="count">{{ counts.dismissed }}</span></a>
       </div>
       <div class="drawer-section">
@@ -403,6 +413,7 @@
           <a class="filter-pill {{ 'active' if active_status == '' }}" href="/dashboard?days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">All CSE Jobs<span class="count">{{ counts.all }}</span></a>
           <a class="filter-pill {{ 'active' if active_status == 'new' }}" href="/dashboard?status=new&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">New<span class="count">{{ counts.new }}</span></a>
           <a class="filter-pill {{ 'active' if active_status == 'applied' }}" href="/dashboard?status=applied&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">Applied<span class="count">{{ counts.applied }}</span></a>
+          <a class="filter-pill {{ 'active' if active_status == 'saved' }}" href="/dashboard?status=saved&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">Saved<span class="count">{{ counts.saved }}</span></a>
           <a class="filter-pill {{ 'active' if active_status == 'dismissed' }}" href="/dashboard?status=dismissed&days={{ active_days }}{% if active_role %}&role={{ active_role }}{% endif %}{% if active_exp %}&exp={{ active_exp }}{% endif %}&sort={{ active_sort }}">Dismissed<span class="count">{{ counts.dismissed }}</span></a>
         </div>
       </div>
@@ -444,6 +455,7 @@
         <div class="stat"><div class="num">{{ counts.new }}</div><div class="label">New</div></div>
         <div class="stat green"><div class="num">{{ counts.applied }}</div><div class="label">Applied</div></div>
         <div class="stat red"><div class="num">{{ counts.dismissed }}</div><div class="label">Dismissed</div></div>
+        <div class="stat purple"><div class="num">{{ counts.saved }}</div><div class="label">Saved</div></div>
       </div>
 
       <div class="toolbar">
@@ -492,7 +504,7 @@
           {% set missing_location = not job.location %}
           {% set missing_description = not job.description %}
           {% set has_missing = missing_salary or missing_deadline or missing_company or missing_location or missing_description %}
-          <div class="job {{ 'perfect-match' if job.user_relevance == 1 and has_skills }} {{ 'fresher' if job.experience_level == 'fresher' }}" id="job-{{ job.id }}" data-missing="{{ 'true' if has_missing else 'false' }}">
+          <div class="job {{ 'perfect-match' if job.user_relevance == 1 and has_skills }} {{ 'fresher' if job.experience_level == 'fresher' }}" id="job-{{ job.id }}" data-missing="{{ 'true' if has_missing else 'false' }}" data-saved="{{ 'true' if job.is_saved else 'false' }}">
             <div class="job-header">
               <div>
                 <div class="job-title">
@@ -506,6 +518,7 @@
                   {% if job.user_relevance == 1 and has_skills %}<span class="badge match-badge">Perfect Match</span>{% endif %}
                   {% if job.deadline_urgency is not none %}<span class="badge deadline-badge">{{ job.deadline_urgency }}d left</span>{% endif %}
                   {% if job.follow_up_needed %}<span class="badge followup-badge">Follow up</span>{% endif %}
+                  {% if job.is_saved %}<span class="badge saved-badge">Saved</span>{% endif %}
                 </div>
               </div>
               <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
@@ -553,6 +566,16 @@
               {% if job.posting_url %}
                 <a class="btn btn-ghost" href="{{ job.posting_url }}" target="_blank" rel="noopener" style="font-size:13px" onclick="trackView({{ job.id }})">View posting</a>
               {% endif %}
+              <button class="save-btn {{ 'saved' if job.is_saved }}" onclick="toggleSave({{ job.id }}, this)" title="{% if job.is_saved %}Remove from saved{% else %}Save for later{% endif %}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  {% if job.is_saved %}
+                  <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+                  {% else %}
+                  <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+                  {% endif %}
+                </svg>
+                <span>{% if job.is_saved %}Saved{% else %}Save{% endif %}</span>
+              </button>
               <select class="status-select" onchange="setStatus({{ job.id }}, this.value)">
                 <option value="new" {{ 'selected' if job.status == 'new' }}>New</option>
                 <option value="applied" {{ 'selected' if job.status == 'applied' }}>Applied</option>
@@ -758,6 +781,40 @@
         });
         location.reload();
       } catch (e) {}
+    }
+
+    async function toggleSave(id, btn) {
+      try {
+        const r = await fetch('/api/jobs/' + id + '/save', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }
+        });
+        const d = await r.json();
+        if (d.ok) {
+          const saved = d.is_saved;
+          btn.classList.toggle('saved', saved);
+          btn.title = saved ? 'Remove from saved' : 'Save for later';
+          btn.querySelector('span').textContent = saved ? 'Saved' : 'Save';
+          const jobEl = document.getElementById('job-' + id);
+          if (jobEl) {
+            jobEl.dataset.saved = saved ? 'true' : 'false';
+            let savedBadge = jobEl.querySelector('.saved-badge');
+            if (saved && !savedBadge) {
+              const meta = jobEl.querySelector('.job-meta');
+              if (meta) {
+                const badge = document.createElement('span');
+                badge.className = 'badge saved-badge';
+                badge.textContent = 'Saved';
+                meta.appendChild(badge);
+              }
+            } else if (!saved && savedBadge) {
+              savedBadge.remove();
+            }
+          }
+          showToast(saved ? 'Job saved' : 'Job removed from saved');
+        }
+      } catch (e) {
+        showToast('Error saving job');
+      }
     }
 
     function getViewedJobs() {

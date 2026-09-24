@@ -13,6 +13,8 @@ import hashlib
 import os
 import subprocess
 
+from typing import Optional
+
 from app.paths import CV_DIR
 
 # Microsoft Word SaveAs format codes
@@ -68,7 +70,7 @@ def _run_convert(src: str, dst: str, save_as_code: int, timeout: int = 120) -> b
         return False
 
 
-def _ensure_docx_template(template_path: str | None) -> str | None:
+def _ensure_docx_template(template_path: Optional[str]) -> Optional[str]:
     """Return a DOCX template path derived from the uploaded CV, or None."""
     if not template_path or not os.path.exists(template_path):
         return None
@@ -384,7 +386,7 @@ def _render_pdf_fallback(job_id: int, path: str, profile: dict, ats: dict) -> st
 # Public API
 # ---------------------------------------------------------------------------
 
-def render_cv_docx(job_id: int, profile: dict, ats: dict, template_path: str | None = None) -> str:
+def render_cv_docx(job_id: int, profile: Dict[str, Any], ats: Dict[str, Any], template_path: Optional[str] = None) -> str:
     path = os.path.join(CV_DIR, _cv_stem(job_id) + ".docx")
     tpl = _ensure_docx_template(template_path)
     if tpl:
@@ -396,7 +398,7 @@ def render_cv_docx(job_id: int, profile: dict, ats: dict, template_path: str | N
     return _render_docx_fallback(job_id, path, profile, ats)
 
 
-def render_cv_pdf(job_id: int, profile: dict, ats: dict, template_path: str | None = None) -> str:
+def render_cv_pdf(job_id: int, profile: Dict[str, Any], ats: Dict[str, Any], template_path: Optional[str] = None) -> str:
     path = os.path.join(CV_DIR, _cv_stem(job_id) + ".pdf")
     docx_path = render_cv_docx(job_id, profile, ats, template_path=template_path)
     if _docx_to_pdf(docx_path, path):

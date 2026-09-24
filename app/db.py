@@ -28,6 +28,7 @@ class UserJob(Base):
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
     job_id = Column(Integer, ForeignKey("jobs.id"), primary_key=True)
     status = Column(String(20), default="new")
+    is_saved = Column(Integer, default=0)  # 1 = saved/bookmarked for later
     cv_path = Column(String(300), default="")
     follow_up_at = Column(DateTime)  # set when status=applied, reminder after 5 days
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -107,6 +108,7 @@ def _migrate_sqlite():
         ("jobs", "hr_email", "VARCHAR(300) DEFAULT ''"),
         ("jobs", "experience_level", "VARCHAR(20) DEFAULT ''"),
         ("user_jobs", "follow_up_at", "DATETIME"),
+        ("user_jobs", "is_saved", "INTEGER DEFAULT 0"),
         ("users", "onboarding_done", "INTEGER DEFAULT 0"),
         ("users", "pref_roles", "TEXT DEFAULT ''"),
         ("users", "pref_days", "INTEGER DEFAULT 30"),
@@ -132,6 +134,7 @@ def _migrate_pg():
             ("jobs", "hr_email", "VARCHAR(300) DEFAULT ''"),
             ("jobs", "experience_level", "VARCHAR(20) DEFAULT ''"),
             ("user_jobs", "follow_up_at", "TIMESTAMP"),
+            ("user_jobs", "is_saved", "INTEGER DEFAULT 0"),
             ("users", "onboarding_done", "INTEGER DEFAULT 0"),
             ("users", "pref_roles", "TEXT DEFAULT ''"),
             ("users", "pref_days", "INTEGER DEFAULT 30"),
@@ -141,7 +144,9 @@ def _migrate_pg():
         conn.commit()
 
 
-def get_or_create_profile(user_id: int, session: "Session | None" = None) -> Profile:
+from typing import Optional
+
+def get_or_create_profile(user_id: int, session: Optional["Session"] = None) -> Profile:
     """Return the Profile row for user_id."""
     owns_session = session is None
     if owns_session:

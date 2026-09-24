@@ -9,6 +9,7 @@ import os
 import re
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
+from typing import Optional, List, Dict, Any
 from urllib.parse import urlparse, parse_qs, urlencode, urljoin
 
 import requests
@@ -114,7 +115,7 @@ def _clean_html(text: str) -> str:
     return _WS_RE.sub(" ", text).strip()
 
 
-def _parse_iso(value: str) -> datetime | None:
+def _parse_iso(value: str) -> Optional[datetime]:
     if not value:
         return None
     try:
@@ -159,7 +160,7 @@ def _ng_state_jobs(html: str) -> list[dict]:
     return jobs
 
 
-def fetch_bdjobs(max_pages: int | None = None) -> list[dict]:
+def fetch_bdjobs(max_pages: Optional[int] = None) -> List[Dict[str, Any]]:
     cfg = load_search_config()
     if max_pages is None:
         max_pages = int(cfg.get("bdjobs_max_pages", 3))
@@ -312,7 +313,7 @@ def _fetch_linkedin_term(term: str, tpr: str) -> list[dict]:
     return found
 
 
-def fetch_linkedin(max_age_days: int | None = None) -> list[dict]:
+def fetch_linkedin(max_age_days: Optional[int] = None) -> List[Dict[str, Any]]:
     if max_age_days is None:
         cfg = load_search_config()
         max_age_days = int(cfg.get("max_age_days", 30))
@@ -361,14 +362,14 @@ def facebook_enabled() -> bool:
     return has_token and has_targets
 
 
-def _facebook_parse_dt(value: str) -> datetime | None:
+def _facebook_parse_dt(value: str) -> Optional[datetime]:
     try:
         return datetime.fromisoformat(value.replace("Z", "+00:00")).replace(tzinfo=None)
     except Exception:
         return None
 
 
-def _facebook_title(msg: str, attachment: dict | None) -> str:
+def _facebook_title(msg: str, attachment: Optional[Dict[str, Any]]) -> str:
     attach_title = ((attachment or {}).get("title") or "").strip()
     if attach_title and len(attach_title) > 4:
         return attach_title[:120]
@@ -504,7 +505,7 @@ def _nextjobz_list_urls(html: str) -> list[str]:
     return []
 
 
-def _nextjobz_parse_job(html: str, url: str) -> dict | None:
+def _nextjobz_parse_job(html: str, url: str) -> Optional[Dict[str, Any]]:
     """Extract JobPosting JSON-LD from a job detail page."""
     try:
         for match in re.finditer(r'<script type="application/ld\+json">(.*?)</script>', html, re.S):
@@ -516,7 +517,7 @@ def _nextjobz_parse_job(html: str, url: str) -> dict | None:
     return None
 
 
-def _nextjobz_to_job(job_ld: dict, url: str) -> dict | None:
+def _nextjobz_to_job(job_ld: Dict[str, Any], url: str) -> Optional[Dict[str, Any]]:
     """Convert JobPosting JSON-LD to our internal job format."""
     try:
         title = _norm(job_ld.get("title"))
@@ -1016,7 +1017,7 @@ def fetch_careers() -> list[dict]:
 
 # ---------------------------------------------------------------------------
 
-def fetch_bangladesh_jobs(max_age_days: int | None = None) -> list[dict]:
+def fetch_bangladesh_jobs(max_age_days: Optional[int] = None) -> List[Dict[str, Any]]:
     """Collect Bangladesh IT jobs from BDJobs + LinkedIn (BD) + NextJobz + company career pages + Facebook."""
     if max_age_days is None:
         cfg = load_search_config()
